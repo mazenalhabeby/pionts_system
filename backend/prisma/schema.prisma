@@ -1,0 +1,357 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Multi-Tenant Platform Models ─────────────────────────────────────
+
+model Organization {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users        User[]
+  projects     Project[]
+  subscription Subscription?
+  invitations  Invitation[]
+
+  @@map("organizations")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  orgId        Int      @map("org_id")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  role         String   @default("owner") // owner | member
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  org            Organization    @relation(fields: [orgId], references: [id])
+  projectMembers ProjectMember[]
+  invitations    Invitation[]
+
+  @@map("users")
+}
+
+model Project {
+  id               Int      @id @default(autoincrement())
+  orgId            Int      @map("org_id")
+  name             String
+  domain           String?
+  platform         String   @default("custom") // shopify | wordpress | custom | other
+  hmacSecret       String?  @map("hmac_secret")
+  status           String   @default("active") // active | paused | archived
+  pointsEnabled    Boolean  @default(true)  @map("points_enabled")
+  referralsEnabled Boolean  @default(true)  @map("referrals_enabled")
+  partnersEnabled  Boolean  @default(false) @map("partners_enabled")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  org             Organization     @relation(fields: [orgId], references: [id])
+  apiKeys         ApiKey[]
+  customers       Customer[]
+  pointsLogs      PointsLog[]
+  referralTrees   ReferralTree[]
+  redemptions     Redemption[]
+  processedOrders ProcessedOrder[]
+  settings        Setting[]
+  members         ProjectMember[]
+  invitations     Invitation[]
+  earnActions     EarnAction[]
+  redemptionTiers RedemptionTier[]
+  referralLevels  ReferralLevel[]
+  partnerEarnings PartnerEarning[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  userId    Int      @map("user_id")
+  role      String   @default("viewer") // admin | editor | viewer
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+model ApiKey {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  type      String   // public | secret
+  keyHash   String   @map("key_hash")
+  keyPrefix String   @map("key_prefix") // first 12 chars for display
+  label     String   @default("Default")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("api_keys")
+}
+
+// ── Per-Project Data Models ──────────────────────────────────────────
+
+model Customer {
+  id                   Int       @id @default(autoincrement())
+  projectId            Int       @map("project_id")
+  shopifyCustomerId    String?   @unique @map("shopify_customer_id")
+  email                String
+  name                 String?
+  referralCode         String    @map("referral_code")
+  referredBy           String?   @map("referred_by")
+  pointsBalance        Int       @default(0) @map("points_balance")
+  pointsEarnedTotal    Int       @default(0) @map("points_earned_total")
+  orderCount           Int       @default(0) @map("order_count")
+  signupRewarded       Boolean   @default(false) @map("signup_rewarded")
+  firstOrderRewarded   Boolean   @default(false) @map("first_order_rewarded")
+  followedTiktok       Boolean   @default(false) @map("followed_tiktok")
+  followedInstagram    Boolean   @default(false) @map("followed_instagram")
+  birthday             String?
+  birthdayRewardedYear Int       @default(0) @map("birthday_rewarded_year")
+  emailVerified        Boolean   @default(false) @map("email_verified")
+  verificationCode     String?   @map("verification_code")
+  verificationExpiry   String?   @map("verification_expiry")
+  isPartner            Boolean   @default(false) @map("is_partner")
+  partnerCommissionPct Decimal?  @map("partner_commission_pct") @db.Decimal(5, 2)
+  partnerCreditBalance Decimal   @default(0) @map("partner_credit_balance") @db.Decimal(10, 2)
+  createdAt            DateTime  @default(now()) @map("created_at")
+  lastActivity         DateTime  @default(now()) @map("last_activity")
+
+  project                   Project            @relation(fields: [projectId], references: [id])
+  pointsLogs                PointsLog[]
+  redemptions               Redemption[]
+  referralTreeAsCustomer    ReferralTree?      @relation("CustomerTree")
+  referralTreeAsParent      ReferralTree[]     @relation("ParentTree")
+  actionLogs                CustomerActionLog[]
+  partnerEarningsAsPartner  PartnerEarning[]   @relation("PartnerEarnings")
+  partnerEarningsAsCustomer PartnerEarning[]   @relation("PartnerCustomerOrders")
+
+  @@unique([projectId, email])
+  @@unique([projectId, referralCode])
+  @@index([projectId, lastActivity])
+  @@index([projectId, createdAt])
+  @@map("customers")
+}
+
+model PointsLog {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  customerId  Int      @map("customer_id")
+  points      Int
+  type        String
+  description String?
+  orderId     String?  @map("order_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  project  Project  @relation(fields: [projectId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId, createdAt])
+  @@index([orderId])
+  @@index([projectId, createdAt])
+  @@index([projectId, type, createdAt])
+  @@map("points_log")
+}
+
+model ReferralTree {
+  id         Int @id @default(autoincrement())
+  projectId  Int @map("project_id")
+  customerId Int @unique @map("customer_id")
+  parentId   Int @map("parent_id")
+
+  project  Project  @relation(fields: [projectId], references: [id])
+  customer Customer @relation("CustomerTree", fields: [customerId], references: [id])
+  parent   Customer @relation("ParentTree", fields: [parentId], references: [id])
+
+  @@unique([projectId, customerId])
+  @@index([parentId])
+  @@map("referral_tree")
+}
+
+model Redemption {
+  id             Int      @id @default(autoincrement())
+  projectId      Int      @map("project_id")
+  customerId     Int      @map("customer_id")
+  pointsSpent    Int      @map("points_spent")
+  discountAmount Decimal  @map("discount_amount")
+  discountCode   String   @unique @map("discount_code")
+  used           Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  project  Project  @relation(fields: [projectId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@map("redemptions")
+}
+
+model ProcessedOrder {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  orderId     String   @map("order_id")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, orderId])
+  @@map("processed_orders")
+}
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  key       String
+  value     String?
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, key])
+  @@map("settings")
+}
+
+model EmailQueue {
+  id         Int      @id @default(autoincrement())
+  projectId  Int      @map("project_id")
+  customerId Int      @map("customer_id")
+  type       String
+  payload    String   // JSON
+  createdAt  DateTime @default(now()) @map("created_at")
+  sent       Boolean  @default(false)
+
+  @@index([projectId, sent, createdAt])
+  @@map("email_queue")
+}
+
+model Subscription {
+  id                   Int       @id @default(autoincrement())
+  orgId                Int       @unique @map("org_id")
+  stripeCustomerId     String    @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?   @unique @map("stripe_subscription_id")
+  plan                 String    @default("free")
+  status               String    @default("active")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@map("subscriptions")
+}
+
+// ── Dynamic Module Models ────────────────────────────────────────────
+
+model EarnAction {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  slug      String
+  label     String
+  points    Int      @default(0)
+  category  String   // "predefined" | "social_follow" | "custom"
+  frequency String   // "one_time" | "repeatable" | "yearly"
+  enabled   Boolean  @default(true)
+  socialUrl String?  @map("social_url")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, slug])
+  @@index([projectId, enabled])
+  @@map("earn_actions")
+}
+
+model CustomerActionLog {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  customerId  Int      @map("customer_id")
+  actionSlug  String   @map("action_slug")
+  completedAt DateTime @default(now()) @map("completed_at")
+  year        Int?
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@unique([projectId, customerId, actionSlug, year])
+  @@index([projectId, customerId])
+  @@map("customer_action_log")
+}
+
+model RedemptionTier {
+  id        Int     @id @default(autoincrement())
+  projectId Int     @map("project_id")
+  points    Int
+  discount  Decimal
+  sortOrder Int     @default(0) @map("sort_order")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("redemption_tiers")
+}
+
+model ReferralLevel {
+  id        Int @id @default(autoincrement())
+  projectId Int @map("project_id")
+  level     Int
+  points    Int
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, level])
+  @@map("referral_levels")
+}
+
+model PartnerEarning {
+  id            Int      @id @default(autoincrement())
+  projectId     Int      @map("project_id")
+  partnerId     Int      @map("partner_id")
+  customerId    Int      @map("customer_id")
+  orderId       String   @map("order_id")
+  orderTotal    Decimal  @map("order_total") @db.Decimal(10, 2)
+  commissionPct Decimal  @map("commission_pct") @db.Decimal(5, 2)
+  amountEarned  Decimal  @map("amount_earned") @db.Decimal(10, 2)
+  rewardType    String   @map("reward_type") // "points" | "credit"
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  project  Project  @relation(fields: [projectId], references: [id])
+  partner  Customer @relation("PartnerEarnings", fields: [partnerId], references: [id])
+  customer Customer @relation("PartnerCustomerOrders", fields: [customerId], references: [id])
+
+  @@index([projectId, partnerId])
+  @@map("partner_earnings")
+}
+
+model Invitation {
+  id          Int       @id @default(autoincrement())
+  orgId       Int       @map("org_id")
+  projectId   Int?      @map("project_id")
+  email       String
+  role        String
+  token       String    @unique
+  invitedById Int       @map("invited_by_id")
+  status      String    @default("pending") // pending | accepted | expired | revoked
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  org       Organization @relation(fields: [orgId], references: [id])
+  project   Project?     @relation(fields: [projectId], references: [id])
+  invitedBy User         @relation(fields: [invitedById], references: [id])
+
+  @@index([orgId, status])
+  @@index([email, status])
+  @@map("invitations")
+}

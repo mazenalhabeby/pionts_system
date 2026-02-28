@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pionts SDK Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    h1 { color: #333; }
+    .config { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .config label { display: block; margin: 8px 0 4px; font-weight: 600; }
+    .config input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    .controls { margin: 20px 0; }
+    .controls button { padding: 10px 20px; margin-right: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn-init { background: #ff3c00; color: white; }
+    .btn-open { background: #333; color: white; }
+    .btn-close { background: #666; color: white; }
+    .btn-destroy { background: #cc0000; color: white; }
+    pre { background: #1a1a1a; color: #0f0; padding: 16px; border-radius: 8px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Pionts SDK Test Page</h1>
+
+  <div class="config">
+    <h3>Configuration</h3>
+    <label>API Base URL</label>
+    <input id="apiBase" value="http://localhost:3000" />
+    <label>Project Key (pk_live_...)</label>
+    <input id="projectKey" placeholder="pk_live_..." />
+    <label>Customer Email</label>
+    <input id="email" placeholder="test@example.com" />
+    <label>Customer HMAC</label>
+    <input id="hmac" placeholder="hex string..." />
+    <label>Mode</label>
+    <input id="mode" value="floating" />
+  </div>
+
+  <div class="controls">
+    <button class="btn-init" onclick="initWidget()">Init Widget</button>
+    <button class="btn-open" onclick="Loyalty.open()">Open</button>
+    <button class="btn-close" onclick="Loyalty.close()">Close</button>
+    <button class="btn-destroy" onclick="Loyalty.destroy()">Destroy</button>
+  </div>
+
+  <h3>How to generate HMAC for testing:</h3>
+  <pre>
+# Node.js one-liner:
+node -e "const crypto = require('crypto'); \
+  console.log(crypto.createHmac('sha256', 'YOUR_HMAC_SECRET') \
+  .update('test@example.com').digest('hex'))"
+  </pre>
+
+  <script src="dist/loyalty.js"></script>
+  <script>
+    function initWidget() {
+      const apiBase = document.getElementById('apiBase').value;
+      const config = {
+        projectKey: document.getElementById('projectKey').value,
+        apiBase: apiBase,
+        widgetUrl: apiBase,
+        mode: document.getElementById('mode').value,
+      };
+
+      const email = document.getElementById('email').value;
+      const hmac = document.getElementById('hmac').value;
+      if (email && hmac) {
+        config.customer = { email, hmac };
+      }
+
+      console.log('[Test] Initializing with config:', config);
+      Loyalty.init(config);
+    }
+  </script>
+</body>
+</html>

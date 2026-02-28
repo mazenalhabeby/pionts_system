@@ -1,0 +1,167 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            admin-ui/package-lock.json
+            client-ui/package-lock.json
+            shared/package-lock.json
+
+      - name: Install shared
+        run: cd shared && npm ci
+
+      - name: Typecheck shared
+        run: cd shared && npx tsc --noEmit
+
+      - name: Install backend
+        run: cd backend && npm ci
+
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+
+      - name: Typecheck backend
+        run: cd backend && npx tsc --noEmit
+
+      - name: Install admin-ui
+        run: cd admin-ui && npm ci
+
+      - name: Typecheck admin-ui
+        run: cd admin-ui && npx tsc --noEmit
+
+      - name: Install client-ui
+        run: cd client-ui && npm ci
+
+      - name: Typecheck client-ui
+        run: cd client-ui && npx tsc --noEmit
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pionts_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install
+        run: cd backend && npm ci
+
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+
+      - name: Run migrations on test DB
+        run: cd backend && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pionts_test
+
+      - name: Unit tests
+        run: cd backend && npm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pionts_test
+          JWT_SECRET: test-jwt-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+
+      - name: E2E tests
+        run: cd backend && npm run test:e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pionts_test
+          JWT_SECRET: test-jwt-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            shared/package-lock.json
+            admin-ui/package-lock.json
+            client-ui/package-lock.json
+
+      - name: Install & test shared
+        run: cd shared && npm ci && npx vitest run
+
+      - name: Install & test admin-ui
+        run: cd admin-ui && npm ci && npx vitest run
+
+      - name: Install & test client-ui
+        run: cd client-ui && npm ci && npx vitest run
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, backend-tests, frontend-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Build backend
+        run: cd backend && npm ci && npx prisma generate && npm run build
+
+      - name: Build admin-ui
+        run: cd admin-ui && npm ci && npm run build
+
+      - name: Build client-ui (SPA)
+        run: cd client-ui && npm ci && npm run build
+
+      - name: Build client-ui (UMD)
+        run: cd client-ui && npm run build:umd
+
+      - name: Build SDK
+        run: cd sdk && npm ci && npm run build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /opt/pionts
+            git pull origin main
+            cd backend && npm ci && npx prisma generate && npx prisma migrate deploy && npm run build
+            cd ../admin-ui && npm ci && npm run build
+            cd ../client-ui && npm ci && npm run build && npm run build:umd
+            cd ../sdk && npm ci && npm run build
+            pm2 restart pionts

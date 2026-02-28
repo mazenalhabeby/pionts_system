@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.db
+admin-ui/dist/
+backend/dist/
+client-ui/dist/

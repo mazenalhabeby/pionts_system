@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-umd
+.env
+.env.*
+*.log
+.git
+.github
+.vscode
+coverage

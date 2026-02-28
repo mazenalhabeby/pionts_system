@@ -1,0 +1,14 @@
+{
+  "name": "8bc-rewards",
+  "version": "2.0.0",
+  "description": "8BC Crew Rewards — Loyalty + Referral system for 8bc.store",
+  "private": true,
+  "scripts": {
+    "start": "cd backend && node dist/main.js",
+    "dev": "cd backend && npm run start:dev",
+    "build": "npm run build:client && npm run build:admin && npm run build:backend",
+    "build:client": "cd client-ui && npm run build",
+    "build:admin": "cd admin-ui && npm run build",
+    "build:backend": "cd backend && npm run build"
+  }
+}

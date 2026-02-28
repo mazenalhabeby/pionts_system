@@ -1,0 +1,239 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--pionts-primary, #ff3c00);
+  --color-primary-hover: var(--pionts-primary-hover, #e63500);
+  --color-bg: var(--pionts-bg, #f5f5f5);
+  --color-text: var(--pionts-text, #1a1a1a);
+  --font-sans: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Base styles */
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--pionts-bg);
+  color: var(--pionts-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Links */
+a {
+  color: var(--pionts-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Branch entrance animation */
+@keyframes ntSlideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Network Tree structural styles that require pseudo-elements ── */
+
+/* Tree container — vertical connector from root */
+.nt-tree {
+  padding: 12px 0 4px 28px;
+  border-left: 2px solid #eaeaea;
+  margin-left: 37px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.nt-tree::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -2px;
+  width: 2px;
+  height: 20px;
+  background: linear-gradient(to bottom, #555, #eaeaea);
+}
+
+/* Branch wrapper — horizontal connector + junction dot */
+.nt-branch {
+  position: relative;
+}
+
+.nt-branch::before {
+  content: '';
+  position: absolute;
+  top: 22px;
+  left: -28px;
+  width: 22px;
+  height: 2px;
+  background: #eaeaea;
+}
+
+.nt-branch::after {
+  content: '';
+  position: absolute;
+  top: 17px;
+  left: -8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #ddd;
+  z-index: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Junction dot colors per depth */
+.nt-branch.nt-d0::after { background: var(--pionts-primary); }
+.nt-branch.nt-d1::after { background: #0ea5e9; }
+.nt-branch.nt-d2::after { background: #6366f1; }
+
+/* Branch entrance animation class */
+.nt-branch-anim {
+  animation: ntSlideIn 0.3s ease both;
+}
+
+/* Network card depth-specific gradients */
+.nt-card-d0 { background: linear-gradient(135deg, #fff8f6, #fff); border: 1px solid #ffe0d6; }
+.nt-card-d0:hover { box-shadow: 0 4px 20px rgba(255, 60, 0, 0.08); }
+.nt-card-d1 { background: linear-gradient(135deg, #f4fbff, #fff); border: 1px solid #d4edfc; }
+.nt-card-d1:hover { box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08); }
+.nt-card-d2 { background: linear-gradient(135deg, #f6f5ff, #fff); border: 1px solid #ddd8fe; }
+.nt-card-d2:hover { box-shadow: 0 4px 20px rgba(99, 102, 241, 0.08); }
+
+/* Accent stripe gradients */
+.nt-accent-d0 { background: linear-gradient(90deg, var(--pionts-primary), #ff8a65, transparent 80%); }
+.nt-accent-d1 { background: linear-gradient(90deg, #0ea5e9, #7dd3fc, transparent 80%); }
+.nt-accent-d2 { background: linear-gradient(90deg, #6366f1, #c4b5fd, transparent 80%); }
+
+/* Avatar wrapper gradients */
+.nt-ava-wrap-d0 { background: linear-gradient(135deg, var(--pionts-primary), #ffab91); }
+.nt-ava-wrap-d1 { background: linear-gradient(135deg, #0ea5e9, #bae6fd); }
+.nt-ava-wrap-d2 { background: linear-gradient(135deg, #6366f1, #ddd6fe); }
+
+/* Avatar wrapper glow on card hover */
+.nt-card-d0:hover .nt-ava-wrap-d0 { box-shadow: 0 0 18px rgba(255, 60, 0, 0.25); }
+.nt-card-d1:hover .nt-ava-wrap-d1 { box-shadow: 0 0 18px rgba(14, 165, 233, 0.25); }
+.nt-card-d2:hover .nt-ava-wrap-d2 { box-shadow: 0 0 18px rgba(99, 102, 241, 0.2); }
+
+/* Avatar inner gradients */
+.nt-ava-d0 { background: linear-gradient(140deg, #ff5722, #d84315); }
+.nt-ava-d1 { background: linear-gradient(140deg, #29b6f6, #0277bd); }
+.nt-ava-d2 { background: linear-gradient(140deg, #7c4dff, #4527a0); }
+
+/* Level badge depth colors */
+.nt-lvl-d0 { color: #e53600; background: #fff1ed; }
+.nt-lvl-d1 { color: #0284c7; background: #eff8ff; }
+.nt-lvl-d2 { color: #5b21b6; background: #f3f0ff; }
+
+/* Children container — animated expand/collapse */
+.nt-kids {
+  margin-left: 16px;
+  padding-left: 24px;
+  border-left: 2px solid #eaeaea;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s ease,
+              padding 0.3s ease;
+  padding-top: 0;
+}
+
+.nt-kids-open {
+  max-height: 5000px;
+  opacity: 1;
+  padding-top: 6px;
+}
+
+/* Depth-colored connector lines for children */
+.nt-kids-d0 { border-left-color: rgba(255, 60, 0, 0.15); }
+.nt-kids-d1 { border-left-color: rgba(14, 165, 233, 0.15); }
+.nt-kids-d2 { border-left-color: rgba(99, 102, 241, 0.15); }
+
+/* Legend dot depth colors */
+.nt-legend-dot-d0 { background: var(--pionts-primary); }
+.nt-legend-dot-d1 { background: #0ea5e9; }
+.nt-legend-dot-d2 { background: #6366f1; }
+
+/* Root node gradient */
+.nt-root-bg {
+  background: linear-gradient(135deg, #1a1a1a, #333);
+}
+
+/* Root avatar gradient + glow */
+.nt-root-ava-bg {
+  background: linear-gradient(135deg, var(--pionts-primary), #ff6a3d);
+  box-shadow: 0 0 16px rgba(255, 60, 0, 0.35);
+}
+
+/* Nav brand mark gradient */
+.nav-brand-mark-bg {
+  background: linear-gradient(135deg, var(--pionts-primary), #ff6a00);
+}
+
+/* Tab active underline via pseudo-element */
+.tab-active-indicator::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--pionts-primary);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Scrollbar styling for activity list inside dash-grid */
+.activity-list-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.activity-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.activity-list-scroll::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 2px;
+}
+.activity-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}
+
+/* Floating panel transition */
+.pionts-panel-slide {
+  transition: right 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dash-grid-responsive {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .nt-tree {
+    padding-left: 20px;
+    margin-left: 32px;
+  }
+
+  .nt-kids {
+    margin-left: 10px;
+    padding-left: 16px;
+  }
+
+  .nt-branch::before {
+    left: -20px;
+    width: 14px;
+  }
+
+  .nt-branch::after {
+    left: -7px;
+    width: 10px;
+    height: 10px;
+  }
+}
