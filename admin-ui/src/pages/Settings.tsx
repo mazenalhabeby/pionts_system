@@ -7,7 +7,6 @@ import PointsTab from './settings/PointsTab';
 import ReferralsTab from './settings/ReferralsTab';
 import PartnersTab from './settings/PartnersTab';
 import GamificationTab from './settings/GamificationTab';
-import WidgetTab from './settings/WidgetTab';
 import EmailTab from './settings/EmailTab';
 import ProjectTeam from './settings/ProjectTeam';
 
@@ -81,7 +80,6 @@ export default function Settings() {
         {activeTab === 'referrals' && <ReferralsTab pid={pid} canEdit={canEdit} />}
         {activeTab === 'partners' && <PartnersTab pid={pid} canEdit={canEdit} />}
         {activeTab === 'gamification' && <GamificationTab pid={pid} canEdit={canEdit} />}
-        {activeTab === 'widget' && <WidgetTab pid={pid} canEdit={canEdit} />}
         {activeTab === 'email' && <EmailTab pid={pid} canEdit={canEdit} />}
         {activeTab === 'team' && <ProjectTeam />}
       </div>

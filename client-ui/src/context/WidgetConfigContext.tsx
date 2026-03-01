@@ -1,8 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { useAuth } from './AuthContext';
 import { useWidget } from './WidgetContext';
-import { api as standaloneApi } from '../api';
-import { SOCIAL_URLS, STORE_URL, LEVEL_LABELS, LEVEL_EARN } from '../constants';
 import type { WidgetApi, CustomerData, ProjectSettings, SdkConfig, ReferralLevelConfig } from '@pionts/shared';
 
 /**
@@ -32,7 +29,6 @@ function buildReferralLevelSettings(
 }
 
 interface WidgetConfigContextValue {
-  mode: 'standalone' | 'sdk';
   authenticated: boolean | null;
   loading?: boolean;
   login: (email: string, code: string) => Promise<void>;
@@ -47,58 +43,9 @@ interface WidgetConfigContextValue {
 const WidgetConfigContext = createContext<WidgetConfigContextValue | null>(null);
 
 /**
- * StandaloneConfigProvider -- wraps the existing session-based SPA mode.
- * Provides the same interface as SdkConfigProvider for page components.
+ * WidgetConfigProvider -- wraps the SDK/UMD mode with WidgetContext.
  */
-export function StandaloneConfigProvider({ children }: { children: React.ReactNode }) {
-  const { authenticated, login, logout } = useAuth();
-
-  const settings = useMemo<ProjectSettings>(() => ({
-    referral_base_url: STORE_URL,
-    social_tiktok_url: SOCIAL_URLS.tiktok,
-    social_instagram_url: SOCIAL_URLS.instagram,
-    widget_primary_color: '#ff3c00',
-    widget_bg_color: '#f5f5f5',
-    widget_text_color: '#1a1a1a',
-    widget_brand_name: '8BC CREW',
-    level_labels: LEVEL_LABELS,
-    level_earn: LEVEL_EARN,
-  }), []);
-
-  const api = useMemo<WidgetApi>(() => ({
-    getCustomer: standaloneApi.getCustomer,
-    redeem: standaloneApi.redeem,
-    award: standaloneApi.award,
-    getMyReferrals: standaloneApi.getMyReferrals,
-    getMyRedemptions: standaloneApi.getMyRedemptions,
-    sendCode: standaloneApi.sendCode,
-    verifyCode: standaloneApi.verifyCode,
-    getLeaderboard: standaloneApi.getLeaderboard,
-  }), []);
-
-  const refresh = useMemo(() => () => {}, []);
-
-  const value = useMemo<WidgetConfigContextValue>(() => ({
-    mode: 'standalone',
-    authenticated,
-    login,
-    logout,
-    settings,
-    api,
-    refresh,
-  }), [authenticated, login, logout, settings, api, refresh]);
-
-  return (
-    <WidgetConfigContext.Provider value={value}>
-      {children}
-    </WidgetConfigContext.Provider>
-  );
-}
-
-/**
- * SdkConfigProvider -- wraps the SDK/UMD mode with WidgetContext.
- */
-export function SdkConfigProvider({ children }: { children: React.ReactNode }) {
+export function WidgetConfigProvider({ children }: { children: React.ReactNode }) {
   const { config, customer, settings: rawSettings, loading, authenticated, api, login, logout, refresh } = useWidget();
 
   const settings = useMemo<ProjectSettings | null>(() => {
@@ -125,7 +72,6 @@ export function SdkConfigProvider({ children }: { children: React.ReactNode }) {
   }, [rawSettings, customer?.referral_levels]);
 
   const value = useMemo<WidgetConfigContextValue>(() => ({
-    mode: 'sdk',
     authenticated,
     loading,
     login,
@@ -146,6 +92,6 @@ export function SdkConfigProvider({ children }: { children: React.ReactNode }) {
 
 export function useWidgetConfig(): WidgetConfigContextValue {
   const ctx = useContext(WidgetConfigContext);
-  if (!ctx) throw new Error('useWidgetConfig must be used within a ConfigProvider');
+  if (!ctx) throw new Error('useWidgetConfig must be used within a WidgetConfigProvider');
   return ctx;
 }

@@ -22,21 +22,21 @@ describe('OrgsService', () => {
   });
 
   describe('getOrg', () => {
-    it('should return org with user and project counts', async () => {
+    it('should return org with membership and project counts', async () => {
       prisma.organization.findUnique.mockResolvedValue({
         id: 1, name: 'Test Org', slug: 'test-org',
-        _count: { users: 3, projects: 2 },
+        _count: { memberships: 3, projects: 2 },
       });
 
       const result = await service.getOrg(1);
 
       expect(result).toBeDefined();
       expect(result!.name).toBe('Test Org');
-      expect(result!._count.users).toBe(3);
+      expect(result!._count.memberships).toBe(3);
       expect(result!._count.projects).toBe(2);
       expect(prisma.organization.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
-        include: { _count: { select: { users: true, projects: true } } },
+        include: { _count: { select: { memberships: true, projects: true } } },
       });
     });
   });
@@ -56,84 +56,79 @@ describe('OrgsService', () => {
   });
 
   describe('getMembers', () => {
-    it('should return members sorted by createdAt asc', async () => {
-      const members = [
-        { id: 1, email: 'a@test.com', name: 'A', role: 'owner', createdAt: new Date('2024-01-01') },
-        { id: 2, email: 'b@test.com', name: 'B', role: 'member', createdAt: new Date('2024-01-02') },
+    it('should return members sorted by createdAt asc via orgMembership', async () => {
+      const memberships = [
+        { id: 1, role: 'owner', createdAt: new Date('2024-01-01'), user: { id: 1, email: 'a@test.com', name: 'A', createdAt: new Date('2024-01-01') } },
+        { id: 2, role: 'member', createdAt: new Date('2024-01-02'), user: { id: 2, email: 'b@test.com', name: 'B', createdAt: new Date('2024-01-02') } },
       ];
-      prisma.user.findMany.mockResolvedValue(members);
+      prisma.orgMembership.findMany.mockResolvedValue(memberships);
 
       const result = await service.getMembers(1);
 
       expect(result).toHaveLength(2);
       expect(result[0].email).toBe('a@test.com');
-      expect(prisma.user.findMany).toHaveBeenCalledWith({
-        where: { orgId: 1 },
-        select: { id: true, email: true, name: true, role: true, createdAt: true },
-        orderBy: { createdAt: 'asc' },
-      });
+      expect(result[0].role).toBe('owner');
+      expect(result[1].role).toBe('member');
     });
   });
 
   describe('addMember', () => {
-    it('should create a new member with hashed password', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.create.mockImplementation(async ({ data }) => ({
-        id: 2, email: data.email, name: data.name, role: data.role, createdAt: new Date(),
-      }));
+    it('should add an existing user to org via orgMembership', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 2, email: 'new@test.com', name: 'New User', createdAt: new Date() });
+      prisma.orgMembership.findUnique.mockResolvedValue(null);
+      prisma.orgMembership.create.mockResolvedValue({ id: 1, userId: 2, orgId: 1, role: 'member' });
 
-      const result = await service.addMember(1, 'new@test.com', 'password123', 'New User', 'member');
+      const result = await service.addMember(1, 'new@test.com', 'member');
 
       expect(result.email).toBe('new@test.com');
       expect(result.role).toBe('member');
-      expect(prisma.user.create).toHaveBeenCalled();
-      // Verify password was hashed (not stored as plaintext)
-      const createCall = prisma.user.create.mock.calls[0][0];
-      expect(createCall.data.passwordHash).not.toBe('password123');
+      expect(prisma.orgMembership.create).toHaveBeenCalledWith({
+        data: { userId: 2, orgId: 1, role: 'member' },
+      });
     });
 
-    it('should throw ConflictException for duplicate email', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 1, email: 'dup@test.com' });
-
-      await expect(
-        service.addMember(1, 'dup@test.com', 'password123', 'Dup', 'member'),
-      ).rejects.toThrow(ConflictException);
-    });
-
-    it('should accept null name', async () => {
+    it('should throw BadRequestException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.create.mockImplementation(async ({ data }) => ({
-        id: 2, email: data.email, name: data.name, role: data.role, createdAt: new Date(),
-      }));
 
-      const result = await service.addMember(1, 'noname@test.com', 'password123', undefined, 'member');
-
-      const createCall = prisma.user.create.mock.calls[0][0];
-      expect(createCall.data.name).toBeNull();
+      await expect(
+        service.addMember(1, 'nobody@test.com', 'member'),
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should reject admin role (now project-level only)', async () => {
+    it('should throw ConflictException if user already in org', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 2, email: 'dup@test.com', name: 'Dup', createdAt: new Date() });
+      prisma.orgMembership.findUnique.mockResolvedValue({ id: 1, userId: 2, orgId: 1, role: 'member' });
+
       await expect(
-        service.addMember(1, 'new@test.com', 'password123', 'New User', 'admin'),
-      ).rejects.toThrow(BadRequestException);
+        service.addMember(1, 'dup@test.com', 'member'),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should reject invalid role values', async () => {
       await expect(
-        service.addMember(1, 'new@test.com', 'password123', 'New User', 'superadmin'),
+        service.addMember(1, 'new@test.com', 'superadmin'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject admin role (now project-level only)', async () => {
+      await expect(
+        service.addMember(1, 'new@test.com', 'admin'),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('removeMember', () => {
-    it('should delete a member successfully', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 2, orgId: 1, role: 'member' });
-      prisma.user.delete.mockResolvedValue({ id: 2 });
+    it('should delete org membership successfully', async () => {
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 2, orgId: 1, role: 'member' });
+      prisma.orgMembership.delete.mockResolvedValue({ userId: 2, orgId: 1 });
+      prisma.project.findMany.mockResolvedValue([]);
 
       const result = await service.removeMember(1, 2, 1);
 
       expect(result).toEqual({ success: true });
-      expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 2 } });
+      expect(prisma.orgMembership.delete).toHaveBeenCalledWith({
+        where: { userId_orgId: { userId: 2, orgId: 1 } },
+      });
     });
 
     it('should throw BadRequestException for self-deletion', async () => {
@@ -143,24 +138,16 @@ describe('OrgsService', () => {
     });
 
     it('should throw BadRequestException if member not in org', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 2, orgId: 99, role: 'member' });
+      prisma.orgMembership.findUnique.mockResolvedValue(null);
 
       await expect(
         service.removeMember(1, 2, 1),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException if member not found', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.removeMember(1, 999, 1),
-      ).rejects.toThrow(BadRequestException);
-    });
-
     it('should throw BadRequestException if removing last owner', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 2, orgId: 1, role: 'owner' });
-      prisma.user.count.mockResolvedValue(1);
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 2, orgId: 1, role: 'owner' });
+      prisma.orgMembership.count.mockResolvedValue(1);
 
       await expect(
         service.removeMember(1, 2, 3),
@@ -168,13 +155,27 @@ describe('OrgsService', () => {
     });
 
     it('should allow removing an owner when multiple owners exist', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 2, orgId: 1, role: 'owner' });
-      prisma.user.count.mockResolvedValue(2);
-      prisma.user.delete.mockResolvedValue({ id: 2 });
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 2, orgId: 1, role: 'owner' });
+      prisma.orgMembership.count.mockResolvedValue(2);
+      prisma.orgMembership.delete.mockResolvedValue({ userId: 2, orgId: 1 });
+      prisma.project.findMany.mockResolvedValue([]);
 
       const result = await service.removeMember(1, 2, 3);
 
       expect(result).toEqual({ success: true });
+    });
+
+    it('should also remove project memberships for the org projects', async () => {
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 2, orgId: 1, role: 'member' });
+      prisma.orgMembership.delete.mockResolvedValue({ userId: 2, orgId: 1 });
+      prisma.project.findMany.mockResolvedValue([{ id: 5 }, { id: 6 }]);
+      prisma.projectMember.deleteMany.mockResolvedValue({ count: 2 });
+
+      await service.removeMember(1, 2, 1);
+
+      expect(prisma.projectMember.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 2, projectId: { in: [5, 6] } },
+      });
     });
   });
 });

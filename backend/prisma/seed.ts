@@ -33,11 +33,12 @@ async function clearAll() {
   await prisma.customer.deleteMany();
   await prisma.apiKey.deleteMany();
   await prisma.project.deleteMany();
+  await prisma.orgMembership.deleteMany();
   await prisma.user.deleteMany();
   await prisma.organization.deleteMany();
 
   const tables = [
-    'organizations', 'users', 'projects', 'customers', 'api_keys',
+    'organizations', 'users', 'org_memberships', 'projects', 'customers', 'api_keys',
     'referral_tree', 'points_log', 'redemptions', 'processed_orders',
     'settings', 'email_queue', 'subscriptions', 'project_members',
     'earn_actions', 'customer_action_log', 'redemption_tiers', 'referral_levels', 'partner_earnings',
@@ -58,27 +59,30 @@ async function seedBrewBean() {
   const memberHash = await bcrypt.hash('member', 10);
 
   const owner = await prisma.user.create({
-    data: { orgId: org.id, email: 'admin@brewbean.com', passwordHash, name: 'Marcus Rivera', role: 'owner' },
+    data: { email: 'admin@brewbean.com', passwordHash, name: 'Marcus Rivera' },
   });
+  await prisma.orgMembership.create({ data: { userId: owner.id, orgId: org.id, role: 'owner' } });
 
   const member = await prisma.user.create({
-    data: { orgId: org.id, email: 'barista@brewbean.com', passwordHash: memberHash, name: 'Jade Thompson', role: 'member' },
+    data: { email: 'barista@brewbean.com', passwordHash: memberHash, name: 'Jade Thompson' },
   });
+  await prisma.orgMembership.create({ data: { userId: member.id, orgId: org.id, role: 'member' } });
+
+  // API keys (declared early so hmacSecret can reference secKey)
+  const pubKey = 'pk_live_brew_test_public_key_001';
+  const secKey = 'sk_live_brew_test_secret_key_001';
 
   const project = await prisma.project.create({
     data: {
       orgId: org.id, name: 'Brew Rewards', domain: 'brewbean.com', platform: 'custom',
       pointsEnabled: true, referralsEnabled: true, partnersEnabled: true,
+      hmacSecret: secKey,
     },
   });
   const pid = project.id;
 
   // Project member
   await prisma.projectMember.create({ data: { projectId: pid, userId: member.id, role: 'editor' } });
-
-  // API keys
-  const pubKey = 'pk_live_brew_test_public_key_001';
-  const secKey = 'sk_live_brew_test_secret_key_001';
   await prisma.apiKey.createMany({
     data: [
       { projectId: pid, type: 'public', keyHash: hashKey(pubKey), keyPrefix: pubKey.substring(0, 12), label: 'Default' },
@@ -612,19 +616,22 @@ async function seedVelvet() {
 
   const passwordHash = await bcrypt.hash('admin', 10);
   const owner = await prisma.user.create({
-    data: { orgId: org.id, email: 'hello@velvetfashion.com', passwordHash, name: 'Priya Sharma', role: 'owner' },
+    data: { email: 'hello@velvetfashion.com', passwordHash, name: 'Priya Sharma' },
   });
+  await prisma.orgMembership.create({ data: { userId: owner.id, orgId: org.id, role: 'owner' } });
+
+  // API keys (declared early so hmacSecret can reference secKey)
+  const pubKey = 'pk_live_velvet_test_pub_key_002';
+  const secKey = 'sk_live_velvet_test_sec_key_002';
 
   const project = await prisma.project.create({
     data: {
       orgId: org.id, name: 'Velvet VIP', domain: 'velvetfashion.com', platform: 'shopify',
       pointsEnabled: true, referralsEnabled: true, partnersEnabled: false,
+      hmacSecret: secKey,
     },
   });
   const pid = project.id;
-
-  const pubKey = 'pk_live_velvet_test_pub_key_002';
-  const secKey = 'sk_live_velvet_test_sec_key_002';
   await prisma.apiKey.createMany({
     data: [
       { projectId: pid, type: 'public', keyHash: hashKey(pubKey), keyPrefix: pubKey.substring(0, 12), label: 'Default' },

@@ -220,17 +220,34 @@ describe('Projects E2E', () => {
     let memberToken: string;
 
     beforeAll(async () => {
-      // Add a member to Org A
-      await authPost(app, userAToken, '/api/v1/orgs/me/members', {
+      // Register the user first (creates their own org)
+      await registerUser(app, {
         email: 'memberA@test.com',
         password: 'password123',
         name: 'Member A',
+        orgName: 'Member A Org',
+      });
+
+      // Add member to Org A
+      await authPost(app, userAToken, '/api/v1/orgs/me/members', {
+        email: 'memberA@test.com',
         role: 'member',
       }).expect(201);
 
       // Login as the member
       const { body } = await loginUser(app, 'memberA@test.com', 'password123');
       memberToken = body.accessToken;
+
+      // Switch to Org A if not already there
+      const orgA = body.orgs.find((o: any) => o.name === 'Org A');
+      if (orgA && body.org.name !== 'Org A') {
+        const switchRes = await request(app.getHttpServer())
+          .post('/auth/switch-org')
+          .set('Authorization', `Bearer ${memberToken}`)
+          .send({ orgId: orgA.id })
+          .expect(201);
+        memberToken = switchRes.body.accessToken;
+      }
 
       // Get user ID from /auth/me (response is flat: { id, email, ... })
       const meRes = await authGet(app, memberToken, '/auth/me').expect(200);
@@ -320,21 +337,42 @@ describe('Projects E2E', () => {
       const meRes = await authGet(app, userAToken, '/auth/me').expect(200);
       userAId = meRes.body.id;
 
-      // Add a member to Org A (re-use or create)
+      // Register the transfer member user first (creates their own org)
       try {
-        await authPost(app, userAToken, '/api/v1/orgs/me/members', {
+        await registerUser(app, {
           email: 'transferMember@test.com',
           password: 'password123',
           name: 'Transfer Member',
+          orgName: 'Transfer Org',
+        });
+      } catch {
+        // user may already exist
+      }
+
+      // Add to Org A (may already exist from previous test run)
+      try {
+        await authPost(app, userAToken, '/api/v1/orgs/me/members', {
+          email: 'transferMember@test.com',
           role: 'member',
         }).expect(201);
       } catch {
-        // member may already exist
+        // member may already exist in org
       }
 
       // Login as the member
       const { body } = await loginUser(app, 'transferMember@test.com', 'password123');
       memberToken = body.accessToken;
+
+      // Switch to Org A if not already there
+      const orgA = body.orgs.find((o: any) => o.name === 'Org A');
+      if (orgA && body.org.name !== 'Org A') {
+        const switchRes = await request(app.getHttpServer())
+          .post('/auth/switch-org')
+          .set('Authorization', `Bearer ${memberToken}`)
+          .send({ orgId: orgA.id })
+          .expect(201);
+        memberToken = switchRes.body.accessToken;
+      }
 
       const memberMe = await authGet(app, memberToken, '/auth/me').expect(200);
       memberUserId = memberMe.body.id;

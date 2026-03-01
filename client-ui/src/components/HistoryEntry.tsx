@@ -11,12 +11,12 @@ const HistoryEntry = React.memo(function HistoryEntry({ points, description, cre
   const isPositive = points >= 0;
 
   return (
-    <li className="flex gap-2.5 py-2 border-b border-[#eee] text-sm items-center last:border-b-0">
-      <span className={`w-[50px] font-bold shrink-0 text-right ${isPositive ? 'text-[#0a8a5a]' : 'text-[#d93025]'}`}>
+    <li className="pw-history-item">
+      <span className={`pw-history-pts ${isPositive ? 'pw-history-pts--pos' : 'pw-history-pts--neg'}`}>
         {formatPoints(points)}
       </span>
-      <span className="flex-1 text-[#444]">{description}</span>
-      <span className="text-[#999] text-xs whitespace-nowrap">{timeAgo(created_at)}</span>
+      <span className="pw-history-desc">{description}</span>
+      <span className="pw-history-time">{timeAgo(created_at)}</span>
     </li>
   );
 });

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -38,12 +38,15 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        orgId: org.id,
         email,
         passwordHash,
         name: name || null,
-        role: 'owner',
       },
+    });
+
+    // Create OrgMembership(owner)
+    await this.prisma.orgMembership.create({
+      data: { userId: user.id, orgId: org.id, role: 'owner' },
     });
 
     const hmacSecret = crypto.randomBytes(32).toString('hex');
@@ -86,12 +89,13 @@ export class AuthService {
       },
     });
 
-    const tokens = this.generateTokens(user.id, org.id, user.email, user.role);
+    const tokens = this.generateTokens(user.id, org.id, user.email);
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: { id: user.id, email: user.email, name: user.name, role: 'owner' },
       org: { id: org.id, name: org.name, slug: org.slug },
+      orgs: [{ id: org.id, name: org.name, slug: org.slug, role: 'owner' }],
       project: { id: project.id, name: project.name },
       apiKeys: keys,
     };
@@ -100,19 +104,35 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { org: true },
+      include: {
+        orgMemberships: { include: { org: true } },
+      },
     });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    const tokens = this.generateTokens(user.id, user.orgId, user.email, user.role);
+    if (user.orgMemberships.length === 0) {
+      throw new UnauthorizedException('User has no organization memberships');
+    }
+
+    // Default to first org
+    const defaultMembership = user.orgMemberships[0];
+    const tokens = this.generateTokens(user.id, defaultMembership.orgId, user.email);
+
+    const orgs = user.orgMemberships.map((m) => ({
+      id: m.org.id,
+      name: m.org.name,
+      slug: m.org.slug,
+      role: m.role,
+    }));
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
-      org: { id: user.org.id, name: user.org.name, slug: user.org.slug },
+      user: { id: user.id, email: user.email, name: user.name, role: defaultMembership.role },
+      org: { id: defaultMembership.org.id, name: defaultMembership.org.name, slug: defaultMembership.org.slug },
+      orgs,
     };
   }
 
@@ -122,17 +142,52 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
       });
 
-      const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        include: { orgMemberships: true },
+      });
       if (!user) throw new UnauthorizedException('User not found');
 
-      return this.generateTokens(user.id, user.orgId, user.email, user.role);
+      // Preserve currentOrgId from the token, fall back to orgId for backward compat
+      const currentOrgId = payload.currentOrgId ?? payload.orgId;
+
+      // Validate user still has membership in the org
+      const membership = user.orgMemberships.find((m) => m.orgId === currentOrgId);
+      if (!membership) {
+        // Fall back to first org if the old org membership was removed
+        if (user.orgMemberships.length === 0) {
+          throw new UnauthorizedException('User has no organization memberships');
+        }
+        return this.generateTokens(user.id, user.orgMemberships[0].orgId, user.email);
+      }
+
+      return this.generateTokens(user.id, currentOrgId, user.email);
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
-  private generateTokens(userId: number, orgId: number, email: string, role: string) {
-    const payload = { sub: userId, orgId, email, role };
+  async switchOrg(userId: number, targetOrgId: number) {
+    const membership = await this.prisma.orgMembership.findUnique({
+      where: { userId_orgId: { userId, orgId: targetOrgId } },
+      include: { org: true },
+    });
+    if (!membership) throw new ForbiddenException('Not a member of this organization');
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const tokens = this.generateTokens(userId, targetOrgId, user.email);
+
+    return {
+      ...tokens,
+      org: { id: membership.org.id, name: membership.org.name, slug: membership.org.slug },
+      role: membership.role,
+    };
+  }
+
+  private generateTokens(userId: number, currentOrgId: number, email: string) {
+    const payload = { sub: userId, currentOrgId, email };
 
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET || 'dev-jwt-secret',

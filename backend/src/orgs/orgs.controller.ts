@@ -21,7 +21,7 @@ export class OrgsController {
       name: org!.name,
       slug: org!.slug,
       createdAt: org!.createdAt,
-      memberCount: org!._count.users,
+      memberCount: org!._count.memberships,
       projectCount: org!._count.projects,
     };
   }
@@ -40,7 +40,7 @@ export class OrgsController {
   @Post('me/members')
   @Roles('owner')
   async addMember(@CurrentUser() user: any, @Body() dto: AddMemberDto) {
-    return this.orgsService.addMember(user.org.id, dto.email, dto.password, dto.name, dto.role);
+    return this.orgsService.addMember(user.org.id, dto.email, dto.role);
   }
 
   @Get('me/customers')

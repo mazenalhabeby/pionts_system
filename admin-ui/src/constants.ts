@@ -76,6 +76,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { key: 'max_direct_referrals', label: 'Max direct referrals' },
       { key: 'points_expiry_months', label: 'Points expiry (months)' },
       { key: 'referral_discount_percent', label: 'New customer discount (%)' },
+      { key: 'discount_code_prefix', label: 'Discount code prefix' },
     ],
   },
   {
@@ -106,18 +107,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { key: 'tier_gold_threshold', label: 'Gold threshold (pts)' },
       { key: 'tier_gold_multiplier', label: 'Gold multiplier', type: 'text' },
       { key: 'leaderboard_enabled', label: 'Show leaderboard', type: 'toggle' },
-    ],
-  },
-  {
-    title: 'Widget Appearance',
-    fields: [
-      { key: 'widget_primary_color', label: 'Primary color', type: 'text' },
-      { key: 'widget_bg_color', label: 'Background color', type: 'text' },
-      { key: 'widget_text_color', label: 'Text color', type: 'text' },
-      { key: 'widget_brand_name', label: 'Brand name', type: 'text' },
-      { key: 'social_tiktok_url', label: 'TikTok URL', type: 'text' },
-      { key: 'social_instagram_url', label: 'Instagram URL', type: 'text' },
-      { key: 'referral_base_url', label: 'Referral base URL', type: 'text' },
     ],
   },
   {

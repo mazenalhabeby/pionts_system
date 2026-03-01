@@ -7,6 +7,8 @@ export interface WidgetApi {
   award: (type: string) => Promise<unknown>;
   getMyReferrals: () => Promise<ReferralData>;
   getMyRedemptions: () => Promise<Redemption[]>;
+  cancelRedemption: (id: number | string) => Promise<{ points_returned: number; new_balance: number }>;
+  setBirthday: (birthday: string) => Promise<{ success: boolean; birthday: string }>;
   sendCode: (email: string) => Promise<unknown>;
   verifyCode: (email: string, code: string) => Promise<{ token?: string }>;
   getLeaderboard: () => Promise<any[]>;

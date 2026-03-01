@@ -23,7 +23,9 @@ export async function resetDatabase() {
       api_keys,
       customers,
       project_members,
+      invitations,
       projects,
+      org_memberships,
       users,
       organizations
     RESTART IDENTITY CASCADE

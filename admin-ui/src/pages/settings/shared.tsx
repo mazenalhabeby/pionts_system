@@ -40,7 +40,6 @@ export const TABS: TabDef[] = [
   { key: 'referrals', label: 'Referrals', requiresModule: 'referrals' },
   { key: 'partners', label: 'Partners', requiresModule: 'partners' },
   { key: 'gamification', label: 'Gamification', requiresModule: 'points' },
-  { key: 'widget', label: 'Widget' },
   { key: 'email', label: 'Email' },
   { key: 'team', label: 'Team', adminOnly: true },
 ];

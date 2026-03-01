@@ -33,16 +33,16 @@ export default function NetworkTreeSection({
   return (
     <>
       {/* Network toolbar */}
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2 max-[600px]:flex-col max-[600px]:items-start">
-        <div className="flex items-center gap-2 text-[13px] text-[#888]">
-          <span className="font-bold text-[#555]">{totalDescendants} member{totalDescendants !== 1 ? 's' : ''}</span>
-          <span className="w-[3px] h-[3px] rounded-full bg-[#ccc]" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#9ca3af' }}>
+          <span style={{ fontWeight: 700, color: '#555' }}>{totalDescendants} member{totalDescendants !== 1 ? 's' : ''}</span>
+          <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#ccc', display: 'inline-block' }} />
           <span>up to {levelLabels.length} levels</span>
         </div>
-        <div className="flex gap-1.5">
+        <div style={{ display: 'flex', gap: 6 }}>
           <button
             type="button"
-            className="flex items-center gap-1 bg-[#f7f7f7] border border-[#e5e5e5] text-[#888] text-xs font-semibold font-sans px-2.5 py-[5px] rounded-lg cursor-pointer transition-all duration-150 hover:bg-[#eee] hover:text-[#555] hover:border-[#ddd]"
+            className="pw-btn pw-btn--secondary pw-btn--sm"
             onClick={onExpandAll}
           >
             <ExpandIcon size={14} />
@@ -50,7 +50,7 @@ export default function NetworkTreeSection({
           </button>
           <button
             type="button"
-            className="flex items-center gap-1 bg-[#f7f7f7] border border-[#e5e5e5] text-[#888] text-xs font-semibold font-sans px-2.5 py-[5px] rounded-lg cursor-pointer transition-all duration-150 hover:bg-[#eee] hover:text-[#555] hover:border-[#ddd]"
+            className="pw-btn pw-btn--secondary pw-btn--sm"
             onClick={onCollapseAll}
           >
             <CollapseIcon size={14} />
@@ -60,15 +60,15 @@ export default function NetworkTreeSection({
       </div>
 
       {/* "You" root node */}
-      <div className="nt-root-bg flex items-center gap-3 rounded-[14px] px-[18px] py-3.5 relative max-[600px]:px-3.5 max-[600px]:py-3">
-        <div className="nt-root-ava-bg w-[38px] h-[38px] rounded-full flex items-center justify-center shrink-0">
+      <div className="nt-root-bg" style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 14, padding: '14px 18px', position: 'relative' }}>
+        <div className="nt-root-ava-bg" style={{ width: 38, height: 38, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <UserIcon size={18} stroke="#fff" strokeWidth={2.5} />
         </div>
-        <div className="flex-1 flex flex-col gap-px">
-          <span className="text-[15px] font-extrabold text-white">You</span>
-          <span className="text-[11px] font-mono text-white/45 tracking-[1px]">{referralCode}</span>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>You</span>
+          <span style={{ fontSize: 11, fontFamily: "'SF Mono', Monaco, monospace", color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>{referralCode}</span>
         </div>
-        <div className="text-[11px] font-bold text-primary bg-[rgba(255,60,0,0.12)] px-2.5 py-[3px] rounded-full whitespace-nowrap">{directCount} direct</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.18)', padding: '3px 10px', borderRadius: 100, whiteSpace: 'nowrap' }}>{directCount} direct</div>
       </div>
 
       {/* Tree */}
@@ -79,10 +79,10 @@ export default function NetworkTreeSection({
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 flex-wrap pt-3 border-t border-[#f0f0f0] max-[600px]:gap-2.5">
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid #f0f0f3' }}>
         {levelLabels.map((label, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-[11px] text-[#999] whitespace-nowrap">
-            <span className={`w-2 h-2 rounded-full shrink-0 nt-legend-dot-d${Math.min(i, 2)}`} />
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+            <span className={`nt-legend-dot-d${Math.min(i, 2)}`} style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0 }} />
             {label} — {levelEarn[i] || 'view only'}
           </div>
         ))}

@@ -89,6 +89,11 @@ export const authApi = {
   logout: (): Promise<any> =>
     request('/auth/logout', { method: 'POST' }),
   me: (): Promise<any> => request('/auth/me'),
+  switchOrg: (orgId: number): Promise<any> =>
+    request('/auth/switch-org', {
+      method: 'POST',
+      body: JSON.stringify({ orgId }),
+    }),
 };
 
 // ─── Org API ───

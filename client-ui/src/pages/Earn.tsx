@@ -1,9 +1,14 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
 import useCustomer from '../hooks/useCustomer';
 import EarnItem from '../components/EarnItem';
 import { StarIcon } from '@pionts/shared';
 import type { EarnAction } from '@pionts/shared';
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
 // Fallback earn actions for backward compatibility (when API doesn't return earn_actions)
 const FALLBACK_ACTIONS: (EarnAction & { legacyFlag?: string })[] = [
@@ -30,7 +35,27 @@ export default function Earn() {
   const { data, loading, error, refresh } = useCustomer();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [tab, setTab] = useState<'onetime' | 'repeatable'>('onetime');
-  const storeUrl = settings?.referral_base_url || 'https://8bc.store';
+  const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
+  const [bdayMonth, setBdayMonth] = useState('01');
+  const [bdayDay, setBdayDay] = useState('01');
+  const [bdayError, setBdayError] = useState<string | null>(null);
+  const birthdaySubmitting = useRef(false);
+  const storeUrl = settings?.referral_base_url || '';
+
+  const handleSetBirthday = useCallback(async () => {
+    if (birthdaySubmitting.current) return;
+    birthdaySubmitting.current = true;
+    setBdayError(null);
+    try {
+      await api.setBirthday(`${bdayMonth}-${bdayDay}`);
+      setShowBirthdayPicker(false);
+      refresh();
+    } catch (err: any) {
+      setBdayError(err?.message || 'Failed to set birthday');
+    } finally {
+      birthdaySubmitting.current = false;
+    }
+  }, [api, bdayMonth, bdayDay, refresh]);
 
   // Get actions -- dynamic from API or fallback to hardcoded
   const actions = useMemo(() => {
@@ -68,6 +93,7 @@ export default function Earn() {
 
   const doneCount = oneTimeActions.filter(a => isCompleted(a)).length;
   const totalOneTime = oneTimeActions.length;
+  const progressPct = totalOneTime > 0 ? (doneCount / totalOneTime) * 100 : 0;
 
   // Unified action handler for social follow + share
   const handleAction = useCallback(async (action: EarnAction) => {
@@ -75,7 +101,7 @@ export default function Earn() {
       window.open(action.social_url, '_blank', 'noopener');
     } else if (action.slug === 'share_product') {
       if (!data) return;
-      const brandName = settings?.widget_brand_name || '8BC Store';
+      const brandName = String(settings?.widget_brand_name || 'Our Store');
       const shareUrl = `${storeUrl}?ref=${data.referral_code}`;
       try {
         if (navigator.share) {
@@ -111,12 +137,12 @@ export default function Earn() {
     if (action.category === 'social_follow') {
       return (
         <button
-          className="bg-primary text-white border-none px-3 py-[5px] rounded cursor-pointer text-xs font-semibold font-sans transition-colors duration-200 whitespace-nowrap hover:enabled:bg-[#e03500] disabled:bg-[#ddd] disabled:text-[#999] disabled:cursor-not-allowed"
+          className="pw-btn pw-btn--primary pw-btn--sm"
           onClick={() => handleAction(action)}
           disabled={loadingAction === action.slug}
           type="button"
         >
-          {loadingAction === action.slug ? '...' : 'FOLLOW'}
+          {loadingAction === action.slug ? '...' : 'Follow'}
         </button>
       );
     }
@@ -124,18 +150,110 @@ export default function Earn() {
     if (action.slug === 'share_product') {
       return (
         <button
-          className="bg-primary text-white border-none px-3 py-[5px] rounded cursor-pointer text-xs font-semibold font-sans transition-colors duration-200 whitespace-nowrap hover:enabled:bg-[#e03500] disabled:bg-[#ddd] disabled:text-[#999] disabled:cursor-not-allowed"
+          className="pw-btn pw-btn--primary pw-btn--sm"
           onClick={() => handleAction(action)}
           disabled={loadingAction === action.slug}
           type="button"
         >
-          {loadingAction === action.slug ? '...' : 'SHARE'}
+          {loadingAction === action.slug ? '...' : 'Share'}
+        </button>
+      );
+    }
+
+    // Review actions (repeatable)
+    if (action.slug === 'review_photo' || action.slug === 'review_text') {
+      return (
+        <button
+          className="pw-btn pw-btn--primary pw-btn--sm"
+          onClick={() => handleAction(action)}
+          disabled={loadingAction === action.slug}
+          type="button"
+        >
+          {loadingAction === action.slug ? '...' : 'Claim'}
+        </button>
+      );
+    }
+
+    // Birthday action
+    if (action.slug === 'birthday') {
+      if (isCompleted(action)) return undefined;
+
+      const hasBirthday = !!data?.birthday;
+      if (!hasBirthday) {
+        if (showBirthdayPicker) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <select
+                  value={bdayMonth}
+                  onChange={(e) => setBdayMonth(e.target.value)}
+                  className="pw-btn pw-btn--sm"
+                  style={{ padding: '4px 6px', fontSize: 12 }}
+                >
+                  {MONTHS.map((m, i) => (
+                    <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={bdayDay}
+                  onChange={(e) => setBdayDay(e.target.value)}
+                  className="pw-btn pw-btn--sm"
+                  style={{ padding: '4px 6px', fontSize: 12 }}
+                >
+                  {Array.from({ length: 31 }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>
+                  ))}
+                </select>
+                <button
+                  className="pw-btn pw-btn--primary pw-btn--sm"
+                  onClick={handleSetBirthday}
+                  type="button"
+                >
+                  Save
+                </button>
+              </div>
+              {bdayError && <span style={{ color: '#ef4444', fontSize: 11 }}>{bdayError}</span>}
+            </div>
+          );
+        }
+        return (
+          <button
+            className="pw-btn pw-btn--primary pw-btn--sm"
+            onClick={() => setShowBirthdayPicker(true)}
+            type="button"
+          >
+            Set Birthday
+          </button>
+        );
+      }
+
+      // Has birthday — check if it's birthday month
+      const [monthStr] = data.birthday!.split('-');
+      const birthdayMonth = parseInt(monthStr, 10);
+      const currentMonth = new Date().getMonth() + 1;
+      if (birthdayMonth !== currentMonth) {
+        return (
+          <span style={{ fontSize: 11, color: '#9ca3af' }}>
+            Available in {MONTHS[birthdayMonth - 1]}
+          </span>
+        );
+      }
+
+      // It's birthday month — show claim button
+      return (
+        <button
+          className="pw-btn pw-btn--primary pw-btn--sm"
+          onClick={() => handleAction(action)}
+          disabled={loadingAction === action.slug}
+          type="button"
+        >
+          {loadingAction === action.slug ? '...' : 'Claim'}
         </button>
       );
     }
 
     return undefined;
-  }, [isCompleted, handleAction, loadingAction]);
+  }, [isCompleted, handleAction, loadingAction, data, showBirthdayPicker, bdayMonth, bdayDay, bdayError, handleSetBirthday]);
 
   // Tag for repeatable / yearly actions
   const getTag = useCallback((action: EarnAction): string | undefined => {
@@ -148,46 +266,56 @@ export default function Earn() {
     return undefined;
   }, []);
 
-  if (loading) return <div className="text-center p-10 text-[#888]">Loading...</div>;
-  if (error) return <div className="px-4 py-3 rounded mb-4 text-sm bg-[#fef2f2] border border-[#d93025] text-[#d93025]">{error}</div>;
+  if (loading) return <div className="pw-loading">Loading...</div>;
+  if (error) return <div className="pw-error">{error}</div>;
   if (!data) return null;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="pw-page-content">
       {/* Page Header */}
-      <div className="bg-white border border-[#e0e0e0] rounded-2xl px-8 py-7 flex items-center gap-[18px] shadow-[0_2px_16px_rgba(0,0,0,0.04)] max-[600px]:px-[22px] max-[600px]:py-5">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-white bg-[#6366f1]">
+      <div className="pw-page-header">
+        <div className="pw-page-header__icon pw-page-header__icon--indigo">
           <StarIcon size={24} />
         </div>
         <div>
-          <div className="text-[22px] font-extrabold text-[#1a1a1a] leading-tight max-[600px]:text-lg">Earn Points</div>
-          <div className="text-[13px] text-[#999] mt-0.5">Complete actions to earn rewards</div>
+          <div className="pw-page-header__title">Earn Points</div>
+          <div className="pw-page-header__subtitle">Complete actions to earn rewards</div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="pw-section pw-section--padded">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <span className="pw-section__title" style={{ textTransform: 'none', letterSpacing: 0 }}>Progress</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--pionts-primary, #3b82f6)' }}>{doneCount}/{totalOneTime}</span>
+        </div>
+        <div className="pw-progress-bar">
+          <div className="pw-progress-bar__fill" style={{ width: `${progressPct}%` }} />
         </div>
       </div>
 
       {/* Tabs + Content */}
-      <div className="bg-white border border-[#e0e0e0] rounded-xl p-[22px]">
-        <div className="flex border-b border-[#e0e0e0] -mx-[22px] -mt-[22px] mb-4 px-[22px]">
+      <div className="pw-section pw-section--padded">
+        <div className="pw-tab-toggle">
           <button
-            className={`bg-transparent border-none px-5 py-3.5 text-sm font-semibold cursor-pointer relative flex items-center gap-2 font-sans transition-colors duration-200 hover:text-[#555] ${tab === 'onetime' ? 'text-[#1a1a1a] tab-active-indicator' : 'text-[#999]'}`}
+            className={`pw-tab-toggle__btn ${tab === 'onetime' ? 'pw-tab-toggle__btn--active' : ''}`}
             onClick={() => setTab('onetime')}
             type="button"
           >
             One-Time
-            <span className={`text-[11px] font-semibold text-white px-[7px] py-[1px] rounded-[10px] ${tab === 'onetime' ? 'bg-primary' : 'bg-[#ccc]'}`}>{doneCount}/{totalOneTime}</span>
+            <span className="pw-tab-toggle__badge">{doneCount}/{totalOneTime}</span>
           </button>
           <button
-            className={`bg-transparent border-none px-5 py-3.5 text-sm font-semibold cursor-pointer relative flex items-center gap-2 font-sans transition-colors duration-200 hover:text-[#555] ${tab === 'repeatable' ? 'text-[#1a1a1a] tab-active-indicator' : 'text-[#999]'}`}
+            className={`pw-tab-toggle__btn ${tab === 'repeatable' ? 'pw-tab-toggle__btn--active' : ''}`}
             onClick={() => setTab('repeatable')}
             type="button"
           >
             Repeatable
-            <span className={`text-[11px] font-semibold text-white px-[7px] py-[1px] rounded-[10px] ${tab === 'repeatable' ? 'bg-primary' : 'bg-[#ccc]'}`}>Unlimited</span>
           </button>
         </div>
 
         {tab === 'onetime' && (
-          <ul className="list-none p-0">
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {oneTimeActions.map(action => (
               <EarnItem
                 key={action.slug}
@@ -198,13 +326,13 @@ export default function Earn() {
               />
             ))}
             {oneTimeActions.length === 0 && (
-              <li className="text-center py-5 text-[#999] text-sm">No one-time actions available.</li>
+              <li className="pw-empty"><div className="pw-empty__desc">No one-time actions available.</div></li>
             )}
           </ul>
         )}
 
         {tab === 'repeatable' && (
-          <ul className="list-none p-0">
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {repeatableActions.map(action => (
               <EarnItem
                 key={action.slug}
@@ -216,27 +344,25 @@ export default function Earn() {
               />
             ))}
             {repeatableActions.length === 0 && (
-              <li className="text-center py-5 text-[#999] text-sm">No repeatable actions available.</li>
+              <li className="pw-empty"><div className="pw-empty__desc">No repeatable actions available.</div></li>
             )}
           </ul>
         )}
       </div>
 
       {/* Points Summary */}
-      <div className="bg-white border border-[#e0e0e0] rounded-xl flex items-center overflow-hidden max-[768px]:flex-wrap max-[600px]:flex-wrap">
-        <div className="flex-1 text-center py-[18px] px-3 max-[600px]:flex-[0_0_50%] max-[600px]:py-3.5 max-[600px]:px-2">
-          <div className="text-[22px] font-bold text-[#1a1a1a] leading-none max-[768px]:text-lg">{data.points_balance}</div>
-          <div className="text-[11px] text-[#999] mt-1 uppercase tracking-[0.5px]">Balance</div>
+      <div className="pw-metric-row">
+        <div className="pw-metric">
+          <div className="pw-metric__value pw-metric__value--orange">{data.points_balance}</div>
+          <div className="pw-metric__label">Balance</div>
         </div>
-        <div className="w-px h-10 bg-[#e0e0e0] shrink-0 max-[600px]:hidden" />
-        <div className="flex-1 text-center py-[18px] px-3 max-[600px]:flex-[0_0_50%] max-[600px]:py-3.5 max-[600px]:px-2">
-          <div className="text-[22px] font-bold text-[#1a1a1a] leading-none max-[768px]:text-lg">{data.points_earned_total}</div>
-          <div className="text-[11px] text-[#999] mt-1 uppercase tracking-[0.5px]">Total Earned</div>
+        <div className="pw-metric">
+          <div className="pw-metric__value pw-metric__value--green">{data.points_earned_total}</div>
+          <div className="pw-metric__label">Total Earned</div>
         </div>
-        <div className="w-px h-10 bg-[#e0e0e0] shrink-0 max-[600px]:hidden" />
-        <div className="flex-1 text-center py-[18px] px-3 max-[600px]:flex-[0_0_50%] max-[600px]:py-3.5 max-[600px]:px-2">
-          <div className="text-[22px] font-bold text-[#1a1a1a] leading-none max-[768px]:text-lg">{data.order_count}</div>
-          <div className="text-[11px] text-[#999] mt-1 uppercase tracking-[0.5px]">Orders</div>
+        <div className="pw-metric">
+          <div className="pw-metric__value pw-metric__value--blue">{data.order_count}</div>
+          <div className="pw-metric__label">Orders</div>
         </div>
       </div>
     </div>

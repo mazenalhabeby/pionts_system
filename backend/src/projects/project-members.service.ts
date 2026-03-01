@@ -6,13 +6,43 @@ export class ProjectMembersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(projectId: number) {
-    return this.prisma.projectMember.findMany({
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { orgId: true },
+    });
+    if (!project) return [];
+
+    // Get explicit project members
+    const explicit = await this.prisma.projectMember.findMany({
       where: { projectId },
       include: {
-        user: { select: { id: true, email: true, name: true, role: true } },
+        user: { select: { id: true, email: true, name: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
+
+    const explicitUserIds = new Set(explicit.map((m) => m.userId));
+
+    // Get org owners who have implicit admin access but no explicit membership
+    const orgOwners = await this.prisma.orgMembership.findMany({
+      where: { orgId: project.orgId, role: 'owner', userId: { notIn: [...explicitUserIds] } },
+      include: {
+        user: { select: { id: true, email: true, name: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Synthesize project member entries for implicit org owners
+    const implicitMembers = orgOwners.map((m) => ({
+      id: 0,
+      projectId,
+      userId: m.userId,
+      role: 'owner' as const,
+      createdAt: m.createdAt,
+      user: m.user,
+    }));
+
+    return [...implicitMembers, ...explicit];
   }
 
   async add(projectId: number, userId: number, role: string) {
@@ -21,13 +51,17 @@ export class ProjectMembersService {
       throw new BadRequestException('Invalid role. Must be admin, editor, or viewer');
     }
 
-    // Verify user exists and belongs to same org
+    // Verify user exists and belongs to same org (via OrgMembership)
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    if (user.orgId !== project.orgId) {
+
+    const orgMembership = await this.prisma.orgMembership.findUnique({
+      where: { userId_orgId: { userId, orgId: project.orgId } },
+    });
+    if (!orgMembership) {
       throw new BadRequestException('User does not belong to this organization');
     }
 
@@ -45,7 +79,7 @@ export class ProjectMembersService {
       update: { role },
       create: { projectId, userId, role },
       include: {
-        user: { select: { id: true, email: true, name: true, role: true } },
+        user: { select: { id: true, email: true, name: true } },
       },
     });
   }
@@ -79,7 +113,7 @@ export class ProjectMembersService {
       where: { projectId_userId: { projectId, userId } },
       data: { role },
       include: {
-        user: { select: { id: true, email: true, name: true, role: true } },
+        user: { select: { id: true, email: true, name: true } },
       },
     });
   }
@@ -135,7 +169,11 @@ export class ProjectMembersService {
 
     const newOwnerUser = await this.prisma.user.findUnique({ where: { id: newOwnerId } });
     if (!newOwnerUser) throw new NotFoundException('User not found');
-    if (newOwnerUser.orgId !== project.orgId) {
+
+    const newOwnerOrgMembership = await this.prisma.orgMembership.findUnique({
+      where: { userId_orgId: { userId: newOwnerId, orgId: project.orgId } },
+    });
+    if (!newOwnerOrgMembership) {
       throw new BadRequestException('User does not belong to this organization');
     }
 

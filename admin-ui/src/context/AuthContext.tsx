@@ -20,14 +20,23 @@ interface Org {
   slug?: string;
 }
 
+export interface OrgWithRole {
+  id: number | string;
+  name: string;
+  slug?: string;
+  role: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   org: Org | null;
+  orgs: OrgWithRole[];
   loading: boolean;
   authenticated: boolean;
   login: (email: string, password: string) => Promise<any>;
   signup: (data: { name?: string; email: string; password: string; orgName: string }) => Promise<any>;
   logout: () => Promise<void>;
+  switchOrg: (orgId: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -35,6 +44,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [org, setOrg] = useState<Org | null>(null);
+  const [orgs, setOrgs] = useState<OrgWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -46,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!ok) {
         setUser(null);
         setOrg(null);
+        setOrgs([]);
         setAccessToken(null);
       }
     }, 13 * 60 * 1000);
@@ -67,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const me = await authApi.me();
           setUser({ id: me.id, email: me.email, name: me.name, role: me.role, projectMemberships: me.projectMemberships || [] });
           setOrg(me.org);
+          setOrgs(me.orgs || []);
           startRefreshTimer();
         }
       } catch {
@@ -83,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     function handleUnauthorized() {
       setUser(null);
       setOrg(null);
+      setOrgs([]);
       setAccessToken(null);
       stopRefreshTimer();
     }
@@ -95,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(res.accessToken);
     setUser({ ...res.user, projectMemberships: res.user.projectMemberships || [] });
     setOrg(res.org);
+    setOrgs(res.orgs || []);
     startRefreshTimer();
     return res;
   }, [startRefreshTimer]);
@@ -104,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(res.accessToken);
     setUser({ ...res.user, projectMemberships: [] });
     setOrg(res.org);
+    setOrgs(res.orgs || []);
     startRefreshTimer();
     return res;
   }, [startRefreshTimer]);
@@ -116,15 +131,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
     setOrg(null);
+    setOrgs([]);
     setAccessToken(null);
     stopRefreshTimer();
   }, [stopRefreshTimer]);
 
+  const switchOrg = useCallback(async (orgId: number) => {
+    const res = await authApi.switchOrg(orgId);
+    setAccessToken(res.accessToken);
+    setOrg(res.org);
+    // Update user role to the role in the new org
+    setUser((prev) => prev ? { ...prev, role: res.role, projectMemberships: [] } : null);
+    // Clear project selection since we're changing org
+    sessionStorage.removeItem('pionts-current-project');
+    // Reload the page to reset project context
+    window.location.href = '/';
+  }, []);
+
   const authenticated = user !== null;
 
   const value = useMemo(
-    () => ({ user, org, loading, authenticated, login, signup, logout }),
-    [user, org, loading, authenticated, login, signup, logout],
+    () => ({ user, org, orgs, loading, authenticated, login, signup, logout, switchOrg }),
+    [user, org, orgs, loading, authenticated, login, signup, logout, switchOrg],
   );
 
   return (

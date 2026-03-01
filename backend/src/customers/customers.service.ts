@@ -195,6 +195,13 @@ export class CustomersService {
     });
   }
 
+  async setBirthday(customerId: number, birthday: string) {
+    await this.prisma.customer.update({
+      where: { id: customerId },
+      data: { birthday },
+    });
+  }
+
   async incrementOrderCount(customerId: number) {
     await this.prisma.customer.update({
       where: { id: customerId },

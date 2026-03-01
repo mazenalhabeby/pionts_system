@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { SwitchOrgDto } from './dto/switch-org.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -56,6 +57,19 @@ export class AuthController {
     return { success: true };
   }
 
+  @Post('switch-org')
+  @UseGuards(JwtAuthGuard)
+  async switchOrg(
+    @CurrentUser() user: any,
+    @Body() dto: SwitchOrgDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.switchOrg(user.id, dto.orgId);
+    res.cookie('refresh_token', result.refreshToken, REFRESH_COOKIE_OPTIONS);
+    const { refreshToken, ...body } = result;
+    return body;
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUser() user: any) {
@@ -69,6 +83,19 @@ export class AuthController {
       projectMemberships = memberships;
     }
 
+    // Load all org memberships for the org switcher
+    const orgMemberships = await this.prisma.orgMembership.findMany({
+      where: { userId: user.id },
+      include: { org: true },
+    });
+
+    const orgs = orgMemberships.map((m) => ({
+      id: m.org.id,
+      name: m.org.name,
+      slug: m.org.slug,
+      role: m.role,
+    }));
+
     return {
       id: user.id,
       email: user.email,
@@ -79,6 +106,7 @@ export class AuthController {
         name: user.org.name,
         slug: user.org.slug,
       },
+      orgs,
       projectMemberships,
     };
   }

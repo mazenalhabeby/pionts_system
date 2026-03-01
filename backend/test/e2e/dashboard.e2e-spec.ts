@@ -286,16 +286,34 @@ describe('Dashboard E2E', () => {
     let editorToken: string;
 
     beforeAll(async () => {
-      // Create viewer member in same org
-      await authPost(app, token, '/api/v1/orgs/me/members', {
+      // Register viewer user first (creates their own org)
+      await registerUser(app, {
         email: 'viewer-dash@test.com',
         password: 'password123',
         name: 'Viewer User',
+        orgName: 'Viewer Org',
+      });
+
+      // Add viewer to owner's org
+      await authPost(app, token, '/api/v1/orgs/me/members', {
+        email: 'viewer-dash@test.com',
         role: 'member',
       }).expect(201);
 
+      // Login as viewer and switch to the correct org
       const { body: viewerBody } = await loginUser(app, 'viewer-dash@test.com', 'password123');
       viewerToken = viewerBody.accessToken;
+
+      // Switch to the owner's org if needed
+      const ownerOrg = viewerBody.orgs.find((o: any) => o.name !== 'Viewer Org');
+      if (ownerOrg && viewerBody.org.id !== ownerOrg.id) {
+        const switchRes = await request(app.getHttpServer())
+          .post('/auth/switch-org')
+          .set('Authorization', `Bearer ${viewerToken}`)
+          .send({ orgId: ownerOrg.id })
+          .expect(201);
+        viewerToken = switchRes.body.accessToken;
+      }
 
       const viewerMe = await authGet(app, viewerToken, '/auth/me').expect(200);
       const viewerUserId = viewerMe.body.id;
@@ -306,16 +324,33 @@ describe('Dashboard E2E', () => {
         role: 'viewer',
       }).expect(201);
 
-      // Create editor member in same org
-      await authPost(app, token, '/api/v1/orgs/me/members', {
+      // Register editor user first (creates their own org)
+      await registerUser(app, {
         email: 'editor-dash@test.com',
         password: 'password123',
         name: 'Editor User',
+        orgName: 'Editor Org',
+      });
+
+      // Add editor to owner's org
+      await authPost(app, token, '/api/v1/orgs/me/members', {
+        email: 'editor-dash@test.com',
         role: 'member',
       }).expect(201);
 
+      // Login as editor and switch to the correct org
       const { body: editorBody } = await loginUser(app, 'editor-dash@test.com', 'password123');
       editorToken = editorBody.accessToken;
+
+      const editorOrg = editorBody.orgs.find((o: any) => o.name !== 'Editor Org');
+      if (editorOrg && editorBody.org.id !== editorOrg.id) {
+        const switchRes = await request(app.getHttpServer())
+          .post('/auth/switch-org')
+          .set('Authorization', `Bearer ${editorToken}`)
+          .send({ orgId: editorOrg.id })
+          .expect(201);
+        editorToken = switchRes.body.accessToken;
+      }
 
       const editorMe = await authGet(app, editorToken, '/auth/me').expect(200);
       const editorUserId = editorMe.body.id;

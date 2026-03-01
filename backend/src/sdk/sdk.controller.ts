@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Body, Param, UseGuards,
+  Controller, Get, Post, Put, Delete, Body, Param, UseGuards,
   UnauthorizedException, BadRequestException, Req,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
@@ -93,6 +93,19 @@ export class SdkController {
       throw new BadRequestException('Unknown or disabled action');
     }
 
+    // Birthday-specific validation
+    if (slug === 'birthday') {
+      if (!customer.birthday) {
+        throw new BadRequestException('Birthday not set. Please set your birthday first.');
+      }
+      const [monthStr] = customer.birthday.split('-');
+      const birthdayMonth = parseInt(monthStr, 10);
+      const currentMonth = new Date().getMonth() + 1;
+      if (birthdayMonth !== currentMonth) {
+        throw new BadRequestException('Birthday bonus is only available during your birthday month.');
+      }
+    }
+
     // Check completion based on frequency
     if (action.frequency === 'one_time') {
       const done = await this.earnActionsService.hasCompleted(project.id, customer.id, slug);
@@ -116,6 +129,22 @@ export class SdkController {
     }
 
     return { points_awarded: action.points, new_balance: newBalance };
+  }
+
+  @Put('customer/birthday')
+  async setBirthday(@SdkCustomer() customer: any, @Body() body: { birthday: string }) {
+    this.requireCustomer(customer);
+    if (!body.birthday || !/^\d{2}-\d{2}$/.test(body.birthday)) {
+      throw new BadRequestException('Birthday must be in MM-DD format');
+    }
+    const [monthStr, dayStr] = body.birthday.split('-');
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      throw new BadRequestException('Invalid birthday date');
+    }
+    await this.customersService.setBirthday(customer.id, body.birthday);
+    return { success: true, birthday: body.birthday };
   }
 
   @Get('check-ref/:code')
@@ -161,6 +190,12 @@ export class SdkController {
   async getCustomerRedemptions(@SdkCustomer() customer: any, @SdkProject() project: any) {
     this.requireCustomer(customer);
     return this.redemptionsService.getCustomerRedemptions(project.id, customer.id);
+  }
+
+  @Delete('customer/redemptions/:id')
+  async cancelRedemption(@SdkCustomer() customer: any, @SdkProject() project: any, @Param('id') id: string) {
+    this.requireCustomer(customer);
+    return this.redemptionsService.cancelRedemption(project.id, customer.id, Number(id));
   }
 
   @Post('auth/send-code')

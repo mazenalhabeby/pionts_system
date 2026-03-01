@@ -8,17 +8,20 @@ interface ProgressRingProps {
   gradientId: string;
   children?: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
+  trackColor?: string;
+  gradientStops?: [string, string];
 }
 
-function ProgressRing({ size, radius, strokeWidth, progressPct, gradientId, children, className }: ProgressRingProps) {
+function ProgressRing({ size, radius, strokeWidth, progressPct, gradientId, children, className, style, trackColor, gradientStops }: ProgressRingProps) {
   const circumference = 2 * Math.PI * radius;
   const dashArray = `${(progressPct / 100) * circumference} ${circumference}`;
   const center = size / 2;
 
   return (
-    <div className={`relative ${className || ''}`} style={{ width: size, height: size }}>
-      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full">
-        <circle cx={center} cy={center} r={radius} fill="none" stroke="#f0f0f0" strokeWidth={strokeWidth} />
+    <div className={`pw-ring ${className || ''}`} style={{ width: size, height: size, ...style }}>
+      <svg viewBox={`0 0 ${size} ${size}`} className="pw-ring__svg">
+        <circle cx={center} cy={center} r={radius} fill="none" stroke={trackColor || '#f0f0f0'} strokeWidth={strokeWidth} />
         <circle
           cx={center} cy={center} r={radius}
           fill="none"
@@ -30,8 +33,8 @@ function ProgressRing({ size, radius, strokeWidth, progressPct, gradientId, chil
         />
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ff3c00" />
-            <stop offset="100%" stopColor="#ff6a00" />
+            <stop offset="0%" stopColor={gradientStops?.[0] || '#3b82f6'} />
+            <stop offset="100%" stopColor={gradientStops?.[1] || '#60a5fa'} />
           </linearGradient>
         </defs>
       </svg>

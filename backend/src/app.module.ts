@@ -29,7 +29,7 @@ import { InvitationsModule } from './invitations/invitations.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: join(__dirname, '..', '.env'),
+      envFilePath: join(__dirname, '..', '..', '.env'),
       isGlobal: true,
     }),
     ThrottlerModule.forRoot({
@@ -37,7 +37,7 @@ import { InvitationsModule } from './invitations/invitations.module';
     }),
     ServeStaticModule.forRoot(
       {
-        rootPath: join(__dirname, '..', '..', 'admin-ui', 'dist', 'assets'),
+        rootPath: join(__dirname, '..', '..', '..', 'admin-ui', 'dist', 'assets'),
         serveRoot: '/admin/assets',
         serveStaticOptions: {
           maxAge: '1y',
@@ -45,14 +45,14 @@ import { InvitationsModule } from './invitations/invitations.module';
         },
       },
       {
-        rootPath: join(__dirname, '..', '..', 'sdk', 'dist'),
+        rootPath: join(__dirname, '..', '..', '..', 'sdk', 'dist'),
         serveRoot: '/sdk',
         serveStaticOptions: {
           maxAge: '1d',
         },
       },
       {
-        rootPath: join(__dirname, '..', '..', 'client-ui', 'dist-umd'),
+        rootPath: join(__dirname, '..', '..', '..', 'client-ui', 'dist-umd'),
         serveRoot: '/widget',
         serveStaticOptions: {
           maxAge: '1d',

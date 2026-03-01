@@ -1,5 +1,4 @@
 import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -10,7 +9,7 @@ export class OrgsService {
     return this.prisma.organization.findUnique({
       where: { id: orgId },
       include: {
-        _count: { select: { users: true, projects: true } },
+        _count: { select: { memberships: true, projects: true } },
       },
     });
   }
@@ -23,27 +22,53 @@ export class OrgsService {
   }
 
   async getMembers(orgId: number) {
-    return this.prisma.user.findMany({
+    const memberships = await this.prisma.orgMembership.findMany({
       where: { orgId },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      include: {
+        user: { select: { id: true, email: true, name: true, createdAt: true } },
+      },
       orderBy: { createdAt: 'asc' },
     });
+
+    return memberships.map((m) => ({
+      id: m.user.id,
+      email: m.user.email,
+      name: m.user.name,
+      role: m.role,
+      createdAt: m.user.createdAt,
+    }));
   }
 
-  async addMember(orgId: number, email: string, password: string, name: string | undefined, role: string) {
-    // Only 'owner' and 'member' are valid org roles; reject 'admin' (now project-level only)
+  async addMember(orgId: number, email: string, role: string) {
+    // Only 'owner' and 'member' are valid org roles
     if (!['owner', 'member'].includes(role)) {
       throw new BadRequestException('Invalid role. Must be owner or member');
     }
 
-    const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing) throw new ConflictException('Email already in use');
+    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    if (!existingUser) {
+      throw new BadRequestException('User not found. Use the invitation flow to invite new users.');
+    }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    return this.prisma.user.create({
-      data: { orgId, email, passwordHash, name: name || null, role },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+    // Check if already a member of this org
+    const existingMembership = await this.prisma.orgMembership.findUnique({
+      where: { userId_orgId: { userId: existingUser.id, orgId } },
     });
+    if (existingMembership) {
+      throw new ConflictException('User is already a member of this organization');
+    }
+
+    await this.prisma.orgMembership.create({
+      data: { userId: existingUser.id, orgId, role },
+    });
+
+    return {
+      id: existingUser.id,
+      email: existingUser.email,
+      name: existingUser.name,
+      role,
+      createdAt: existingUser.createdAt,
+    };
   }
 
   async searchOrgCustomers(orgId: number, query?: string, sort?: string, dir?: string, limit = 50, offset = 0) {
@@ -94,19 +119,39 @@ export class OrgsService {
       throw new BadRequestException('Cannot remove yourself');
     }
 
-    const member = await this.prisma.user.findUnique({ where: { id: memberId } });
-    if (!member || member.orgId !== orgId) {
+    const membership = await this.prisma.orgMembership.findUnique({
+      where: { userId_orgId: { userId: memberId, orgId } },
+    });
+    if (!membership) {
       throw new BadRequestException('Member not found');
     }
 
-    if (member.role === 'owner') {
-      const ownerCount = await this.prisma.user.count({ where: { orgId, role: 'owner' } });
+    if (membership.role === 'owner') {
+      const ownerCount = await this.prisma.orgMembership.count({ where: { orgId, role: 'owner' } });
       if (ownerCount <= 1) {
         throw new BadRequestException('Cannot remove the last owner');
       }
     }
 
-    await this.prisma.user.delete({ where: { id: memberId } });
+    // Delete the org membership (not the user)
+    await this.prisma.orgMembership.delete({
+      where: { userId_orgId: { userId: memberId, orgId } },
+    });
+
+    // Also remove project memberships for this org's projects
+    const orgProjects = await this.prisma.project.findMany({
+      where: { orgId },
+      select: { id: true },
+    });
+    if (orgProjects.length > 0) {
+      await this.prisma.projectMember.deleteMany({
+        where: {
+          userId: memberId,
+          projectId: { in: orgProjects.map((p) => p.id) },
+        },
+      });
+    }
+
     return { success: true };
   }
 }

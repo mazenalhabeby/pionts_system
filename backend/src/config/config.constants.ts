@@ -24,6 +24,8 @@ export const DEFAULTS: Record<string, string> = {
     { label: 'Gold', threshold: 500, multiplier: 2 },
   ]),
   leaderboard_enabled: 'true',
+  // Discount code prefix (defaults to project name, set on project creation)
+  discount_code_prefix: '',
   // Email notifications
   email_notification_mode: 'instant',
   email_welcome_enabled: 'true',

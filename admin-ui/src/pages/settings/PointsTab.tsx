@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { earnActionsApi, redemptionTiersApi, getErrorMessage } from '../../api';
+import React, { useCallback, useState, useEffect } from 'react';
+import { earnActionsApi, redemptionTiersApi, dashboardApi, getErrorMessage } from '../../api';
 import { useFetch, PlusIcon } from '@pionts/shared';
 import { Alert } from '../../components/ui/alert';
 import { useConfirm } from '../../components/ui/confirm-dialog';
@@ -51,6 +51,35 @@ export default function PointsTab({ pid, canEdit }: { pid: number; canEdit: bool
     useCallback(() => redemptionTiersApi.list(pid), [pid]),
     [pid],
   );
+
+  const { data: settingsData, refresh: refreshSettings } = useFetch(
+    useCallback(() => dashboardApi.getSettings(pid), [pid]),
+    [pid],
+  );
+  const settings = settingsData?.settings || {};
+
+  const [codePrefix, setCodePrefix] = useState('');
+  const [prefixSaving, setPrefixSaving] = useState(false);
+  const [prefixMessage, setPrefixMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    setCodePrefix(settings.discount_code_prefix != null ? String(settings.discount_code_prefix) : '');
+  }, [settings.discount_code_prefix]);
+
+  async function handlePrefixSave() {
+    if (!canEdit) return;
+    setPrefixSaving(true);
+    setPrefixMessage(null);
+    try {
+      await dashboardApi.saveSettings(pid, { ...settings as Record<string, string>, discount_code_prefix: codePrefix.trim() });
+      refreshSettings();
+      setPrefixMessage({ type: 'success', text: 'Discount code prefix saved.' });
+    } catch (err: unknown) {
+      setPrefixMessage({ type: 'error', text: getErrorMessage(err) });
+    } finally {
+      setPrefixSaving(false);
+    }
+  }
 
   const [actionError, setActionError] = useState<string | null>(null);
   const [tierError, setTierError] = useState<string | null>(null);
@@ -456,6 +485,65 @@ export default function PointsTab({ pid, canEdit }: { pid: number; canEdit: bool
                 Add Tier
               </button>
             </form>
+          )}
+        </div>
+      </div>
+
+      {/* ── Discount Code Prefix ── */}
+      <div className="bg-bg-card border border-border-default rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-border-default flex items-center justify-between">
+          <div>
+            <div className="text-[15px] font-bold text-text-primary">Discount Code Prefix</div>
+            <div className="text-[12px] text-text-muted mt-0.5">Customise the prefix for generated discount codes</div>
+          </div>
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-white"
+            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+            </svg>
+          </div>
+        </div>
+        <div className="p-5">
+          {prefixMessage && <Alert variant={prefixMessage.type === 'success' ? 'success' : 'error'} className="mb-3">{prefixMessage.text}</Alert>}
+
+          <div className="bg-bg-surface border border-border-default rounded-xl px-5 py-4 flex items-center gap-4 flex-wrap">
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-white"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <div className="text-[13px] text-text-primary font-semibold">Code Prefix</div>
+              <div className="text-[11px] text-text-faint mt-0.5">
+                Codes will look like: <span className="font-mono font-semibold text-text-muted">{(codePrefix || 'REWARD').toUpperCase()}-ABC123-xyz</span>
+              </div>
+            </div>
+            <input
+              type="text"
+              value={codePrefix}
+              onChange={(e) => setCodePrefix(e.target.value)}
+              placeholder="e.g. AMAZON"
+              disabled={!canEdit}
+              className="bg-bg-card border border-border-default text-text-primary px-3 py-2 rounded-lg text-[13px] outline-none w-32 focus:border-border-focus transition-colors uppercase placeholder:normal-case disabled:opacity-50"
+            />
+          </div>
+
+          {canEdit && (
+            <div className="flex justify-end mt-4">
+              <button
+                type="button"
+                onClick={handlePrefixSave}
+                disabled={prefixSaving}
+                className="bg-text-primary text-bg-page px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+              >
+                {prefixSaving ? 'Saving...' : 'Save Prefix'}
+              </button>
+            </div>
           )}
         </div>
       </div>

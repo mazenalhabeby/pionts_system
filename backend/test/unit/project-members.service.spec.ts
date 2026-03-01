@@ -12,34 +12,60 @@ describe('ProjectMembersService', () => {
   });
 
   describe('list', () => {
-    it('should return members with user info', async () => {
+    it('should return explicit members and implicit org owners', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
       const members = [
-        { id: 1, projectId: 5, userId: 2, role: 'editor', user: { id: 2, email: 'a@test.com', name: 'A', role: 'member' } },
-        { id: 2, projectId: 5, userId: 3, role: 'viewer', user: { id: 3, email: 'b@test.com', name: 'B', role: 'member' } },
+        { id: 1, projectId: 5, userId: 2, role: 'editor', user: { id: 2, email: 'a@test.com', name: 'A' } },
+        { id: 2, projectId: 5, userId: 3, role: 'viewer', user: { id: 3, email: 'b@test.com', name: 'B' } },
       ];
       prisma.projectMember.findMany.mockResolvedValue(members);
+      // Org owner (userId=10) not in explicit members → should be synthesized
+      prisma.orgMembership.findMany.mockResolvedValue([
+        { userId: 10, orgId: 1, role: 'owner', createdAt: new Date(), user: { id: 10, email: 'owner@test.com', name: 'Owner' } },
+      ]);
 
       const result = await service.list(5);
 
-      expect(result).toHaveLength(2);
-      expect(prisma.projectMember.findMany).toHaveBeenCalledWith({
-        where: { projectId: 5 },
-        include: {
-          user: { select: { id: true, email: true, name: true, role: true } },
-        },
-        orderBy: { createdAt: 'asc' },
-      });
+      expect(result).toHaveLength(3);
+      expect(result[0].userId).toBe(10);
+      expect(result[0].role).toBe('owner');
+      expect(result[1].userId).toBe(2);
+      expect(result[2].userId).toBe(3);
+    });
+
+    it('should not duplicate org owner who is already an explicit member', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
+      const members = [
+        { id: 1, projectId: 5, userId: 10, role: 'owner', user: { id: 10, email: 'owner@test.com', name: 'Owner' } },
+      ];
+      prisma.projectMember.findMany.mockResolvedValue(members);
+      // Org owner already in explicit → notIn filter excludes them
+      prisma.orgMembership.findMany.mockResolvedValue([]);
+
+      const result = await service.list(5);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].userId).toBe(10);
+    });
+
+    it('should return empty array when project not found', async () => {
+      prisma.project.findUnique.mockResolvedValue(null);
+
+      const result = await service.list(999);
+
+      expect(result).toEqual([]);
     });
   });
 
   describe('add', () => {
     it('should add a member to the project', async () => {
       prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
-      prisma.user.findUnique.mockResolvedValue({ id: 2, orgId: 1, role: 'member' });
+      prisma.user.findUnique.mockResolvedValue({ id: 2, email: 'a@test.com', name: 'A' });
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 2, orgId: 1, role: 'member' });
       prisma.projectMember.findUnique.mockResolvedValue(null);
       prisma.projectMember.upsert.mockResolvedValue({
         id: 1, projectId: 5, userId: 2, role: 'editor',
-        user: { id: 2, email: 'a@test.com', name: 'A', role: 'member' },
+        user: { id: 2, email: 'a@test.com', name: 'A' },
       });
 
       const result = await service.add(5, 2, 'editor');
@@ -50,7 +76,7 @@ describe('ProjectMembersService', () => {
         update: { role: 'editor' },
         create: { projectId: 5, userId: 2, role: 'editor' },
         include: {
-          user: { select: { id: true, email: true, name: true, role: true } },
+          user: { select: { id: true, email: true, name: true } },
         },
       });
     });
@@ -76,16 +102,18 @@ describe('ProjectMembersService', () => {
       await expect(service.add(5, 999, 'editor')).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw BadRequestException when user belongs to different org', async () => {
+    it('should throw BadRequestException when user not in org (via orgMembership)', async () => {
       prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
-      prisma.user.findUnique.mockResolvedValue({ id: 2, orgId: 99, role: 'member' });
+      prisma.user.findUnique.mockResolvedValue({ id: 2, email: 'a@test.com', name: 'A' });
+      prisma.orgMembership.findUnique.mockResolvedValue(null);
 
       await expect(service.add(5, 2, 'editor')).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when trying to overwrite owner role', async () => {
       prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
-      prisma.user.findUnique.mockResolvedValue({ id: 2, orgId: 1, role: 'owner' });
+      prisma.user.findUnique.mockResolvedValue({ id: 2, email: 'a@test.com', name: 'A' });
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 2, orgId: 1, role: 'owner' });
       prisma.projectMember.findUnique.mockResolvedValue({ projectId: 5, userId: 2, role: 'owner' });
 
       await expect(service.add(5, 2, 'admin')).rejects.toThrow(BadRequestException);
@@ -97,7 +125,7 @@ describe('ProjectMembersService', () => {
       prisma.projectMember.findUnique.mockResolvedValue({ projectId: 5, userId: 2, role: 'viewer' });
       prisma.projectMember.update.mockResolvedValue({
         id: 1, projectId: 5, userId: 2, role: 'editor',
-        user: { id: 2, email: 'a@test.com', name: 'A', role: 'member' },
+        user: { id: 2, email: 'a@test.com', name: 'A' },
       });
 
       const result = await service.updateRole(5, 2, 'editor');
@@ -137,7 +165,7 @@ describe('ProjectMembersService', () => {
       prisma.projectMember.count.mockResolvedValue(2);
       prisma.projectMember.update.mockResolvedValue({
         id: 1, projectId: 5, userId: 2, role: 'editor',
-        user: { id: 2, email: 'a@test.com', name: 'A', role: 'member' },
+        user: { id: 2, email: 'a@test.com', name: 'A' },
       });
 
       const result = await service.updateRole(5, 2, 'editor');
@@ -195,7 +223,8 @@ describe('ProjectMembersService', () => {
       prisma.projectMember.findUnique.mockResolvedValue({ projectId: 5, userId: 1, role: 'owner' });
       prisma.projectMember.findFirst.mockResolvedValue({ projectId: 5, userId: 1, role: 'owner' });
       prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
-      prisma.user.findUnique.mockResolvedValue({ id: 3, orgId: 1, role: 'member' });
+      prisma.user.findUnique.mockResolvedValue({ id: 3, email: 'c@test.com', name: 'C' });
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 3, orgId: 1, role: 'member' });
 
       const result = await service.transferOwnership(5, 1, 'member', 3);
 
@@ -208,7 +237,8 @@ describe('ProjectMembersService', () => {
       prisma.projectMember.findUnique.mockResolvedValue(null);
       prisma.projectMember.findFirst.mockResolvedValue({ projectId: 5, userId: 10, role: 'owner' });
       prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
-      prisma.user.findUnique.mockResolvedValue({ id: 3, orgId: 1, role: 'member' });
+      prisma.user.findUnique.mockResolvedValue({ id: 3, email: 'c@test.com', name: 'C' });
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 3, orgId: 1, role: 'member' });
 
       const result = await service.transferOwnership(5, 99, 'owner', 3);
 
@@ -230,10 +260,11 @@ describe('ProjectMembersService', () => {
       await expect(service.transferOwnership(5, 1, 'member', 999)).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw BadRequestException when new owner belongs to different org', async () => {
+    it('should throw BadRequestException when new owner not in org (via orgMembership)', async () => {
       prisma.projectMember.findUnique.mockResolvedValue({ projectId: 5, userId: 1, role: 'owner' });
       prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
-      prisma.user.findUnique.mockResolvedValue({ id: 3, orgId: 99, role: 'member' });
+      prisma.user.findUnique.mockResolvedValue({ id: 3, email: 'c@test.com', name: 'C' });
+      prisma.orgMembership.findUnique.mockResolvedValue(null);
 
       await expect(service.transferOwnership(5, 1, 'member', 3)).rejects.toThrow(BadRequestException);
     });
@@ -241,7 +272,8 @@ describe('ProjectMembersService', () => {
     it('should throw BadRequestException when transferring to current owner', async () => {
       prisma.projectMember.findUnique.mockResolvedValue({ projectId: 5, userId: 1, role: 'owner' });
       prisma.project.findUnique.mockResolvedValue({ id: 5, orgId: 1 });
-      prisma.user.findUnique.mockResolvedValue({ id: 1, orgId: 1, role: 'owner' });
+      prisma.user.findUnique.mockResolvedValue({ id: 1, email: 'a@test.com', name: 'A' });
+      prisma.orgMembership.findUnique.mockResolvedValue({ userId: 1, orgId: 1, role: 'owner' });
       prisma.projectMember.findFirst.mockResolvedValue({ projectId: 5, userId: 1, role: 'owner' });
 
       await expect(service.transferOwnership(5, 1, 'owner', 1)).rejects.toThrow(BadRequestException);

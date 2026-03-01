@@ -25,24 +25,45 @@ export async function createOrg(overrides: Partial<{
   });
 }
 
-export async function createUser(orgId: number, overrides: Partial<{
+export async function createUser(overrides: Partial<{
   email: string;
   password: string;
   name: string;
-  role: string;
 }> = {}) {
   userCounter++;
   const password = overrides.password ?? 'password123';
   const passwordHash = await bcrypt.hash(password, 10);
   return testPrisma.user.create({
     data: {
-      orgId,
       email: overrides.email ?? `user${userCounter}@test.com`,
       passwordHash,
       name: overrides.name ?? `Test User ${userCounter}`,
-      role: overrides.role ?? 'owner',
     },
   });
+}
+
+export async function createOrgMembership(userId: number, orgId: number, role = 'owner') {
+  return testPrisma.orgMembership.create({
+    data: { userId, orgId, role },
+  });
+}
+
+/**
+ * Convenience: creates a User + OrgMembership in one call.
+ */
+export async function createUserWithOrg(orgId: number, overrides: Partial<{
+  email: string;
+  password: string;
+  name: string;
+  role: string;
+}> = {}) {
+  const user = await createUser({
+    email: overrides.email,
+    password: overrides.password,
+    name: overrides.name,
+  });
+  await createOrgMembership(user.id, orgId, overrides.role ?? 'owner');
+  return user;
 }
 
 export async function createProject(orgId: number, overrides: Partial<{

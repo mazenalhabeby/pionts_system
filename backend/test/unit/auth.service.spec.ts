@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from '../../src/auth/auth.service';
 import { ApiKeyService } from '../../src/auth/api-key.service';
@@ -48,12 +48,13 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('should create org, user, project, owner membership, and keys', async () => {
+    it('should create org, user, OrgMembership, project, owner membership, and keys', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.organization.create.mockResolvedValue({ id: 1, name: 'Test', slug: 'test-abc' });
       prisma.user.create.mockResolvedValue({
-        id: 1, orgId: 1, email: 'test@test.com', name: 'Test', role: 'owner', passwordHash: 'h',
+        id: 1, email: 'test@test.com', name: 'Test', passwordHash: 'h',
       });
+      prisma.orgMembership.create.mockResolvedValue({ id: 1, userId: 1, orgId: 1, role: 'owner' });
       prisma.project.create.mockResolvedValue({ id: 1, orgId: 1, name: 'Test Rewards' });
       prisma.projectMember.create.mockResolvedValue({ id: 1, projectId: 1, userId: 1, role: 'owner' });
       prisma.subscription.create.mockResolvedValue({ id: 1, orgId: 1 });
@@ -63,12 +64,17 @@ describe('AuthService', () => {
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
       expect(result.user.email).toBe('test@test.com');
+      expect(result.user.role).toBe('owner');
       expect(result.org.id).toBe(1);
+      expect(result.orgs).toHaveLength(1);
+      expect(result.orgs[0].role).toBe('owner');
       expect(result.project.id).toBe(1);
       expect(result.apiKeys.publicKey).toBe('pk_live_test');
       expect(prisma.organization.create).toHaveBeenCalled();
       expect(prisma.user.create).toHaveBeenCalled();
-      expect(prisma.project.create).toHaveBeenCalled();
+      expect(prisma.orgMembership.create).toHaveBeenCalledWith({
+        data: { userId: 1, orgId: 1, role: 'owner' },
+      });
       expect(prisma.projectMember.create).toHaveBeenCalledWith({
         data: { projectId: 1, userId: 1, role: 'owner' },
       });
@@ -83,8 +89,9 @@ describe('AuthService', () => {
         expect(data.passwordHash).not.toBe('password123');
         const isValid = await bcrypt.compare('password123', data.passwordHash);
         expect(isValid).toBe(true);
-        return { id: 1, orgId: 1, email: data.email, name: data.name, role: 'owner', passwordHash: data.passwordHash };
+        return { id: 1, email: data.email, name: data.name, passwordHash: data.passwordHash };
       });
+      prisma.orgMembership.create.mockResolvedValue({ id: 1, userId: 1, orgId: 1, role: 'owner' });
       prisma.project.create.mockResolvedValue({ id: 1, orgId: 1, name: 'T Rewards' });
       prisma.projectMember.create.mockResolvedValue({ id: 1, projectId: 1, userId: 1, role: 'owner' });
       prisma.subscription.create.mockResolvedValue({ id: 1, orgId: 1 });
@@ -99,8 +106,9 @@ describe('AuthService', () => {
         return { id: 1, name: data.name, slug: data.slug };
       });
       prisma.user.create.mockResolvedValue({
-        id: 1, orgId: 1, email: 'test@test.com', name: null, role: 'owner', passwordHash: 'h',
+        id: 1, email: 'test@test.com', name: null, passwordHash: 'h',
       });
+      prisma.orgMembership.create.mockResolvedValue({ id: 1, userId: 1, orgId: 1, role: 'owner' });
       prisma.project.create.mockResolvedValue({ id: 1, orgId: 1, name: 'R' });
       prisma.projectMember.create.mockResolvedValue({ id: 1, projectId: 1, userId: 1, role: 'owner' });
       prisma.subscription.create.mockResolvedValue({ id: 1, orgId: 1 });
@@ -118,12 +126,14 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should return tokens for valid credentials', async () => {
+    it('should return tokens and orgs for valid credentials', async () => {
       const hash = await bcrypt.hash('password123', 10);
       prisma.user.findUnique.mockResolvedValue({
-        id: 1, orgId: 1, email: 'test@test.com', name: 'Test', role: 'owner',
+        id: 1, email: 'test@test.com', name: 'Test',
         passwordHash: hash,
-        org: { id: 1, name: 'Org', slug: 'org' },
+        orgMemberships: [
+          { orgId: 1, role: 'owner', org: { id: 1, name: 'Org', slug: 'org' } },
+        ],
       });
 
       const result = await service.login('test@test.com', 'password123');
@@ -131,7 +141,10 @@ describe('AuthService', () => {
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
       expect(result.user.email).toBe('test@test.com');
+      expect(result.user.role).toBe('owner');
       expect(result.org.name).toBe('Org');
+      expect(result.orgs).toHaveLength(1);
+      expect(result.orgs[0]).toEqual({ id: 1, name: 'Org', slug: 'org', role: 'owner' });
     });
 
     it('should throw UnauthorizedException for non-existent user', async () => {
@@ -144,7 +157,9 @@ describe('AuthService', () => {
       const hash = await bcrypt.hash('correct', 10);
       prisma.user.findUnique.mockResolvedValue({
         id: 1, email: 'test@test.com', passwordHash: hash,
-        org: { id: 1, name: 'Org', slug: 'org' },
+        orgMemberships: [
+          { orgId: 1, role: 'owner', org: { id: 1, name: 'Org', slug: 'org' } },
+        ],
       });
 
       await expect(service.login('test@test.com', 'wrong')).rejects.toThrow(UnauthorizedException);
@@ -154,12 +169,30 @@ describe('AuthService', () => {
   describe('refresh', () => {
     it('should return new tokens from a valid refresh token', async () => {
       const refreshToken = jwtService.sign(
+        { sub: 1, currentOrgId: 1, email: 'test@test.com' },
+        { secret: process.env.JWT_REFRESH_SECRET || 'test-refresh-secret', expiresIn: '7d' },
+      );
+
+      prisma.user.findUnique.mockResolvedValue({
+        id: 1, email: 'test@test.com',
+        orgMemberships: [{ orgId: 1, role: 'owner' }],
+      });
+
+      const result = await service.refresh(refreshToken);
+
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+    });
+
+    it('should handle old token format with orgId (backward compat)', async () => {
+      const refreshToken = jwtService.sign(
         { sub: 1, orgId: 1, email: 'test@test.com', role: 'owner' },
         { secret: process.env.JWT_REFRESH_SECRET || 'test-refresh-secret', expiresIn: '7d' },
       );
 
       prisma.user.findUnique.mockResolvedValue({
-        id: 1, orgId: 1, email: 'test@test.com', role: 'owner',
+        id: 1, email: 'test@test.com',
+        orgMemberships: [{ orgId: 1, role: 'owner' }],
       });
 
       const result = await service.refresh(refreshToken);
@@ -174,13 +207,37 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException when user not found', async () => {
       const refreshToken = jwtService.sign(
-        { sub: 999, orgId: 1, email: 'gone@test.com', role: 'owner' },
+        { sub: 999, currentOrgId: 1, email: 'gone@test.com' },
         { secret: process.env.JWT_REFRESH_SECRET || 'test-refresh-secret', expiresIn: '7d' },
       );
 
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.refresh(refreshToken)).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('switchOrg', () => {
+    it('should return new tokens scoped to target org', async () => {
+      prisma.orgMembership.findUnique.mockResolvedValue({
+        userId: 1, orgId: 2, role: 'member',
+        org: { id: 2, name: 'Org B', slug: 'org-b' },
+      });
+      prisma.user.findUnique.mockResolvedValue({ id: 1, email: 'test@test.com' });
+
+      const result = await service.switchOrg(1, 2);
+
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.org.id).toBe(2);
+      expect(result.org.name).toBe('Org B');
+      expect(result.role).toBe('member');
+    });
+
+    it('should throw ForbiddenException when not a member of target org', async () => {
+      prisma.orgMembership.findUnique.mockResolvedValue(null);
+
+      await expect(service.switchOrg(1, 99)).rejects.toThrow(ForbiddenException);
     });
   });
 });

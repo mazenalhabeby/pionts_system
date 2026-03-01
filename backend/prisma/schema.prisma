@@ -16,7 +16,7 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users        User[]
+  memberships  OrgMembership[]
   projects     Project[]
   subscription Subscription?
   invitations  Invitation[]
@@ -26,19 +26,32 @@ model Organization {
 
 model User {
   id           Int      @id @default(autoincrement())
-  orgId        Int      @map("org_id")
   email        String   @unique
   passwordHash String   @map("password_hash")
   name         String?
-  role         String   @default("owner") // owner | member
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  org            Organization    @relation(fields: [orgId], references: [id])
+  orgMemberships OrgMembership[]
   projectMembers ProjectMember[]
   invitations    Invitation[]
 
   @@map("users")
+}
+
+model OrgMembership {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  orgId     Int      @map("org_id")
+  role      String   @default("member") // owner | member
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+  @@map("org_memberships")
 }
 
 model Project {

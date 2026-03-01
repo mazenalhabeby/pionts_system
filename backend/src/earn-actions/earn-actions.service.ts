@@ -132,11 +132,16 @@ export class EarnActionsService {
     return entries.map((e) => e.year ? `${e.actionSlug}:${e.year}` : e.actionSlug);
   }
 
-  async getCompletedSlugs(projectId: number, customerId: number): Promise<Set<string>> {
+  async getCompletedSlugs(projectId: number, customerId: number, currentYear?: number): Promise<Set<string>> {
     const entries = await this.prisma.customerActionLog.findMany({
       where: { projectId, customerId },
-      select: { actionSlug: true },
+      select: { actionSlug: true, year: true },
     });
-    return new Set(entries.map((e) => e.actionSlug));
+    const year = currentYear ?? new Date().getFullYear();
+    return new Set(
+      entries
+        .filter((e) => e.year === 0 || e.year === year)
+        .map((e) => e.actionSlug),
+    );
   }
 }

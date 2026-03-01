@@ -12,6 +12,7 @@ export function createPrismaMock() {
     update: jest.fn(),
     upsert: jest.fn(),
     delete: jest.fn(),
+    deleteMany: jest.fn(),
     count: jest.fn(),
     aggregate: jest.fn(),
   });
@@ -19,6 +20,7 @@ export function createPrismaMock() {
   return {
     organization: modelMethods(),
     user: modelMethods(),
+    orgMembership: modelMethods(),
     project: modelMethods(),
     apiKey: modelMethods(),
     customer: modelMethods(),

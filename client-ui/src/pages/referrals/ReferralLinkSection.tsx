@@ -6,19 +6,21 @@ interface ReferralLinkSectionProps {
   refUrl: string;
   directCount: number;
   directReferrals: ReferralNode[];
+  discountPercent?: string;
+  referrerPoints?: string;
 }
 
-export default function ReferralLinkSection({ refUrl, directCount, directReferrals }: ReferralLinkSectionProps) {
+export default function ReferralLinkSection({ refUrl, directCount, directReferrals, discountPercent = '5', referrerPoints = '5' }: ReferralLinkSectionProps) {
   return (
     <>
       {/* Referral Link */}
-      <div className="flex justify-between items-center mb-3.5">
-        <div className="text-sm font-bold text-[#1a1a1a] uppercase tracking-[0.5px]">Your Referral Link</div>
-        <div className="text-xs text-white bg-primary px-2.5 py-[3px] rounded-full font-semibold">{directCount} referrals</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div className="pw-section__title">Your Referral Link</div>
+        <span className="pw-table__badge pw-table__badge--active">{directCount} referrals</span>
       </div>
-      <div className="flex gap-2 mb-2.5 max-[600px]:flex-col">
+      <div className="pw-share__link" style={{ marginBottom: 12 }}>
         <input
-          className="flex-1 bg-bg border border-[#ddd] text-[#1a1a1a] px-3.5 py-2.5 rounded-md text-sm font-sans outline-none focus:border-primary"
+          className="pw-input"
           type="text"
           value={refUrl}
           readOnly
@@ -26,35 +28,37 @@ export default function ReferralLinkSection({ refUrl, directCount, directReferra
         />
         <CopyButton text={refUrl} />
       </div>
-      <div className="text-xs text-[#999] mt-2.5">Share this link — they get 5% off, you earn 5 pts per order.</div>
+      <div style={{ fontSize: 12, color: '#9ca3af' }}>Share this link — they get {discountPercent}% off, you earn {referrerPoints} pts per order.</div>
 
       {/* Direct Referrals Table */}
-      <div className="text-sm font-bold text-[#1a1a1a] uppercase tracking-[0.5px] mt-5">Direct Referrals</div>
+      <div className="pw-section__title" style={{ marginTop: 24, marginBottom: 12 }}>Direct Referrals</div>
       {directReferrals.length === 0 ? (
-        <div className="text-center p-5 text-[#999]">No referrals yet. Share your link to get started!</div>
+        <div className="pw-empty">
+          <div className="pw-empty__desc">No referrals yet. Share your link to get started!</div>
+        </div>
       ) : (
-        <div className="-mx-[22px] overflow-x-auto">
-          <table className="w-full border-collapse bg-white">
+        <div className="pw-table-wrap" style={{ margin: '0 -28px' }}>
+          <table className="pw-table">
             <thead>
               <tr>
-                <th className="text-left px-3 py-2.5 text-[13px] text-[#888] border-b border-[#e0e0e0]">Name</th>
-                <th className="text-left px-3 py-2.5 text-[13px] text-[#888] border-b border-[#e0e0e0]">Email</th>
-                <th className="text-left px-3 py-2.5 text-[13px] text-[#888] border-b border-[#e0e0e0]">Orders</th>
-                <th className="text-left px-3 py-2.5 text-[13px] text-[#888] border-b border-[#e0e0e0]">Joined</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Orders</th>
+                <th>Joined</th>
               </tr>
             </thead>
             <tbody>
               {directReferrals.map((r) => (
-                <tr key={r.id} className="hover:[&_td]:bg-[#fafafa] last:[&_td]:border-b-0">
-                  <td className="px-3 py-2.5 border-b border-[#f0f0f0] text-sm">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-[30px] h-[30px] rounded-full bg-[#f0f0f0] text-[#888] flex items-center justify-center text-[13px] font-bold shrink-0">{(r.name || r.email || '?')[0].toUpperCase()}</div>
+                <tr key={r.id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div className="pw-avatar">{(r.name || r.email || '?')[0].toUpperCase()}</div>
                       {r.name || '\u2014'}
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 border-b border-[#f0f0f0] text-sm">{r.email}</td>
-                  <td className="px-3 py-2.5 border-b border-[#f0f0f0] text-sm">{r.order_count}</td>
-                  <td className="px-3 py-2.5 border-b border-[#f0f0f0] text-sm">{timeAgo(r.created_at || '')}</td>
+                  <td>{r.email}</td>
+                  <td>{r.order_count}</td>
+                  <td>{timeAgo(r.created_at || '')}</td>
                 </tr>
               ))}
             </tbody>

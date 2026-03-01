@@ -70,6 +70,15 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken 
 
     getMyRedemptions: () => request('/customer/redemptions'),
 
+    cancelRedemption: (id: number | string) =>
+      request(`/customer/redemptions/${id}`, { method: 'DELETE' }),
+
+    setBirthday: (birthday: string) =>
+      request('/customer/birthday', {
+        method: 'PUT',
+        body: JSON.stringify({ birthday }),
+      }),
+
     sendCode: (email) =>
       request('/auth/send-code', {
         method: 'POST',

@@ -5,9 +5,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 export interface JwtPayload {
   sub: number;  // userId
-  orgId: number;
   email: string;
-  role: string;
+  currentOrgId: number;
+  // Legacy fields for backward compat during token transition
+  orgId?: number;
+  role?: string;
 }
 
 @Injectable()
@@ -21,11 +23,27 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: JwtPayload) {
+    // Backward compat: handle old tokens that have orgId instead of currentOrgId
+    const currentOrgId = payload.currentOrgId ?? payload.orgId;
+    if (!currentOrgId) throw new UnauthorizedException('Invalid token: missing org context');
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { org: true },
+      include: {
+        orgMemberships: { include: { org: true } },
+      },
     });
     if (!user) throw new UnauthorizedException('User not found');
-    return user;
+
+    const membership = user.orgMemberships.find((m) => m.orgId === currentOrgId);
+    if (!membership) throw new UnauthorizedException('Not a member of this organization');
+
+    // Shim: attach org, orgId, and role so all existing guards/controllers work unchanged
+    return {
+      ...user,
+      org: membership.org,
+      orgId: membership.orgId,
+      role: membership.role,
+    };
   }
 }

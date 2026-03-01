@@ -85,11 +85,17 @@ describe('Orgs E2E', () => {
   // ── POST /api/v1/orgs/me/members ─────────────────────────────────
 
   describe('POST /api/v1/orgs/me/members', () => {
-    it('should add a new member (owner can add)', async () => {
-      const res = await authPost(app, ownerToken, '/api/v1/orgs/me/members', {
+    it('should add an existing user to the org (owner can add)', async () => {
+      // First, register another user in a different org
+      await registerUser(app, {
         email: 'member@test.com',
         password: 'password123',
         name: 'New Member',
+        orgName: 'Member Org',
+      });
+
+      const res = await authPost(app, ownerToken, '/api/v1/orgs/me/members', {
+        email: 'member@test.com',
         role: 'member',
       }).expect(201);
 
@@ -97,10 +103,9 @@ describe('Orgs E2E', () => {
       expect(res.body.role).toBe('member');
     });
 
-    it('should return 409 for duplicate email', async () => {
+    it('should return 409 for duplicate membership', async () => {
       const res = await authPost(app, ownerToken, '/api/v1/orgs/me/members', {
         email: 'member@test.com',
-        password: 'password123',
         role: 'member',
       });
       expect(res.status).toBe(409);
@@ -113,17 +118,37 @@ describe('Orgs E2E', () => {
       expect(res.status).toBe(400);
     });
 
+    it('should return 400 when user does not exist', async () => {
+      const res = await authPost(app, ownerToken, '/api/v1/orgs/me/members', {
+        email: 'nonexistent@test.com',
+        role: 'member',
+      });
+      expect(res.status).toBe(400);
+    });
+
     it('should return 403 when member role tries to add', async () => {
-      // Login as the member we just created
+      // Login as the member we just added (they have membership in both orgs)
       const loginRes = await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email: 'member@test.com', password: 'password123' })
         .expect(201);
-      const memberToken = loginRes.body.accessToken;
+      // Switch to Test Org if needed — the user's default org might be "Member Org"
+      // They need to be in the context of "Test Org" for this test
+      // Since the member was added to ownerToken's org, we need to switch
+      let memberToken = loginRes.body.accessToken;
+      const orgs = loginRes.body.orgs;
+      const testOrg = orgs.find((o: any) => o.name === 'Test Org');
+      if (testOrg && loginRes.body.org.name !== 'Test Org') {
+        const switchRes = await request(app.getHttpServer())
+          .post('/auth/switch-org')
+          .set('Authorization', `Bearer ${memberToken}`)
+          .send({ orgId: testOrg.id })
+          .expect(201);
+        memberToken = switchRes.body.accessToken;
+      }
 
       const res = await authPost(app, memberToken, '/api/v1/orgs/me/members', {
         email: 'another@test.com',
-        password: 'password123',
         role: 'member',
       });
       expect(res.status).toBe(403);
@@ -155,7 +180,18 @@ describe('Orgs E2E', () => {
         .post('/auth/login')
         .send({ email: 'member@test.com', password: 'password123' })
         .expect(201);
-      const memberToken = loginRes.body.accessToken;
+      // Switch to Test Org if needed
+      let memberToken = loginRes.body.accessToken;
+      const orgs = loginRes.body.orgs;
+      const testOrg = orgs.find((o: any) => o.name === 'Test Org');
+      if (testOrg && loginRes.body.org.name !== 'Test Org') {
+        const switchRes = await request(app.getHttpServer())
+          .post('/auth/switch-org')
+          .set('Authorization', `Bearer ${memberToken}`)
+          .send({ orgId: testOrg.id })
+          .expect(201);
+        memberToken = switchRes.body.accessToken;
+      }
 
       const res = await authDelete(app, memberToken, `/api/v1/orgs/me/members/${ownerUserId}`);
       expect(res.status).toBe(403);

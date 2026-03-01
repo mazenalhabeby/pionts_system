@@ -5,7 +5,6 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/rewards/',
   resolve: {
     alias: {
       '@pionts/shared': path.resolve(__dirname, '../shared/src'),

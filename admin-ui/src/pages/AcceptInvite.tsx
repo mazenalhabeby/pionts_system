@@ -107,10 +107,15 @@ export default function AcceptInvite() {
             </svg>
           </div>
           <p className="text-text-primary text-[15px] font-semibold mb-2">You're in!</p>
-          <p className="text-text-muted text-sm mb-6">
+          <p className="text-text-muted text-sm mb-2">
             You've joined <strong>{invitation.orgName}</strong>
             {invitation.projectName && <> on project <strong>{invitation.projectName}</strong></>}.
           </p>
+          {invitation.isExistingUser && (
+            <p className="text-text-faint text-xs mb-4">
+              You can switch between organizations from the sidebar.
+            </p>
+          )}
           <Link
             to="/"
             className="inline-block bg-[#ededed] text-[#0a0a0a] border-none px-6 py-2.5 rounded-md text-sm font-semibold no-underline transition-colors duration-200 hover:bg-white"

@@ -2,64 +2,67 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LoginPage from '../components/LoginPage';
-import { AuthProvider } from '../context/AuthContext';
-import { StandaloneConfigProvider } from '../context/WidgetConfigContext';
+import { WidgetProvider } from '../context/WidgetContext';
+import { WidgetConfigProvider } from '../context/WidgetConfigContext';
+import type { SdkConfig } from '@pionts/shared';
 
-// Mock the api module
-vi.mock('../api', () => ({
-  api: {
-    sendCode: vi.fn(),
-    verifyCode: vi.fn(),
-    checkAuth: vi.fn().mockRejectedValue(new Error('not authed')),
-    logout: vi.fn(),
-    getCustomer: vi.fn(),
-    redeem: vi.fn(),
-    award: vi.fn(),
-    getMyReferrals: vi.fn(),
-    getMyRedemptions: vi.fn(),
-  },
+// Mock api-sdk module
+vi.mock('../api-sdk', () => ({
+  createSdkApi: vi.fn(() => mockSdkApi),
 }));
 
-import { api } from '../api';
+const mockSdkApi = {
+  getCustomer: vi.fn().mockRejectedValue(new Error('not authed')),
+  redeem: vi.fn(),
+  award: vi.fn(),
+  getMyReferrals: vi.fn(),
+  getMyRedemptions: vi.fn(),
+  sendCode: vi.fn(),
+  verifyCode: vi.fn(),
+  getLeaderboard: vi.fn(),
+  signup: vi.fn(),
+  checkRef: vi.fn(),
+};
 
-const mockApi = api as {
-  sendCode: ReturnType<typeof vi.fn>;
-  verifyCode: ReturnType<typeof vi.fn>;
-  checkAuth: ReturnType<typeof vi.fn>;
-  logout: ReturnType<typeof vi.fn>;
-  getCustomer: ReturnType<typeof vi.fn>;
-  redeem: ReturnType<typeof vi.fn>;
-  award: ReturnType<typeof vi.fn>;
-  getMyReferrals: ReturnType<typeof vi.fn>;
-  getMyRedemptions: ReturnType<typeof vi.fn>;
+const testConfig: SdkConfig = {
+  projectKey: 'pk_test',
+  apiBase: 'http://localhost:3000',
+  mode: 'embedded',
+  containerEl: document.createElement('div'),
 };
 
 function renderLoginPage() {
   return render(
-    <AuthProvider>
-      <StandaloneConfigProvider>
+    <WidgetProvider config={testConfig}>
+      <WidgetConfigProvider>
         <LoginPage />
-      </StandaloneConfigProvider>
-    </AuthProvider>
+      </WidgetConfigProvider>
+    </WidgetProvider>
   );
 }
 
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockApi.checkAuth.mockRejectedValue(new Error('not authed'));
+    mockSdkApi.getCustomer.mockRejectedValue(new Error('not authed'));
   });
 
-  it('renders email input initially (step=email)', () => {
+  it('renders email input initially (step=email)', async () => {
     renderLoginPage();
-    expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    });
     expect(screen.getByRole('button', { name: 'Send Code' })).toBeInTheDocument();
   });
 
   it('transitions to code step after successful sendCode', async () => {
-    mockApi.sendCode.mockResolvedValue({});
+    mockSdkApi.sendCode.mockResolvedValue({});
     const user = userEvent.setup();
     renderLoginPage();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    });
 
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@x.com');
     await user.click(screen.getByRole('button', { name: 'Send Code' }));
@@ -71,9 +74,13 @@ describe('LoginPage', () => {
   });
 
   it('shows error on sendCode failure', async () => {
-    mockApi.sendCode.mockRejectedValue(new Error('Rate limited'));
+    mockSdkApi.sendCode.mockRejectedValue(new Error('Rate limited'));
     const user = userEvent.setup();
     renderLoginPage();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    });
 
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@x.com');
     await user.click(screen.getByRole('button', { name: 'Send Code' }));
@@ -86,9 +93,13 @@ describe('LoginPage', () => {
   });
 
   it('"Use a different email" returns to email step', async () => {
-    mockApi.sendCode.mockResolvedValue({});
+    mockSdkApi.sendCode.mockResolvedValue({});
     const user = userEvent.setup();
     renderLoginPage();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    });
 
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@x.com');
     await user.click(screen.getByRole('button', { name: 'Send Code' }));
@@ -104,10 +115,14 @@ describe('LoginPage', () => {
   });
 
   it('calls login (verifyCode) with email and code on verify', async () => {
-    mockApi.sendCode.mockResolvedValue({});
-    mockApi.verifyCode.mockResolvedValue({});
+    mockSdkApi.sendCode.mockResolvedValue({});
+    mockSdkApi.verifyCode.mockResolvedValue({ token: 'test-token' });
     const user = userEvent.setup();
     renderLoginPage();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    });
 
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@x.com');
     await user.click(screen.getByRole('button', { name: 'Send Code' }));
@@ -120,7 +135,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Verify' }));
 
     await waitFor(() => {
-      expect(mockApi.verifyCode).toHaveBeenCalledWith('test@x.com', '123456');
+      expect(mockSdkApi.verifyCode).toHaveBeenCalledWith('test@x.com', '123456');
     });
   });
 });

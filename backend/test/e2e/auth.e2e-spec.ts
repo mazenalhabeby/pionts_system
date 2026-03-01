@@ -39,6 +39,10 @@ describe('Auth E2E', () => {
       expect(body.user.role).toBe('owner');
       expect(body.org.name).toBe('Alice Corp');
       expect(body.org.slug).toMatch(/^alice-corp-/);
+      expect(body.orgs).toBeDefined();
+      expect(body.orgs).toHaveLength(1);
+      expect(body.orgs[0].role).toBe('owner');
+      expect(body.orgs[0].name).toBe('Alice Corp');
       expect(body.project.name).toBe('Alice Corp Rewards');
       expect(body.apiKeys.publicKey).toMatch(/^pk_live_/);
       expect(body.apiKeys.secretKey).toMatch(/^sk_live_/);
@@ -85,13 +89,13 @@ describe('Auth E2E', () => {
 
     it('should initialize default settings and earn actions for the project', async () => {
       const settings = await testPrisma.setting.findMany({
-        where: { project: { org: { users: { some: { email: 'new@test.com' } } } } },
+        where: { project: { org: { memberships: { some: { user: { email: 'new@test.com' } } } } } },
       });
       expect(settings.length).toBeGreaterThan(0);
 
       // Point values now live in earn_actions table, not settings
       const project = await testPrisma.project.findFirst({
-        where: { org: { users: { some: { email: 'new@test.com' } } } },
+        where: { org: { memberships: { some: { user: { email: 'new@test.com' } } } } },
       });
       const signupAction = await testPrisma.earnAction.findUnique({
         where: { projectId_slug: { projectId: project!.id, slug: 'signup' } },
@@ -120,6 +124,8 @@ describe('Auth E2E', () => {
       expect(refreshCookie).toContain('refresh_token=');
       expect(body.user.email).toBe('new@test.com');
       expect(body.org).toBeDefined();
+      expect(body.orgs).toBeDefined();
+      expect(body.orgs.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should return 401 for wrong password', async () => {
@@ -218,6 +224,8 @@ describe('Auth E2E', () => {
       expect(res.body.email).toBe('new@test.com');
       expect(res.body.org).toBeDefined();
       expect(res.body.org.name).toBe('Alice Corp');
+      expect(res.body.orgs).toBeDefined();
+      expect(res.body.orgs.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should return 401 without token', async () => {

@@ -38,18 +38,25 @@ export class InvitationsService {
       }
     }
 
-    // Check if user already in org
+    // Check if user already in org via OrgMembership
     const existingUser = await this.prisma.user.findUnique({ where: { email } });
-    if (existingUser && existingUser.orgId === orgId) {
-      // If project invite, check if already a project member
-      if (projectId) {
-        const existingMember = await this.prisma.projectMember.findUnique({
-          where: { projectId_userId: { projectId, userId: existingUser.id } },
-        });
-        if (existingMember) throw new ConflictException('User is already a member of this project');
-      } else {
-        throw new ConflictException('User is already a member of this organization');
+    if (existingUser) {
+      const existingOrgMembership = await this.prisma.orgMembership.findUnique({
+        where: { userId_orgId: { userId: existingUser.id, orgId } },
+      });
+
+      if (existingOrgMembership) {
+        // User is already in this org — handle project-level invite
+        if (projectId) {
+          const existingMember = await this.prisma.projectMember.findUnique({
+            where: { projectId_userId: { projectId, userId: existingUser.id } },
+          });
+          if (existingMember) throw new ConflictException('User is already a member of this project');
+        } else {
+          throw new ConflictException('User is already a member of this organization');
+        }
       }
+      // User exists in a different org — that's fine now with multi-org!
     }
 
     // Check for pending invitation with same email+org (or email+project)
@@ -90,17 +97,24 @@ export class InvitationsService {
     const existingUser = await this.prisma.user.findUnique({ where: { email: invitation.email } });
 
     if (existingUser) {
-      // Existing user in same org — handle project-level invite
-      if (existingUser.orgId === invitation.orgId) {
-        if (invitation.projectId) {
-          await this.prisma.projectMember.create({
-            data: { projectId: invitation.projectId, userId: existingUser.id, role: invitation.role },
-          });
-        }
-        // Org-level invite for existing org member shouldn't happen, but handle gracefully
-      } else {
-        // User exists in a different org — currently single-org per user
-        throw new ConflictException('This email is already associated with another organization. Please use a different email.');
+      // Existing user — ensure they have org membership
+      const existingOrgMembership = await this.prisma.orgMembership.findUnique({
+        where: { userId_orgId: { userId: existingUser.id, orgId: invitation.orgId } },
+      });
+
+      if (!existingOrgMembership) {
+        // Cross-org invite: create OrgMembership for the new org
+        const orgRole = invitation.projectId ? 'member' : invitation.role;
+        await this.prisma.orgMembership.create({
+          data: { userId: existingUser.id, orgId: invitation.orgId, role: orgRole },
+        });
+      }
+
+      // If project-level invite, add project membership
+      if (invitation.projectId) {
+        await this.prisma.projectMember.create({
+          data: { projectId: invitation.projectId, userId: existingUser.id, role: invitation.role },
+        });
       }
     } else {
       // New user — require password and name
@@ -112,12 +126,15 @@ export class InvitationsService {
 
       const newUser = await this.prisma.user.create({
         data: {
-          orgId: invitation.orgId,
           email: invitation.email,
           passwordHash,
           name,
-          role: orgRole,
         },
+      });
+
+      // Create OrgMembership
+      await this.prisma.orgMembership.create({
+        data: { userId: newUser.id, orgId: invitation.orgId, role: orgRole },
       });
 
       if (invitation.projectId) {
@@ -189,6 +206,13 @@ export class InvitationsService {
       createdAt: inv.createdAt,
       isExistingUser: existingEmails.has(inv.email),
     }));
+  }
+
+  async findPendingInOrg(orgId: number, id: number) {
+    return this.prisma.invitation.findFirst({
+      where: { id, orgId, status: 'pending' },
+      select: { id: true, projectId: true },
+    });
   }
 
   async revoke(orgId: number, id: number) {
