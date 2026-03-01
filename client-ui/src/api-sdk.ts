@@ -6,6 +6,8 @@ interface SdkApiConfig {
   getEmail: () => string | null;
   getHmac: () => string | null;
   getToken: () => string | null;
+  getReferralCode: () => string | null;
+  getName: () => string | null;
 }
 
 export interface SdkApi extends WidgetApi {
@@ -13,7 +15,9 @@ export interface SdkApi extends WidgetApi {
   checkRef: (code: string) => Promise<unknown>;
 }
 
-export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken }: SdkApiConfig): SdkApi {
+export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken, getReferralCode }: SdkApiConfig): SdkApi {
+  let referralCodeSent = false;
+
   async function request(path: string, options: RequestInit = {}): Promise<any> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -27,8 +31,19 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken 
     if (email && hmac) {
       headers['X-Customer-Email'] = email;
       headers['X-Customer-Hmac'] = hmac;
+      const name = getName();
+      if (name) headers['X-Customer-Name'] = name;
     } else if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Send referral code on first customer request only
+    if (!referralCodeSent) {
+      const refCode = getReferralCode();
+      if (refCode) {
+        headers['X-Referral-Code'] = refCode;
+        referralCodeSent = true;
+      }
     }
 
     const res = await fetch(`${apiBase}/api/v1/sdk${path}`, {

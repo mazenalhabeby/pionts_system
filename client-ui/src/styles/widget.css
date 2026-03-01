@@ -213,10 +213,10 @@ a:hover {
 
 .pw-hero__name {
   color: #1a1a2e;
-  font-size: 96px;
+  font-size: 64px;
   font-weight: 800;
   margin-top: 4px;
-  letter-spacing: -5px;
+  letter-spacing: -3px;
   line-height: 1;
 }
 
@@ -2032,7 +2032,7 @@ a:hover {
     height: 11px;
   }
   /* Name big */
-  .pw-hero__name { font-size: 56px; letter-spacing: -2.5px; }
+  .pw-hero__name { font-size: 48px; letter-spacing: -2.5px; }
   /* Points + label + bar centered below */
   .pw-hero__balance { text-align: center; align-self: center; }
   .pw-hero__points { font-size: 56px; letter-spacing: -2.5px; }
@@ -2064,7 +2064,7 @@ a:hover {
   .pw-main { padding: 20px 12px 20px; }
   .pw-hero { padding: 2px; }
   .pw-hero__content { padding: 20px 16px 18px; }
-  .pw-hero__name { font-size: 42px; letter-spacing: -2px; }
+  .pw-hero__name { font-size: 36px; letter-spacing: -1.5px; }
   .pw-hero__points { font-size: 42px; letter-spacing: -2px; }
   .pw-hero__greeting { font-size: 12px; }
   .pw-hero__label { font-size: 10px; letter-spacing: 2px; }

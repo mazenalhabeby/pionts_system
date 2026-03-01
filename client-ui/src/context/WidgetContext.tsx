@@ -34,6 +34,8 @@ export function WidgetProvider({ config, children }: { config: SdkConfig; childr
       getEmail: () => config.customer?.email || null,
       getHmac: () => config.customer?.hmac || null,
       getToken: () => tokenRef.current,
+      getReferralCode: () => config.referralCode || null,
+      getName: () => config.customer?.name || null,
     }),
   ).current;
 

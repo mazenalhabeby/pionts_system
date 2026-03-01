@@ -38,8 +38,48 @@ export class SdkController {
   }
 
   @Get('customer')
-  async getCustomer(@SdkCustomer() customer: any, @SdkProject() project: any) {
+  async getCustomer(@SdkCustomer() customer: any, @SdkProject() project: any, @Req() req: any) {
     this.requireCustomer(customer);
+
+    // Link referral code from SDK cookie (sent via X-Referral-Code header)
+    const refCode = req.headers['x-referral-code'];
+    if (refCode && !customer.referredBy) {
+      const fullProject = await this.sdkService.getProject(project.id);
+      if (fullProject?.referralsEnabled && refCode !== customer.referralCode) {
+        try {
+          await this.referralsService.linkReferral(project.id, customer.id, refCode);
+          // Re-fetch customer with updated referral data
+          const updated = await this.customersService.findById(project.id, customer.id);
+          if (updated) {
+            return this.sdkService.getCustomerData(project.id, updated);
+          }
+        } catch {
+          // Invalid referral code — proceed without linking
+        }
+      }
+    }
+
+    // Award signup points if HMAC-created and not yet rewarded
+    if (!customer.signupRewarded) {
+      const fullProject = await this.sdkService.getProject(project.id);
+      if (fullProject?.pointsEnabled) {
+        const signupAction = await this.earnActionsService.getAction(project.id, 'signup');
+        if (signupAction?.enabled) {
+          const done = await this.earnActionsService.hasCompleted(project.id, customer.id, 'signup');
+          if (!done) {
+            await this.customersService.awardPoints(
+              project.id, customer.id, signupAction.points, 'signup', 'Welcome bonus!',
+            );
+            await this.earnActionsService.markCompleted(project.id, customer.id, 'signup');
+          }
+        }
+      }
+      const updated = await this.customersService.findById(project.id, customer.id);
+      if (updated) {
+        return this.sdkService.getCustomerData(project.id, updated);
+      }
+    }
+
     return this.sdkService.getCustomerData(project.id, customer);
   }
 

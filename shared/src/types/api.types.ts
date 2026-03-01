@@ -21,6 +21,7 @@ export interface SdkConfig {
   apiBase?: string;
   mode?: 'floating' | 'embedded';
   containerEl?: HTMLElement;
+  referralCode?: string | null;
   customer?: {
     email: string;
     name?: string;

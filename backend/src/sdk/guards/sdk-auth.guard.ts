@@ -45,8 +45,13 @@ export class SdkAuthGuard implements CanActivate {
         throw new UnauthorizedException('Invalid HMAC signature');
       }
 
-      const customer = await this.customersService.findByEmail(project.id, email);
-      request.sdkCustomer = customer || null;
+      // HMAC-verified identity — auto-create customer if they don't exist yet
+      const customer = await this.customersService.getOrCreate(
+        project.id,
+        email,
+        request.headers['x-customer-name'] || undefined,
+      );
+      request.sdkCustomer = customer;
       request.sdkAuthMode = 'hmac';
       request.sdkCustomerEmail = email;
       return true;
