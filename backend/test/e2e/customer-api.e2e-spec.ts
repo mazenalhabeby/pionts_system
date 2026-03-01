@@ -339,7 +339,7 @@ describe('Customer API E2E', () => {
         .expect(201);
 
       expect(res.body.discount_code).toBeDefined();
-      expect(res.body.discount_code).toContain('8BC-');
+      expect(res.body.discount_code).toContain('TESTPROJEC-');
       expect(res.body.discount_amount).toBe(2);
       expect(res.body.new_balance).toBeDefined();
     });
