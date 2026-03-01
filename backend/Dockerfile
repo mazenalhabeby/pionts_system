@@ -59,4 +59,4 @@ COPY --from=sdk-builder /app/sdk/dist ./sdk/dist
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "cd /app/backend && npx prisma migrate deploy && node dist/src/main.js"]
+CMD ["sh", "-c", "cd /app/backend && npx prisma migrate deploy && node dist/main.js"]
