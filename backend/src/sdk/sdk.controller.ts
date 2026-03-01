@@ -131,6 +131,34 @@ export class SdkController {
     return { points_awarded: action.points, new_balance: newBalance };
   }
 
+  @Put('customer/profile')
+  async updateProfile(@SdkCustomer() customer: any, @Body() body: { name?: string; birthday?: string }) {
+    this.requireCustomer(customer);
+    if (!body.name && !body.birthday) {
+      throw new BadRequestException('At least name or birthday is required');
+    }
+    if (body.name !== undefined) {
+      const trimmed = body.name.trim();
+      if (!trimmed || trimmed.length < 2) {
+        throw new BadRequestException('Name must be at least 2 characters');
+      }
+      await this.customersService.updateName(customer.id, trimmed);
+    }
+    if (body.birthday !== undefined) {
+      if (!/^\d{2}-\d{2}$/.test(body.birthday)) {
+        throw new BadRequestException('Birthday must be in MM-DD format');
+      }
+      const [monthStr, dayStr] = body.birthday.split('-');
+      const month = parseInt(monthStr, 10);
+      const day = parseInt(dayStr, 10);
+      if (month < 1 || month > 12 || day < 1 || day > 31) {
+        throw new BadRequestException('Invalid birthday date');
+      }
+      await this.customersService.setBirthday(customer.id, body.birthday);
+    }
+    return { success: true };
+  }
+
   @Put('customer/birthday')
   async setBirthday(@SdkCustomer() customer: any, @Body() body: { birthday: string }) {
     this.requireCustomer(customer);
@@ -171,7 +199,15 @@ export class SdkController {
       this.referralsService.getReferralEarnings(project.id, customer.id),
     ]);
 
-    const baseUrl = this.configService.get(project.id, 'referral_base_url');
+    let baseUrl = this.configService.get(project.id, 'referral_base_url');
+    if (!baseUrl) {
+      const fullProject = await this.sdkService.getProject(project.id);
+      if (fullProject?.domain) {
+        baseUrl = fullProject.domain.startsWith('http')
+          ? fullProject.domain
+          : `https://${fullProject.domain}`;
+      }
+    }
     const referralLink = baseUrl
       ? `${baseUrl}?ref=${customer.referralCode}`
       : undefined;

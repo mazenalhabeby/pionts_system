@@ -79,6 +79,12 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken 
         body: JSON.stringify({ birthday }),
       }),
 
+    updateProfile: (data: { name?: string; birthday?: string }) =>
+      request('/customer/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
     sendCode: (email) =>
       request('/auth/send-code', {
         method: 'POST',

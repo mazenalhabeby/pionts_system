@@ -195,6 +195,13 @@ export class CustomersService {
     });
   }
 
+  async updateName(customerId: number, name: string) {
+    await this.prisma.customer.update({
+      where: { id: customerId },
+      data: { name },
+    });
+  }
+
   async setBirthday(customerId: number, birthday: string) {
     await this.prisma.customer.update({
       where: { id: customerId },
@@ -359,14 +366,14 @@ export class CustomersService {
   }
 
   async getTopReferrers(projectId: number, limit = 10) {
-    // Count direct referrals for each customer (those who referred at least one person)
+    // Count direct referrals for each partner (only partners appear on leaderboard)
     const results = await this.prisma.$queryRaw<Array<any>>(Prisma.sql`
       SELECT
         c.id, c.name, c.email, c.points_earned_total,
         COUNT(DISTINCT d.id) as direct
       FROM customers c
       INNER JOIN referral_tree d ON d.parent_id = c.id AND d.project_id = ${projectId}
-      WHERE c.project_id = ${projectId}
+      WHERE c.project_id = ${projectId} AND c.is_partner = true
       GROUP BY c.id, c.name, c.email, c.points_earned_total
       ORDER BY direct DESC
       LIMIT ${limit}

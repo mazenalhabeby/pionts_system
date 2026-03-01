@@ -9,6 +9,7 @@ export interface WidgetApi {
   getMyRedemptions: () => Promise<Redemption[]>;
   cancelRedemption: (id: number | string) => Promise<{ points_returned: number; new_balance: number }>;
   setBirthday: (birthday: string) => Promise<{ success: boolean; birthday: string }>;
+  updateProfile: (data: { name?: string; birthday?: string }) => Promise<{ success: boolean }>;
   sendCode: (email: string) => Promise<unknown>;
   verifyCode: (email: string, code: string) => Promise<{ token?: string }>;
   getLeaderboard: () => Promise<any[]>;

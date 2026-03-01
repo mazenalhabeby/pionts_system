@@ -59,7 +59,7 @@ export default function Leaderboard() {
         </div>
         <div>
           <div className="pw-page-header__title">Leaderboard</div>
-          <div className="pw-page-header__subtitle">Top referrers in the community</div>
+          <div className="pw-page-header__subtitle">Top partners by referrals</div>
         </div>
       </div>
 
@@ -158,9 +158,6 @@ export default function Leaderboard() {
                     {myEntry ? `${myEntry.network} referrals` : `${customerData.referral_stats?.network || 0} referrals`}
                   </div>
                 </div>
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--pionts-primary, #3b82f6)' }}>
-                {customerData.points_balance} <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af' }}>pts</span>
               </div>
             </div>
           )}

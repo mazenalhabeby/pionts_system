@@ -113,9 +113,23 @@ export class SdkService {
     const allSettings = await this.configService.getAll(projectId);
     const tiers = await this.configService.getRedemptionTiers(projectId);
 
+    // Fall back to project domain if referral_base_url not configured
+    let referralBaseUrl = allSettings.referral_base_url || '';
+    if (!referralBaseUrl) {
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { domain: true },
+      });
+      if (project?.domain) {
+        referralBaseUrl = project.domain.startsWith('http')
+          ? project.domain
+          : `https://${project.domain}`;
+      }
+    }
+
     return {
       tiers,
-      referral_base_url: allSettings.referral_base_url || '',
+      referral_base_url: referralBaseUrl,
       social_tiktok_url: allSettings.social_tiktok_url || '',
       social_instagram_url: allSettings.social_instagram_url || '',
       widget_primary_color: allSettings.widget_primary_color || '#ff3c00',

@@ -21,7 +21,7 @@ import { LoginDto } from './dto/login.dto';
 import { AwardDeductDto } from './dto/award-deduct.dto';
 import { toSnakeCaseCustomer } from '../utils/transformers';
 import { resolveProjectId } from '../common/helpers/project-resolver';
-// this is test 
+
 @Controller('admin')
 export class AdminController {
   constructor(

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { useWidgetConfig } from './context/WidgetConfigContext';
 import useCustomer from './hooks/useCustomer';
 import LoginPage from './components/LoginPage';
+import CompleteProfilePage from './components/CompleteProfilePage';
 import { HomeIcon, UsersIcon, GiftIcon, StarIcon, ChartIcon } from '@pionts/shared';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -59,12 +60,27 @@ const PAGE_MAP: Record<string, React.LazyExoticComponent<React.ComponentType>> =
 export default function WidgetApp() {
   const { authenticated, loading, settings } = useWidgetConfig();
   const { data: customerData } = useCustomer();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('');
 
   const modules = customerData?.enabled_modules;
   const leaderboardEnabled = (settings as Record<string, unknown> | null)?.leaderboard_enabled === 'true';
 
+  const isPartner = !!(modules?.partners && customerData?.is_partner);
+
   const tabs = useMemo(() => {
+    if (isPartner) {
+      // Partners: Home (partner hero) + Partner + Leaderboard — no referrals, redeem, earn
+      const t: TabDef[] = [
+        { key: 'dashboard', label: 'Home', icon: TAB_ICONS.home },
+        { key: 'partner', label: 'Partner', icon: TAB_ICONS.dollar },
+      ];
+      if (leaderboardEnabled) {
+        t.push({ key: 'leaderboard', label: 'Leaders', icon: TAB_ICONS.chart });
+      }
+      return t;
+    }
+
+    // Regular customers — no partner tab, no leaderboard
     const t: TabDef[] = [{ key: 'dashboard', label: 'Home', icon: TAB_ICONS.home }];
     if (modules?.referrals !== false) {
       t.push({ key: 'referrals', label: 'Referrals', icon: TAB_ICONS.users });
@@ -73,18 +89,12 @@ export default function WidgetApp() {
       t.push({ key: 'redeem', label: 'Redeem', icon: TAB_ICONS.gift });
       t.push({ key: 'earn', label: 'Earn', icon: TAB_ICONS.star });
     }
-    if (modules?.partners && customerData?.is_partner) {
-      t.push({ key: 'partner', label: 'Partner', icon: TAB_ICONS.dollar });
-    }
-    if (leaderboardEnabled) {
-      t.push({ key: 'leaderboard', label: 'Leaders', icon: TAB_ICONS.chart });
-    }
     return t;
-  }, [modules, customerData?.is_partner, leaderboardEnabled]);
+  }, [isPartner, modules, leaderboardEnabled]);
 
   useEffect(() => {
     if (!tabs.find((t) => t.key === activeTab)) {
-      setActiveTab('dashboard');
+      setActiveTab(tabs[0]?.key || 'dashboard');
     }
   }, [tabs, activeTab]);
 
@@ -109,6 +119,10 @@ export default function WidgetApp() {
 
   if (authenticated === false) {
     return <LoginPage />;
+  }
+
+  if (customerData && (!customerData.name || !customerData.birthday)) {
+    return <CompleteProfilePage />;
   }
 
   const PageComponent = PAGE_MAP[activeTab];
