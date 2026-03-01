@@ -29,7 +29,7 @@ export class EmailSenderService {
   }
 
   async send(to: string, subject: string, html: string, fromName?: string): Promise<boolean> {
-    const from = fromName ? `${fromName} <${this.configService.get<string>('SMTP_USER') || 'noreply@pionts.com'}>` : this.defaultFrom;
+    const from = fromName ? `${fromName} <noreply@pionts.com>` : this.defaultFrom;
     this.logger.log(`Email to ${to}: ${subject}`);
 
     if (!this.transporter) {
