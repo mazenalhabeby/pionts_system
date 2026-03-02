@@ -14,7 +14,17 @@ async function bootstrap() {
     rawBody: true,
   });
 
-  app.use(helmet());
+  // Helmet with relaxed settings for SDK/widget static files (loaded cross-origin)
+  app.use((req: any, res: any, next: any) => {
+    if (req.path.startsWith('/sdk/') || req.path.startsWith('/widget/')) {
+      return helmet({
+        contentSecurityPolicy: false,
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        crossOriginOpenerPolicy: false,
+      })(req, res, next);
+    }
+    return helmet()(req, res, next);
+  });
   app.use(compression());
   app.use(cookieParser());
 
