@@ -18,32 +18,33 @@ interface InternalConfig extends LoyaltyConfig {
   containerEl: HTMLElement;
 }
 
-function setCookie(name: string, value: string, days: number) {
-  const d = new Date();
-  d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
-}
+const REF_KEY = 'pionts_ref';
 
-function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : null;
-}
-
-function captureReferral(): string | null {
+function captureReferral(): void {
   const params = new URLSearchParams(window.location.search);
   const ref = params.get('ref');
   if (ref) {
-    setCookie('pionts_ref', ref, 30);
-    return ref;
+    try { localStorage.setItem(REF_KEY, ref); } catch {}
   }
-  return getCookie('pionts_ref');
 }
+
+function getReferralCode(): string | null {
+  try { return localStorage.getItem(REF_KEY); } catch { return null; }
+}
+
+function clearReferralCode(): void {
+  try { localStorage.removeItem(REF_KEY); } catch {}
+}
+
+// Capture referral code immediately on script load
+// so it's saved even on pages where init() isn't called (e.g. landing page before login)
+captureReferral();
 
 let containerEl: HTMLElement | null = null;
 
 const Loyalty = {
   init(config: LoyaltyConfig) {
-    const referralCode = captureReferral();
+    const referralCode = getReferralCode();
     const mode = config.mode || 'floating';
 
     // Create or find container
@@ -90,6 +91,10 @@ const Loyalty = {
 
   close() {
     window.dispatchEvent(new CustomEvent('pionts:close'));
+  },
+
+  clearReferral() {
+    clearReferralCode();
   },
 
   destroy() {

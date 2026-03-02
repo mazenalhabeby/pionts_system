@@ -15,7 +15,7 @@ export interface SdkApi extends WidgetApi {
   checkRef: (code: string) => Promise<unknown>;
 }
 
-export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken, getReferralCode }: SdkApiConfig): SdkApi {
+export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken, getReferralCode, getName }: SdkApiConfig): SdkApi {
   let referralCodeSent = false;
 
   async function request(path: string, options: RequestInit = {}): Promise<any> {
@@ -37,12 +37,13 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Send referral code on first customer request only
+    // Send referral code on first customer request only, then clear from localStorage
     if (!referralCodeSent) {
       const refCode = getReferralCode();
       if (refCode) {
         headers['X-Referral-Code'] = refCode;
         referralCodeSent = true;
+        try { localStorage.removeItem('pionts_ref'); } catch {}
       }
     }
 
