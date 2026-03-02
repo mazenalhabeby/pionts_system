@@ -20,20 +20,49 @@ interface InternalConfig extends LoyaltyConfig {
 
 const REF_KEY = 'pionts_ref';
 
+// Get root domain (e.g. "8bc.store" from "account.8bc.store")
+// so the cookie is shared across all subdomains
+function getRootDomain(): string {
+  const parts = window.location.hostname.split('.');
+  // For domains like "8bc.store" (2 parts) or "account.8bc.store" (3 parts)
+  // return ".8bc.store" to cover all subdomains
+  if (parts.length >= 2) {
+    return '.' + parts.slice(-2).join('.');
+  }
+  return window.location.hostname;
+}
+
+function setCookie(name: string, value: string, days: number): void {
+  const d = new Date();
+  d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+  const domain = getRootDomain();
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;domain=${domain};SameSite=Lax`;
+}
+
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+function deleteCookie(name: string): void {
+  const domain = getRootDomain();
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`;
+}
+
 function captureReferral(): void {
   const params = new URLSearchParams(window.location.search);
   const ref = params.get('ref');
   if (ref) {
-    try { localStorage.setItem(REF_KEY, ref); } catch {}
+    setCookie(REF_KEY, ref, 30);
   }
 }
 
 function getReferralCode(): string | null {
-  try { return localStorage.getItem(REF_KEY); } catch { return null; }
+  return getCookie(REF_KEY);
 }
 
 function clearReferralCode(): void {
-  try { localStorage.removeItem(REF_KEY); } catch {}
+  deleteCookie(REF_KEY);
 }
 
 // Capture referral code immediately on script load

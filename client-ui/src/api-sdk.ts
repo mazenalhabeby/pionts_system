@@ -37,13 +37,16 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Send referral code on first customer request only, then clear from localStorage
+    // Send referral code on first customer request only, then clear the cookie
     if (!referralCodeSent) {
       const refCode = getReferralCode();
       if (refCode) {
         headers['X-Referral-Code'] = refCode;
         referralCodeSent = true;
-        try { localStorage.removeItem('pionts_ref'); } catch {}
+        // Clear the pionts_ref cookie (root domain so it works across subdomains)
+        const parts = window.location.hostname.split('.');
+        const domain = parts.length >= 2 ? '.' + parts.slice(-2).join('.') : window.location.hostname;
+        document.cookie = `pionts_ref=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`;
       }
     }
 
