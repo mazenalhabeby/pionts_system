@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { ApiKeyService } from '../../auth/api-key.service';
 import { CustomersService } from '../../customers/customers.service';
@@ -6,6 +6,8 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class SdkAuthGuard implements CanActivate {
+  private readonly logger = new Logger('SdkAuthGuard');
+
   constructor(
     private readonly apiKeyService: ApiKeyService,
     private readonly customersService: CustomersService,
@@ -17,10 +19,16 @@ export class SdkAuthGuard implements CanActivate {
 
     // 1. Validate API key → attach project
     const projectKey = request.headers['x-project-key'];
-    if (!projectKey) throw new UnauthorizedException('Missing X-Project-Key header');
+    if (!projectKey) {
+      this.logger.warn(`Missing X-Project-Key — path: ${request.path}, origin: ${request.headers['origin']}`);
+      throw new UnauthorizedException('Missing X-Project-Key header');
+    }
 
     const project = await this.apiKeyService.validateKey(projectKey, 'public');
-    if (!project) throw new UnauthorizedException('Invalid API key');
+    if (!project) {
+      this.logger.warn(`Invalid API key: ${projectKey.substring(0, 12)}... — path: ${request.path}`);
+      throw new UnauthorizedException('Invalid API key');
+    }
 
     request.sdkProject = project;
 
