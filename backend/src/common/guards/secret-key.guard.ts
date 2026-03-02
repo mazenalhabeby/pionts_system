@@ -7,7 +7,8 @@ export class SecretKeyGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const secretKey = request.headers['x-secret-key'] as string;
+    // Support header (standard) or query param (for Shopify webhooks which can't send custom headers)
+    const secretKey = (request.headers['x-secret-key'] || request.query?.secret_key) as string;
 
     if (!secretKey) {
       throw new UnauthorizedException('Missing X-Secret-Key header');
