@@ -100,16 +100,17 @@ const Loyalty = {
     };
     (window as any).__PIONTS_CONFIG__ = internalConfig;
 
-    // Load widget CSS + UMD bundle
+    // Load widget CSS + UMD bundle (cache-bust with version)
     const widgetBase = config.widgetUrl || config.apiBase || '';
+    const v = 'v=3';
 
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = `${widgetBase}/widget/pionts-widget.css`;
+    link.href = `${widgetBase}/widget/pionts-widget.css?${v}`;
     document.head.appendChild(link);
 
     const script = document.createElement('script');
-    script.src = `${widgetBase}/widget/pionts-widget.umd.js`;
+    script.src = `${widgetBase}/widget/pionts-widget.umd.js?${v}`;
     script.async = true;
     document.body.appendChild(script);
   },
