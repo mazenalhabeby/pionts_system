@@ -16,7 +16,6 @@ export interface SdkApi extends WidgetApi {
 }
 
 export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken, getReferralCode, getName }: SdkApiConfig): SdkApi {
-  let referralCodeSent = false;
 
   async function request(path: string, options: RequestInit = {}): Promise<any> {
     const headers: Record<string, string> = {
@@ -37,17 +36,10 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Send referral code on first customer request only, then clear the cookie
-    if (!referralCodeSent) {
-      const refCode = getReferralCode();
-      if (refCode) {
-        headers['X-Referral-Code'] = refCode;
-        referralCodeSent = true;
-        // Clear the pionts_ref cookie (root domain so it works across subdomains)
-        const parts = window.location.hostname.split('.');
-        const domain = parts.length >= 2 ? '.' + parts.slice(-2).join('.') : window.location.hostname;
-        document.cookie = `pionts_ref=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`;
-      }
+    // Always send referral code if cookie exists — backend deduplicates via !customer.referredBy
+    const refCode = getReferralCode();
+    if (refCode) {
+      headers['X-Referral-Code'] = refCode;
     }
 
     const res = await fetch(`${apiBase}/api/v1/sdk${path}`, {
@@ -63,7 +55,16 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
   }
 
   return {
-    getCustomer: () => request('/customer'),
+    getCustomer: async () => {
+      const data = await request('/customer');
+      // Clear referral cookie once customer is loaded (referral has been processed)
+      if (data && getReferralCode()) {
+        const parts = window.location.hostname.split('.');
+        const domain = parts.length >= 2 ? '.' + parts.slice(-2).join('.') : window.location.hostname;
+        document.cookie = `pionts_ref=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`;
+      }
+      return data;
+    },
 
     signup: (email, name, referral_code) =>
       request('/signup', {
