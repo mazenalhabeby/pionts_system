@@ -1,3 +1,4 @@
+// Referrals settings tab — levels, base URL, anti-abuse
 import React, { useCallback, useState, useEffect } from 'react';
 import { dashboardApi, referralLevelsApi, getErrorMessage } from '../../api';
 import { useFetch, PlusIcon } from '@pionts/shared';
