@@ -174,9 +174,15 @@ export class AdminController {
   }
 
   // SPA fallback — serve admin-ui index.html for all non-API admin routes
-  // Static assets (/admin/assets/*) are handled by ServeStaticModule in app.module.ts
+  // Static assets (/admin/assets/*) are served directly, everything else gets index.html
   @Get('*path')
-  serveAdmin(@Res() res: Response) {
+  serveAdmin(@Req() req: Request, @Res() res: Response) {
+    const relative = req.path.replace(/^\/admin\//, '');
+    if (relative.startsWith('assets/')) {
+      const filePath = path.join(__dirname, '..', '..', '..', 'admin-ui', 'dist', relative);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.sendFile(filePath);
+    }
     res.sendFile(path.join(__dirname, '..', '..', '..', 'admin-ui', 'dist', 'index.html'));
   }
 }
