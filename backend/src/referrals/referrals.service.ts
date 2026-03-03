@@ -156,7 +156,7 @@ export class ReferralsService {
       where: { projectId, parentId: customerId },
       include: {
         customer: {
-          select: { id: true, name: true, email: true, orderCount: true, createdAt: true },
+          select: { id: true, name: true, email: true, orderCount: true, pointsBalance: true, lastActivity: true, createdAt: true },
         },
       },
     });
@@ -165,6 +165,8 @@ export class ReferralsService {
       name: e.customer.name,
       email: e.customer.email,
       order_count: e.customer.orderCount,
+      points_balance: e.customer.pointsBalance,
+      last_activity: e.customer.lastActivity,
       created_at: e.customer.createdAt,
     }));
   }

@@ -49,6 +49,7 @@ export interface ReferralNode {
   referral_code: string;
   order_count?: number;
   points_balance?: number;
+  last_activity?: string;
   created_at?: string;
   children?: ReferralNode[];
 }

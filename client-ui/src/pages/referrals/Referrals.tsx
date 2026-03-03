@@ -25,7 +25,7 @@ export default function Referrals() {
   const directReferrals = data.direct_referrals || [];
   const downlineTree = data.downline_tree || [];
   const storeUrl = String(settings?.referral_base_url || '');
-  const refUrl = data.referral_link || `${storeUrl}?ref=${data.referral_code}`;
+  const refUrl = data.referral_link || (storeUrl ? `${storeUrl}${storeUrl.includes('?') ? '&' : '?'}ref=${data.referral_code}` : '');
   const directCount = data.stats?.direct ?? 0;
   const networkCount = data.stats?.network ?? 0;
   const totalDescendants = downlineTree.reduce((s, n) => s + 1 + countDescendants(n), 0);

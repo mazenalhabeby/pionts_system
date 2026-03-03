@@ -102,7 +102,7 @@ export default function Earn() {
     } else if (action.slug === 'share_product') {
       if (!data) return;
       const brandName = String(settings?.widget_brand_name || 'Our Store');
-      const shareUrl = `${storeUrl}?ref=${data.referral_code}`;
+      const shareUrl = storeUrl ? `${storeUrl}${storeUrl.includes('?') ? '&' : '?'}ref=${data.referral_code}` : '';
       try {
         if (navigator.share) {
           await navigator.share({ title: brandName, text: `Check out ${brandName}!`, url: shareUrl });

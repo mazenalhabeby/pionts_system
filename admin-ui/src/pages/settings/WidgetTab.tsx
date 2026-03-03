@@ -96,11 +96,11 @@ export default function WidgetTab({ pid, canEdit }: { pid: number; canEdit: bool
               type="text"
               value={form.referral_base_url || ''}
               onChange={(e) => updateField('referral_base_url', e.target.value)}
-              placeholder="https://yourstore.com"
+              placeholder="https://yourstore.com/pages/rewards/"
               disabled={!canEdit}
               className="w-full bg-bg-surface border border-border-default text-text-primary px-4 py-3 rounded-xl text-[14px] font-sans outline-none transition-all duration-200 focus:border-border-focus focus:ring-2 focus:ring-accent/10 placeholder:text-text-faint/50 disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            <div className="text-[11px] text-text-faint mt-2.5">Your store domain used to generate referral links for customers</div>
+            <div className="text-[11px] text-text-faint mt-2.5">Full URL used for referral links (e.g. https://yourstore.com/de/pages/rewards/). The referral code (?ref=CODE) is appended automatically.</div>
           </div>
         </div>
       </div>

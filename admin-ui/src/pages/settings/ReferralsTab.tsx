@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { dashboardApi, referralLevelsApi, getErrorMessage } from '../../api';
 import { useFetch, PlusIcon } from '@pionts/shared';
 import { Alert } from '../../components/ui/alert';
@@ -248,8 +248,66 @@ export default function ReferralsTab({ pid, canEdit }: { pid: number; canEdit: b
         </div>
       </div>
 
+      {/* ── Referral Base URL ── */}
+      <ReferralBaseUrlCard settings={settings} canEdit={canEdit} onSave={handleSettingsSave} />
+
       {/* ── Anti-Abuse Settings ── */}
       <AntiAbuseCard settings={settings} canEdit={canEdit} onSave={handleSettingsSave} />
+    </div>
+  );
+}
+
+function ReferralBaseUrlCard({ settings, canEdit, onSave }: { settings: Record<string, string>; canEdit: boolean; onSave: (s: Record<string, string>) => Promise<void> }) {
+  const [url, setUrl] = useState(settings.referral_base_url || '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setUrl(settings.referral_base_url || '');
+  }, [settings.referral_base_url]);
+
+  const dirty = url !== (settings.referral_base_url || '');
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await onSave({ ...settings, referral_base_url: url.trim() });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="bg-bg-card border border-border-default rounded-2xl overflow-hidden">
+      <div className="px-6 py-4 border-b border-border-default">
+        <div className="text-[15px] font-bold text-text-primary">Referral Link</div>
+        <div className="text-[12px] text-text-muted mt-0.5">The base URL used to generate referral links for customers</div>
+      </div>
+      <div className="p-5">
+        <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Referral Base URL</label>
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://yourstore.com/de/pages/rewards/"
+          disabled={!canEdit}
+          className="mt-1.5 w-full bg-bg-surface border border-border-default text-text-primary px-4 py-3 rounded-xl text-[14px] font-sans outline-none transition-all duration-200 focus:border-border-focus focus:ring-2 focus:ring-accent/10 placeholder:text-text-faint/50 disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        <div className="text-[11px] text-text-faint mt-2">
+          Full URL including path. The referral code (<code className="text-[10px] bg-bg-surface-raised px-1 py-0.5 rounded">?ref=CODE</code>) is appended automatically.
+        </div>
+        {canEdit && dirty && (
+          <div className="flex justify-end mt-3">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-text-primary text-bg-page px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

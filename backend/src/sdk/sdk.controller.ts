@@ -249,7 +249,7 @@ export class SdkController {
       }
     }
     const referralLink = baseUrl
-      ? `${baseUrl}?ref=${customer.referralCode}`
+      ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}ref=${customer.referralCode}`
       : undefined;
 
     return {

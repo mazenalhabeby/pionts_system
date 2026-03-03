@@ -1,9 +1,18 @@
 import useCustomer from '../hooks/useCustomer';
+import useReferrals from '../hooks/useReferrals';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
+import { timeAgo } from '@pionts/shared';
 import CopyButton from '../components/CopyButton';
+
+function isActive(lastActivity?: string): boolean {
+  if (!lastActivity) return false;
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  return new Date(lastActivity).getTime() > thirtyDaysAgo;
+}
 
 export default function Partner() {
   const { data, loading, error } = useCustomer();
+  const { data: refData, loading: refLoading } = useReferrals();
   const { settings } = useWidgetConfig();
 
   if (loading) return <div className="pw-loading">Loading...</div>;
@@ -12,7 +21,8 @@ export default function Partner() {
 
   const info = data.partner_info;
   const storeUrl = String(settings?.referral_base_url || '');
-  const refUrl = `${storeUrl}?ref=${data.referral_code}`;
+  const refUrl = storeUrl ? `${storeUrl}${storeUrl.includes('?') ? '&' : '?'}ref=${data.referral_code}` : '';
+  const directReferrals = refData?.direct_referrals || [];
 
   return (
     <div className="pw-page-content">
@@ -64,6 +74,56 @@ export default function Partner() {
           <CopyButton text={refUrl} />
         </div>
         <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 10 }}>Share this link to earn {info.commission_pct}% commission on every purchase.</div>
+      </div>
+
+      {/* Referrals Table */}
+      <div className="pw-section pw-section--padded">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div className="pw-section__title">Your Referrals</div>
+          <span className="pw-table__badge pw-table__badge--active">{directReferrals.length} referrals</span>
+        </div>
+        {refLoading ? (
+          <div className="pw-loading">Loading referrals...</div>
+        ) : directReferrals.length === 0 ? (
+          <div className="pw-empty">
+            <div className="pw-empty__desc">No referrals yet. Share your partner link to get started!</div>
+          </div>
+        ) : (
+          <div className="pw-table-wrap" style={{ margin: '0 -28px' }}>
+            <table className="pw-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Orders</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {directReferrals.map((r) => {
+                  const active = isActive(r.last_activity || r.created_at);
+                  return (
+                    <tr key={r.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div className="pw-avatar">{(r.name || r.email || '?')[0].toUpperCase()}</div>
+                          {r.name || r.email || '\u2014'}
+                        </div>
+                      </td>
+                      <td>{r.order_count ?? 0}</td>
+                      <td>
+                        <span className={`pw-table__badge ${active ? 'pw-table__badge--active' : ''}`}>
+                          {active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td>{timeAgo(r.created_at || '')}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* How it works */}

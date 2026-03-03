@@ -103,7 +103,12 @@ export class CustomersController {
 
     return {
       referral_code: customer.referralCode,
-      referral_link: `https://8bc.store?ref=${customer.referralCode}`,
+      referral_link: (() => {
+        const baseUrl = this.configService.get(projectId, 'referral_base_url');
+        if (!baseUrl) return undefined;
+        const sep = baseUrl.includes('?') ? '&' : '?';
+        return `${baseUrl}${sep}ref=${customer.referralCode}`;
+      })(),
       stats,
       direct_referrals: directReferrals,
       total_referral_earnings: earnings,

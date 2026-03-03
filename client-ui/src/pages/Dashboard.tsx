@@ -26,7 +26,7 @@ export default function Dashboard() {
   const history = data.history || [];
   const refEarnings = data.referral_earnings || 0;
   const storeUrl = settings?.referral_base_url || '';
-  const refUrl = `${storeUrl}?ref=${data.referral_code}`;
+  const refUrl = storeUrl ? `${storeUrl}${storeUrl.includes('?') ? '&' : '?'}ref=${data.referral_code}` : '';
   const partnerInfo = data.partner_info;
 
   return (
