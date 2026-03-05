@@ -22,6 +22,16 @@ const mockSdkApi = {
   getLeaderboard: vi.fn(),
   signup: vi.fn(),
   checkRef: vi.fn(),
+  getConfig: vi.fn().mockResolvedValue({
+    settings: { widget_brand_name: 'TestStore' },
+    earn_actions: [
+      { slug: 'signup', label: 'Welcome Bonus', points: 20, category: 'predefined', frequency: 'one_time' },
+      { slug: 'first_order', label: 'First Order Bonus', points: 50, category: 'predefined', frequency: 'one_time' },
+      { slug: 'purchase', label: 'Every Purchase', points: 10, category: 'predefined', frequency: 'repeatable' },
+      { slug: 'birthday', label: 'Birthday Reward', points: 25, category: 'predefined', frequency: 'yearly' },
+    ],
+    enabled_modules: { points: true, referrals: true, partners: false },
+  }),
 };
 
 const testConfig: SdkConfig = {
@@ -45,6 +55,16 @@ describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSdkApi.getCustomer.mockRejectedValue(new Error('not authed'));
+    mockSdkApi.getConfig.mockResolvedValue({
+      settings: { widget_brand_name: 'TestStore' },
+      earn_actions: [
+        { slug: 'signup', label: 'Welcome Bonus', points: 20, category: 'predefined', frequency: 'one_time' },
+        { slug: 'first_order', label: 'First Order Bonus', points: 50, category: 'predefined', frequency: 'one_time' },
+        { slug: 'purchase', label: 'Every Purchase', points: 10, category: 'predefined', frequency: 'repeatable' },
+        { slug: 'birthday', label: 'Birthday Reward', points: 25, category: 'predefined', frequency: 'yearly' },
+      ],
+      enabled_modules: { points: true, referrals: true, partners: false },
+    });
   });
 
   it('renders email input initially (step=email)', async () => {
@@ -52,7 +72,35 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: 'Send Code' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
+  });
+
+  it('shows brand name from preAuthConfig', async () => {
+    renderLoginPage();
+    await waitFor(() => {
+      expect(screen.getByText('TestStore')).toBeInTheDocument();
+    });
+  });
+
+  it('renders incentive chips from preAuthConfig earn_actions', async () => {
+    renderLoginPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('incentive-grid')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Welcome Bonus/)).toBeInTheDocument();
+    expect(screen.getByText(/First Order Bonus/)).toBeInTheDocument();
+    expect(screen.getByText(/Every Purchase/)).toBeInTheDocument();
+    expect(screen.getByText(/Birthday Reward/)).toBeInTheDocument();
+  });
+
+  it('works gracefully when getConfig fails', async () => {
+    mockSdkApi.getConfig.mockRejectedValue(new Error('Network error'));
+    renderLoginPage();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
+    expect(screen.queryByTestId('incentive-grid')).not.toBeInTheDocument();
   });
 
   it('transitions to code step after successful sendCode', async () => {
@@ -65,7 +113,7 @@ describe('LoginPage', () => {
     });
 
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@x.com');
-    await user.click(screen.getByRole('button', { name: 'Send Code' }));
+    await user.click(screen.getByRole('button', { name: 'Get Started' }));
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('000000')).toBeInTheDocument();
@@ -83,12 +131,11 @@ describe('LoginPage', () => {
     });
 
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@x.com');
-    await user.click(screen.getByRole('button', { name: 'Send Code' }));
+    await user.click(screen.getByRole('button', { name: 'Get Started' }));
 
     await waitFor(() => {
       expect(screen.getByText('Rate limited')).toBeInTheDocument();
     });
-    // Should still be on email step
     expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
   });
 
@@ -102,7 +149,7 @@ describe('LoginPage', () => {
     });
 
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@x.com');
-    await user.click(screen.getByRole('button', { name: 'Send Code' }));
+    await user.click(screen.getByRole('button', { name: 'Get Started' }));
 
     await waitFor(() => {
       expect(screen.getByText('Use a different email')).toBeInTheDocument();
@@ -111,7 +158,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByText('Use a different email'));
 
     expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Send Code' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
   });
 
   it('calls login (verifyCode) with email and code on verify', async () => {
@@ -125,7 +172,7 @@ describe('LoginPage', () => {
     });
 
     await user.type(screen.getByPlaceholderText('you@example.com'), 'test@x.com');
-    await user.click(screen.getByRole('button', { name: 'Send Code' }));
+    await user.click(screen.getByRole('button', { name: 'Get Started' }));
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('000000')).toBeInTheDocument();

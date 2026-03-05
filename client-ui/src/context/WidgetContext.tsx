@@ -3,6 +3,14 @@ import { createSdkApi } from '../api-sdk';
 import type { SdkConfig, CustomerData, ProjectSettings, WidgetApi } from '@pionts/shared';
 import type { SdkApi } from '../api-sdk';
 
+export interface PreAuthConfig {
+  settings?: Record<string, string>;
+  earn_actions?: { slug: string; label: string; points: number; category: string; frequency: string }[];
+  redemption_tiers?: { points: number; discount: number }[];
+  referral_levels?: { level: number; points: number }[];
+  enabled_modules?: { points: boolean; referrals: boolean; partners: boolean };
+}
+
 interface WidgetContextValue {
   config: SdkConfig;
   customer: CustomerData | null;
@@ -13,6 +21,7 @@ interface WidgetContextValue {
   login: (email: string, code: string) => Promise<void>;
   logout: () => void;
   refresh: () => void;
+  preAuthConfig: PreAuthConfig | null;
 }
 
 const WidgetContext = createContext<WidgetContextValue | null>(null);
@@ -24,6 +33,7 @@ export function WidgetProvider({ config, children }: { config: SdkConfig; childr
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const tokenRef = useRef<string | null>(null);
+  const [preAuthConfig, setPreAuthConfig] = useState<PreAuthConfig | null>(null);
 
   const hasHmac = !!(config.customer?.email && config.customer?.hmac);
 
@@ -38,6 +48,15 @@ export function WidgetProvider({ config, children }: { config: SdkConfig; childr
       getName: () => config.customer?.name || null,
     }),
   ).current;
+
+  useEffect(() => {
+    api.getConfig()
+      .then((data) => {
+        setPreAuthConfig(data);
+        if (data?.settings) setSettings(data.settings);
+      })
+      .catch(() => { /* config fetch is optional */ });
+  }, [api]);
 
   const fetchCustomer = useCallback(async () => {
     try {
@@ -83,7 +102,7 @@ export function WidgetProvider({ config, children }: { config: SdkConfig; childr
 
   return (
     <WidgetContext.Provider
-      value={{ config, customer, settings, loading, authenticated, api, login, logout, refresh }}
+      value={{ config, customer, settings, loading, authenticated, api, login, logout, refresh, preAuthConfig }}
     >
       {children}
     </WidgetContext.Provider>

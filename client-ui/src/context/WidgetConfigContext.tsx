@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useWidget } from './WidgetContext';
+import type { PreAuthConfig } from './WidgetContext';
 import type { WidgetApi, CustomerData, ProjectSettings, SdkConfig, ReferralLevelConfig } from '@pionts/shared';
 
 /**
@@ -38,6 +39,7 @@ interface WidgetConfigContextValue {
   customer?: CustomerData | null;
   refresh: () => void;
   config?: SdkConfig;
+  preAuthConfig?: PreAuthConfig | null;
 }
 
 const WidgetConfigContext = createContext<WidgetConfigContextValue | null>(null);
@@ -46,7 +48,7 @@ const WidgetConfigContext = createContext<WidgetConfigContextValue | null>(null)
  * WidgetConfigProvider -- wraps the SDK/UMD mode with WidgetContext.
  */
 export function WidgetConfigProvider({ children }: { children: React.ReactNode }) {
-  const { config, customer, settings: rawSettings, loading, authenticated, api, login, logout, refresh } = useWidget();
+  const { config, customer, settings: rawSettings, loading, authenticated, api, login, logout, refresh, preAuthConfig } = useWidget();
 
   const settings = useMemo<ProjectSettings | null>(() => {
     if (!rawSettings) return null;
@@ -81,7 +83,8 @@ export function WidgetConfigProvider({ children }: { children: React.ReactNode }
     customer,
     refresh,
     config,
-  }), [authenticated, loading, login, logout, settings, api, customer, refresh, config]);
+    preAuthConfig,
+  }), [authenticated, loading, login, logout, settings, api, customer, refresh, config, preAuthConfig]);
 
   return (
     <WidgetConfigContext.Provider value={value}>

@@ -13,9 +13,24 @@ interface SdkApiConfig {
 export interface SdkApi extends WidgetApi {
   signup: (email: string, name: string, referral_code?: string) => Promise<unknown>;
   checkRef: (code: string) => Promise<unknown>;
+  getConfig: () => Promise<any>;
 }
 
 export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken, getReferralCode, getName }: SdkApiConfig): SdkApi {
+
+  async function publicRequest(path: string): Promise<any> {
+    const res = await fetch(`${apiBase}/api/v1/sdk${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Project-Key': projectKey,
+      },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Request failed (${res.status})`);
+    }
+    return res.json();
+  }
 
   async function request(path: string, options: RequestInit = {}): Promise<any> {
     const headers: Record<string, string> = {
@@ -118,5 +133,7 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
       }),
 
     getLeaderboard: () => request('/leaderboard'),
+
+    getConfig: () => publicRequest('/config'),
   };
 }

@@ -143,6 +143,44 @@ export class SdkService {
     };
   }
 
+  async getProjectConfig(projectId: number) {
+    const project = await this.getProject(projectId);
+
+    const [settings, earnActions, redemptionTiers, referralLevels] = await Promise.all([
+      this.getProjectPublicSettings(projectId),
+      project?.pointsEnabled
+        ? this.earnActionsService.getEnabledActions(projectId)
+        : [],
+      project?.pointsEnabled
+        ? this.configService.getRedemptionTiers(projectId)
+        : [],
+      project?.referralsEnabled
+        ? this.configService.getReferralLevels(projectId)
+        : [],
+    ]);
+
+    return {
+      settings,
+      earn_actions: earnActions.map((a: any) => ({
+        slug: a.slug,
+        label: a.label,
+        points: a.points,
+        category: a.category,
+        frequency: a.frequency,
+      })),
+      redemption_tiers: redemptionTiers,
+      referral_levels: referralLevels.map((l: any) => ({
+        level: l.level,
+        points: l.points,
+      })),
+      enabled_modules: {
+        points: project?.pointsEnabled ?? true,
+        referrals: project?.referralsEnabled ?? true,
+        partners: project?.partnersEnabled ?? false,
+      },
+    };
+  }
+
   async getLeaderboard(projectId: number, limit = 10) {
     if (this.configService.get(projectId, 'leaderboard_enabled') !== 'true') {
       return [];

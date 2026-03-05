@@ -1865,49 +1865,85 @@ a:hover {
 }
 
 /* ══════════════════════════════════════════════
-   LOGIN PAGE
+   LOGIN PAGE — Hero Landing Style
    ══════════════════════════════════════════════ */
 
 .pw-login {
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ── Left content column ── */
+.pw-login__content {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 16px;
+  padding: 60px 56px;
+  animation: loginSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.pw-login__card {
-  width: 360px;
-  background: #fff;
-  border-radius: 24px;
-  overflow: hidden;
-  text-align: center;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.02),
-    0 4px 12px rgba(0, 0, 0, 0.04),
-    0 16px 48px rgba(0, 0, 0, 0.06);
+@keyframes loginSlideIn {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.pw-login__accent {
-  height: 4px;
-  background: var(--pionts-primary, #3b82f6);
+.pw-login__content-inner {
+  max-width: 460px;
 }
 
-.pw-login__body {
-  padding: 40px;
-}
-
-.pw-login__title {
-  font-size: 26px;
-  font-weight: 800;
+.pw-login__heading {
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -2px;
   color: #1a1a2e;
-  margin: 0 0 8px;
+  margin: 0 0 20px;
 }
 
-.pw-login__desc {
+.pw-login__heading-accent {
+  background: linear-gradient(
+    135deg,
+    var(--pionts-primary, #3b82f6) 0%,
+    color-mix(in srgb, var(--pionts-primary, #3b82f6) 50%, #7c4dff) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pw-login__subtitle {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #6b7280;
+  margin: 0 0 28px;
+  max-width: 400px;
+}
+
+/* ── Form ── */
+.pw-login__form {
+  margin-bottom: 24px;
+}
+
+.pw-login__input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.pw-login__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pw-login__cta {
+  padding: 12px 28px;
   font-size: 14px;
-  color: #9ca3af;
-  margin: 0 0 24px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 12px;
 }
 
 .pw-login__back {
@@ -1921,11 +1957,255 @@ a:hover {
   text-decoration: underline;
   margin-top: 8px;
   width: 100%;
+  text-align: left;
   transition: color 0.2s ease;
 }
 
 .pw-login__back:hover {
   color: #1a1a2e;
+}
+
+/* ── Incentive chips ── */
+.pw-login__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pw-login__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #f0f4ff;
+  border: 1px solid #e0e7ff;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4338ca;
+  white-space: nowrap;
+  transition: transform 0.2s ease;
+}
+
+.pw-login__chip:hover {
+  transform: translateY(-1px);
+}
+
+.pw-login__chip--referral {
+  background: color-mix(in srgb, var(--pionts-primary, #3b82f6) 8%, #fff);
+  border-color: color-mix(in srgb, var(--pionts-primary, #3b82f6) 20%, #e0e7ff);
+  color: var(--pionts-primary, #3b82f6);
+}
+
+.pw-login__chip-icon {
+  font-size: 14px;
+}
+
+/* ── Right visual column ── */
+.pw-login__visual {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--pionts-primary, #3b82f6) 12%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(124, 77, 255, 0.08) 0%, transparent 50%),
+    linear-gradient(135deg, #f5f3ff 0%, #eff6ff 50%, #fef3f2 100%);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pw-login__scene {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  animation: loginSceneIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+@keyframes loginSceneIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── Floating emojis ── */
+.pw-login__float {
+  position: absolute;
+  font-size: 32px;
+  animation: loginFloat 5s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.08));
+  z-index: 1;
+}
+
+@keyframes loginFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(6deg); }
+}
+
+.pw-login__float--gift1 { top: 5%; left: 10%; font-size: 48px; animation-delay: 0s; }
+.pw-login__float--gift2 { top: 15%; right: 8%; font-size: 36px; animation-delay: -1.5s; }
+.pw-login__float--coin1 { bottom: 25%; left: 5%; font-size: 28px; animation-delay: -0.8s; }
+.pw-login__float--coin2 { top: 40%; right: 5%; font-size: 24px; animation-delay: -2.5s; }
+.pw-login__float--star1 { top: 2%; right: 30%; font-size: 22px; animation-delay: -3s; }
+.pw-login__float--star2 { bottom: 8%; right: 25%; font-size: 26px; animation-delay: -1s; }
+.pw-login__float--confetti1 { bottom: 5%; left: 25%; font-size: 30px; animation-delay: -2s; }
+.pw-login__float--heart { top: 55%; left: 2%; font-size: 20px; animation-delay: -4s; }
+
+/* ── Central reward card ── */
+.pw-login__reward-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  padding: 28px 20px;
+  background: #fff;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.02),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 24px 48px rgba(0, 0, 0, 0.06);
+  z-index: 2;
+  animation: loginCardPulse 3s ease-in-out infinite;
+}
+
+@keyframes loginCardPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0,0,0,0.02), 0 8px 24px rgba(0,0,0,0.08), 0 24px 48px rgba(0,0,0,0.06); }
+  50% { box-shadow: 0 0 0 1px rgba(0,0,0,0.02), 0 12px 32px rgba(0,0,0,0.10), 0 32px 56px rgba(0,0,0,0.08); }
+}
+
+.pw-login__reward-icon {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.pw-login__reward-pts {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--pionts-primary, #3b82f6);
+  letter-spacing: -1px;
+}
+
+.pw-login__reward-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* ── Mini floating cards ── */
+.pw-login__mini-card {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  z-index: 3;
+  white-space: nowrap;
+}
+
+.pw-login__mini-card span {
+  font-size: 18px;
+}
+
+.pw-login__mini-card--top {
+  top: 18%;
+  left: 55%;
+  animation: loginFloat 4s ease-in-out -1s infinite;
+}
+
+.pw-login__mini-card--bottom {
+  bottom: 18%;
+  right: 55%;
+  animation: loginFloat 4.5s ease-in-out -3s infinite;
+}
+
+/* ── Bottom accent stripe ── */
+.pw-login__stripe {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(
+    90deg,
+    var(--pionts-primary, #3b82f6) 0%,
+    #f59e0b 25%,
+    #10b981 50%,
+    #8b5cf6 75%,
+    var(--pionts-primary, #3b82f6) 100%
+  );
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .pw-login__content { animation: none; }
+  .pw-login__scene { animation: none; }
+  .pw-login__float { animation: none; }
+  .pw-login__reward-card { animation: none; }
+  .pw-login__mini-card { animation: none; }
+}
+
+/* ── Responsive: stack on narrow screens ── */
+@media (max-width: 768px) {
+  .pw-login {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .pw-login__visual {
+    order: -1;
+    min-height: 260px;
+    max-height: 300px;
+  }
+
+  .pw-login__scene {
+    width: 260px;
+    height: 220px;
+  }
+
+  .pw-login__content {
+    padding: 32px 28px 40px;
+  }
+
+  .pw-login__heading {
+    font-size: 32px;
+    letter-spacing: -1px;
+  }
+
+  .pw-login__subtitle {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .pw-login__input-row {
+    flex-direction: column;
+  }
+
+  .pw-login__cta {
+    width: 100%;
+  }
+
+  .pw-login__float--gift1 { font-size: 36px; }
+  .pw-login__float--gift2 { font-size: 28px; }
+  .pw-login__reward-card { width: 130px; padding: 20px 16px; }
+  .pw-login__reward-icon { font-size: 30px; }
+  .pw-login__reward-pts { font-size: 22px; }
+}
+
+@media (max-width: 420px) {
+  .pw-login__content { padding: 24px 20px 32px; }
+  .pw-login__heading { font-size: 28px; }
+  .pw-login__visual { min-height: 220px; max-height: 250px; }
+  .pw-login__scene { width: 220px; height: 200px; }
+  .pw-login__chip { font-size: 11px; padding: 5px 10px; }
 }
 
 /* ══════════════════════════════════════════════

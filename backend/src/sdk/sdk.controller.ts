@@ -37,6 +37,11 @@ export class SdkController {
     if (!customer) throw new UnauthorizedException('Customer authentication required');
   }
 
+  @Get('config')
+  async getConfig(@SdkProject() project: any) {
+    return this.sdkService.getProjectConfig(project.id);
+  }
+
   @Get('customer')
   async getCustomer(@SdkCustomer() customer: any, @SdkProject() project: any, @Req() req: any) {
     this.requireCustomer(customer);
