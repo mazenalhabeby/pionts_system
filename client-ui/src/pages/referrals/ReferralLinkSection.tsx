@@ -1,6 +1,7 @@
 import CopyButton from '../../components/CopyButton';
-import { timeAgo } from '@pionts/shared';
 import type { ReferralNode } from '@pionts/shared';
+import { useI18n } from '../../i18n';
+import { useTimeAgo } from '../../i18n/timeAgoLocalized';
 
 interface ReferralLinkSectionProps {
   refUrl: string;
@@ -11,12 +12,15 @@ interface ReferralLinkSectionProps {
 }
 
 export default function ReferralLinkSection({ refUrl, directCount, directReferrals, discountPercent = '5', referrerPoints = '5' }: ReferralLinkSectionProps) {
+  const { t } = useI18n();
+  const timeAgo = useTimeAgo();
+
   return (
     <>
       {/* Referral Link */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div className="pw-section__title">Your Referral Link</div>
-        <span className="pw-table__badge pw-table__badge--active">{directCount} referrals</span>
+        <div className="pw-section__title">{t('ref_link.title')}</div>
+        <span className="pw-table__badge pw-table__badge--active">{t('ref_link.count', { count: directCount })}</span>
       </div>
       <div className="pw-share__link" style={{ marginBottom: 12 }}>
         <input
@@ -28,23 +32,23 @@ export default function ReferralLinkSection({ refUrl, directCount, directReferra
         />
         <CopyButton text={refUrl} />
       </div>
-      <div style={{ fontSize: 12, color: '#9ca3af' }}>Share this link — they get {discountPercent}% off, you earn {referrerPoints} pts per order.</div>
+      <div style={{ fontSize: 12, color: '#9ca3af' }}>{t('ref_link.share_hint', { discount: discountPercent, pts: referrerPoints })}</div>
 
       {/* Direct Referrals Table */}
-      <div className="pw-section__title" style={{ marginTop: 24, marginBottom: 12 }}>Direct Referrals</div>
+      <div className="pw-section__title" style={{ marginTop: 24, marginBottom: 12 }}>{t('ref_link.table_title')}</div>
       {directReferrals.length === 0 ? (
         <div className="pw-empty">
-          <div className="pw-empty__desc">No referrals yet. Share your link to get started!</div>
+          <div className="pw-empty__desc">{t('ref_link.empty')}</div>
         </div>
       ) : (
         <div className="pw-table-wrap" style={{ margin: '0 -28px' }}>
           <table className="pw-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Orders</th>
-                <th>Joined</th>
+                <th>{t('ref_link.th_name')}</th>
+                <th>{t('ref_link.th_email')}</th>
+                <th>{t('ref_link.th_orders')}</th>
+                <th>{t('ref_link.th_joined')}</th>
               </tr>
             </thead>
             <tbody>

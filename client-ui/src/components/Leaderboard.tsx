@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
 import useCustomer from '../hooks/useCustomer';
 import { ChartIcon } from '@pionts/shared';
+import { useI18n } from '../i18n';
 
 interface LeaderboardEntry {
   id: number;
@@ -24,6 +25,7 @@ function getDisplayName(entry: LeaderboardEntry): string {
 export default function Leaderboard() {
   const { api, customer } = useWidgetConfig();
   const { data: customerData } = useCustomer();
+  const { t } = useI18n();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +36,7 @@ export default function Leaderboard() {
       .finally(() => setLoading(false));
   }, [api]);
 
-  if (loading) return <div className="pw-loading">Loading...</div>;
+  if (loading) return <div className="pw-loading">{t('common.loading')}</div>;
 
   const top3 = entries.slice(0, 3);
   const top10 = entries.slice(0, 10);
@@ -48,7 +50,7 @@ export default function Leaderboard() {
     : top3.map((e, i) => ({ entry: e, rank: i + 1 }));
 
   const RANK_CLS = ['', 'lb-gold', 'lb-silver', 'lb-bronze'];
-  const RANK_LABEL = ['', '1st', '2nd', '3rd'];
+  const RANK_LABEL = ['', t('leaderboard.rank_1'), t('leaderboard.rank_2'), t('leaderboard.rank_3')];
 
   return (
     <div className="pw-page-content">
@@ -58,21 +60,20 @@ export default function Leaderboard() {
           <ChartIcon size={24} />
         </div>
         <div>
-          <div className="pw-page-header__title">Leaderboard</div>
-          <div className="pw-page-header__subtitle">Top partners by referrals</div>
+          <div className="pw-page-header__title">{t('leaderboard.title')}</div>
+          <div className="pw-page-header__subtitle">{t('leaderboard.subtitle')}</div>
         </div>
       </div>
 
       {entries.length === 0 ? (
         <div className="pw-section pw-section--padded">
-          <div className="pw-empty"><div className="pw-empty__desc">No data yet</div></div>
+          <div className="pw-empty"><div className="pw-empty__desc">{t('leaderboard.no_data')}</div></div>
         </div>
       ) : (
         <>
           <div className="pw-lb-layout">
-            {/* ── Left: Podium Card ── */}
+            {/* Left: Podium Card */}
             <div className="pw-lb-podium-card">
-              {/* Trophy + Title */}
               <div className="pw-lb-trophy">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
@@ -81,10 +82,9 @@ export default function Leaderboard() {
                   <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
                 </svg>
               </div>
-              <div className="pw-lb-title">Top Referrers</div>
-              <div className="pw-lb-sub">This month's leaders</div>
+              <div className="pw-lb-title">{t('leaderboard.top_referrers')}</div>
+              <div className="pw-lb-sub">{t('leaderboard.this_month')}</div>
 
-              {/* Divider with crown */}
               <div className="pw-lb-divider">
                 <span className="pw-lb-divider__line" />
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a373" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="pw-lb-divider__icon">
@@ -93,7 +93,6 @@ export default function Leaderboard() {
                 <span className="pw-lb-divider__line" />
               </div>
 
-              {/* Podium */}
               {top3.length >= 3 && (
                 <div className="pw-lb-podium">
                   {podiumOrder.map(({ entry, rank }) => {
@@ -120,9 +119,9 @@ export default function Leaderboard() {
               )}
             </div>
 
-            {/* ── Right: Top 10 List ── */}
+            {/* Right: Top 10 List */}
             <div className="pw-lb-list-card">
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#1f2937', marginBottom: 12 }}>Top 10</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#1f2937', marginBottom: 12 }}>{t('leaderboard.top_10')}</div>
               <div className="pw-lb-list">
                 {top10.map((entry, i) => {
                   const isMe = myEmail === entry.email;
@@ -134,7 +133,7 @@ export default function Leaderboard() {
                       <div className="pw-lb-row__avatar">{getInitial(entry)}</div>
                       <div className="pw-lb-row__name">
                         {getDisplayName(entry)}
-                        {isMe && <span className="pw-lb-you__badge">YOU</span>}
+                        {isMe && <span className="pw-lb-you__badge">{t('leaderboard.you_badge')}</span>}
                       </div>
                       <div className="pw-lb-row__stat">{entry.network}</div>
                     </div>
@@ -151,11 +150,11 @@ export default function Leaderboard() {
                 <div className="pw-lb-you__rank">{myRank || '-'}</div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#1f2937' }}>{customerData.name || 'You'}</span>
-                    <span className="pw-lb-you__badge">YOU</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#1f2937' }}>{customerData.name || t('common.you')}</span>
+                    <span className="pw-lb-you__badge">{t('leaderboard.you_badge')}</span>
                   </div>
                   <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>
-                    {myEntry ? `${myEntry.network} referrals` : `${customerData.referral_stats?.network || 0} referrals`}
+                    {t('leaderboard.referrals_count', { count: myEntry ? myEntry.network : (customerData.referral_stats?.network || 0) })}
                   </div>
                 </div>
               </div>

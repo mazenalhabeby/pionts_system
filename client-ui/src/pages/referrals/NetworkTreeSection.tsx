@@ -2,6 +2,7 @@ import { UserIcon, ExpandIcon, CollapseIcon } from '@pionts/shared';
 import type { ReferralNode } from '@pionts/shared';
 import DownlineNode from './DownlineNode';
 import EmptyNetwork from './EmptyNetwork';
+import { useI18n } from '../../i18n';
 
 interface NetworkTreeSectionProps {
   downlineTree: ReferralNode[];
@@ -26,6 +27,8 @@ export default function NetworkTreeSection({
   onExpandAll,
   onCollapseAll,
 }: NetworkTreeSectionProps) {
+  const { t, tPlural } = useI18n();
+
   if (downlineTree.length === 0) {
     return <EmptyNetwork />;
   }
@@ -35,9 +38,9 @@ export default function NetworkTreeSection({
       {/* Network toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#9ca3af' }}>
-          <span style={{ fontWeight: 700, color: '#555' }}>{totalDescendants} member{totalDescendants !== 1 ? 's' : ''}</span>
+          <span style={{ fontWeight: 700, color: '#555' }}>{tPlural('network.members', totalDescendants)}</span>
           <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#ccc', display: 'inline-block' }} />
-          <span>up to {levelLabels.length} levels</span>
+          <span>{t('network.up_to_levels', { count: levelLabels.length })}</span>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button
@@ -46,7 +49,7 @@ export default function NetworkTreeSection({
             onClick={onExpandAll}
           >
             <ExpandIcon size={14} />
-            Expand
+            {t('network.expand')}
           </button>
           <button
             type="button"
@@ -54,7 +57,7 @@ export default function NetworkTreeSection({
             onClick={onCollapseAll}
           >
             <CollapseIcon size={14} />
-            Collapse
+            {t('network.collapse')}
           </button>
         </div>
       </div>
@@ -65,10 +68,10 @@ export default function NetworkTreeSection({
           <UserIcon size={18} stroke="#fff" strokeWidth={2.5} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>You</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{t('common.you')}</span>
           <span style={{ fontSize: 11, fontFamily: "'SF Mono', Monaco, monospace", color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>{referralCode}</span>
         </div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.18)', padding: '3px 10px', borderRadius: 100, whiteSpace: 'nowrap' }}>{directCount} direct</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.18)', padding: '3px 10px', borderRadius: 100, whiteSpace: 'nowrap' }}>{t('network.direct', { count: directCount })}</div>
       </div>
 
       {/* Tree */}
@@ -83,7 +86,7 @@ export default function NetworkTreeSection({
         {levelLabels.map((label, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>
             <span className={`nt-legend-dot-d${Math.min(i, 2)}`} style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0 }} />
-            {label} — {levelEarn[i] || 'view only'}
+            {label} — {levelEarn[i] || t('network.view_only')}
           </div>
         ))}
       </div>

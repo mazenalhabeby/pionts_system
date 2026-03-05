@@ -22,6 +22,13 @@ export interface SdkConfig {
   mode?: 'floating' | 'embedded';
   containerEl?: HTMLElement;
   referralCode?: string | null;
+  locale?: string;
+  currency?: {
+    symbol?: string;
+    position?: 'prefix' | 'suffix';
+    decimals?: number;
+    separator?: string;
+  };
   customer?: {
     email: string;
     name?: string;

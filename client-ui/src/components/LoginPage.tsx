@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
+import { useI18n } from '../i18n';
 
 const INCENTIVE_ICONS: Record<string, string> = {
   signup: '\uD83C\uDF81',
@@ -29,6 +30,7 @@ const MAX_INCENTIVES = 4;
 
 export default function LoginPage() {
   const { login, api, settings, preAuthConfig } = useWidgetConfig();
+  const { t } = useI18n();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -61,11 +63,11 @@ export default function LoginPage() {
       if (res?.code) setCode(res.code);
       setStep('code');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send code');
+      setError(err instanceof Error ? err.message : t('login.error_send'));
     } finally {
       setLoading(false);
     }
-  }, [email, api]);
+  }, [email, api, t]);
 
   const handleVerifyCode = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,11 +76,11 @@ export default function LoginPage() {
     try {
       await login(email, code);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid code');
+      setError(err instanceof Error ? err.message : t('login.error_verify'));
     } finally {
       setLoading(false);
     }
-  }, [email, code, login]);
+  }, [email, code, login, t]);
 
   const handleBack = useCallback(() => {
     setStep('email');
@@ -94,12 +96,12 @@ export default function LoginPage() {
           <h1 className="pw-login__heading">
             {brandName}
             <br />
-            <span className="pw-login__heading-accent">Rewards Program</span>
+            <span className="pw-login__heading-accent">{t('login.heading_accent')}</span>
           </h1>
           <p className="pw-login__subtitle">
             {step === 'email'
-              ? 'Sign up to earn points on every purchase, unlock exclusive discounts, and get rewarded for sharing with friends.'
-              : `We sent a 6-digit code to ${email}`}
+              ? t('login.subtitle_email')
+              : t('login.subtitle_code', { email })}
           </p>
 
           {error && <div className="pw-error" style={{ marginBottom: 16 }}>{error}</div>}
@@ -109,7 +111,7 @@ export default function LoginPage() {
               <div className="pw-login__input-row">
                 <input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t('login.placeholder_email')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -121,7 +123,7 @@ export default function LoginPage() {
                   disabled={loading || !email}
                   className="pw-btn pw-btn--primary pw-login__cta"
                 >
-                  {loading ? 'Sending...' : 'Get Started'}
+                  {loading ? t('login.btn_sending') : t('login.btn_get_started')}
                 </button>
               </div>
             </form>
@@ -129,7 +131,7 @@ export default function LoginPage() {
             <form onSubmit={handleVerifyCode} className="pw-login__form">
               <input
                 type="text"
-                placeholder="000000"
+                placeholder={t('login.placeholder_code')}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 maxLength={6}
@@ -146,14 +148,14 @@ export default function LoginPage() {
                 className="pw-btn pw-btn--primary pw-btn--full"
                 style={{ padding: '12px 16px' }}
               >
-                {loading ? 'Verifying...' : 'Verify'}
+                {loading ? t('login.btn_verifying') : t('login.btn_verify')}
               </button>
               <button
                 type="button"
                 className="pw-login__back"
                 onClick={handleBack}
               >
-                Use a different email
+                {t('login.back_email')}
               </button>
             </form>
           )}
@@ -170,7 +172,7 @@ export default function LoginPage() {
               {showReferralBadge && (
                 <span className="pw-login__chip pw-login__chip--referral">
                   <span className="pw-login__chip-icon">{'\uD83E\uDD1D'}</span>
-                  {referralDiscount}% off Referral Discount
+                  {t('login.referral_discount', { percent: String(referralDiscount) })}
                 </span>
               )}
             </div>
@@ -181,7 +183,6 @@ export default function LoginPage() {
       {/* Right side — Visual showcase */}
       <div className="pw-login__visual">
         <div className="pw-login__scene">
-          {/* Floating decorative elements */}
           <div className="pw-login__float pw-login__float--gift1">{'\uD83C\uDF81'}</div>
           <div className="pw-login__float pw-login__float--gift2">{'\uD83C\uDF80'}</div>
           <div className="pw-login__float pw-login__float--coin1">{'\uD83E\uDE99'}</div>
@@ -191,24 +192,21 @@ export default function LoginPage() {
           <div className="pw-login__float pw-login__float--confetti1">{'\uD83C\uDF89'}</div>
           <div className="pw-login__float pw-login__float--heart">{'\u2764\uFE0F'}</div>
 
-          {/* Central reward card */}
           <div className="pw-login__reward-card">
             <div className="pw-login__reward-icon">{'\uD83C\uDFC6'}</div>
             <div className="pw-login__reward-pts">+100</div>
-            <div className="pw-login__reward-label">Bonus Points</div>
+            <div className="pw-login__reward-label">{t('login.bonus_points')}</div>
           </div>
 
-          {/* Secondary floating cards */}
           <div className="pw-login__mini-card pw-login__mini-card--top">
-            <span>{'\uD83D\uDCB3'}</span> Earn Discounts
+            <span>{'\uD83D\uDCB3'}</span> {t('login.earn_discounts')}
           </div>
           <div className="pw-login__mini-card pw-login__mini-card--bottom">
-            <span>{'\uD83D\uDC65'}</span> Refer Friends
+            <span>{'\uD83D\uDC65'}</span> {t('login.refer_friends')}
           </div>
         </div>
       </div>
 
-      {/* Decorative bottom accent stripe */}
       <div className="pw-login__stripe" />
     </div>
   );

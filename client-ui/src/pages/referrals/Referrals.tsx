@@ -2,12 +2,14 @@ import { useState, useCallback } from 'react';
 import useReferrals from '../../hooks/useReferrals';
 import { UsersIcon, countDescendants } from '@pionts/shared';
 import { useWidgetConfig } from '../../context/WidgetConfigContext';
+import { useI18n } from '../../i18n';
 import ReferralLinkSection from './ReferralLinkSection';
 import NetworkTreeSection from './NetworkTreeSection';
 
 export default function Referrals() {
   const { data, loading, error } = useReferrals();
   const { settings } = useWidgetConfig();
+  const { t } = useI18n();
   const [tab, setTab] = useState<'referrals' | 'network'>('referrals');
   const [treeGen, setTreeGen] = useState<number | null>(null);
   const defaultLabels = ['Level 1', 'Level 2', 'Level 3'];
@@ -18,7 +20,7 @@ export default function Referrals() {
   const expandAll = useCallback(() => setTreeGen((g) => Math.abs(g || 0) + 1), []);
   const collapseAll = useCallback(() => setTreeGen((g) => -(Math.abs(g || 0) + 1)), []);
 
-  if (loading) return <div className="pw-loading">Loading...</div>;
+  if (loading) return <div className="pw-loading">{t('common.loading')}</div>;
   if (error) return <div className="pw-error">{error}</div>;
   if (!data) return null;
 
@@ -38,8 +40,8 @@ export default function Referrals() {
           <UsersIcon size={24} />
         </div>
         <div>
-          <div className="pw-page-header__title">Referrals</div>
-          <div className="pw-page-header__subtitle">Grow your network, earn more points</div>
+          <div className="pw-page-header__title">{t('referrals.title')}</div>
+          <div className="pw-page-header__subtitle">{t('referrals.subtitle')}</div>
         </div>
       </div>
 
@@ -47,15 +49,15 @@ export default function Referrals() {
       <div className="pw-metric-row">
         <div className="pw-metric">
           <div className="pw-metric__value pw-metric__value--blue">{directCount}</div>
-          <div className="pw-metric__label">Direct</div>
+          <div className="pw-metric__label">{t('common.direct')}</div>
         </div>
         <div className="pw-metric">
           <div className="pw-metric__value pw-metric__value--purple">{networkCount}</div>
-          <div className="pw-metric__label">Network</div>
+          <div className="pw-metric__label">{t('common.network')}</div>
         </div>
         <div className="pw-metric">
           <div className="pw-metric__value pw-metric__value--green">{data.total_referral_earnings ?? 0}</div>
-          <div className="pw-metric__label">Pts Earned</div>
+          <div className="pw-metric__label">{t('referrals.stat_pts_earned')}</div>
         </div>
       </div>
 
@@ -67,7 +69,7 @@ export default function Referrals() {
             onClick={() => setTab('referrals')}
             type="button"
           >
-            My Referrals
+            {t('referrals.tab_my_referrals')}
             <span className="pw-tab-toggle__badge">{directCount}</span>
           </button>
           <button
@@ -75,7 +77,7 @@ export default function Referrals() {
             onClick={() => setTab('network')}
             type="button"
           >
-            Network
+            {t('referrals.tab_network')}
             <span className="pw-tab-toggle__badge">{networkCount}</span>
           </button>
         </div>

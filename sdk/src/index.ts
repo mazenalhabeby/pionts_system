@@ -11,6 +11,13 @@ interface LoyaltyConfig {
   container?: string;
   apiBase?: string;
   widgetUrl?: string;
+  locale?: string;
+  currency?: {
+    symbol?: string;
+    position?: 'prefix' | 'suffix';
+    decimals?: number;
+    separator?: string;
+  };
 }
 
 interface InternalConfig extends LoyaltyConfig {

@@ -1,8 +1,9 @@
 import useCustomer from '../hooks/useCustomer';
 import useReferrals from '../hooks/useReferrals';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
-import { timeAgo } from '@pionts/shared';
 import CopyButton from '../components/CopyButton';
+import { useI18n } from '../i18n';
+import { useTimeAgo } from '../i18n/timeAgoLocalized';
 
 function isActive(lastActivity?: string): boolean {
   if (!lastActivity) return false;
@@ -14,10 +15,12 @@ export default function Partner() {
   const { data, loading, error } = useCustomer();
   const { data: refData, loading: refLoading } = useReferrals();
   const { settings } = useWidgetConfig();
+  const { t, formatCurrency } = useI18n();
+  const timeAgo = useTimeAgo();
 
-  if (loading) return <div className="pw-loading">Loading...</div>;
+  if (loading) return <div className="pw-loading">{t('common.loading')}</div>;
   if (error) return <div className="pw-error">{error}</div>;
-  if (!data || !data.partner_info) return <div className="pw-loading">Partner information not available.</div>;
+  if (!data || !data.partner_info) return <div className="pw-loading">{t('partner.not_available')}</div>;
 
   const info = data.partner_info;
   const storeUrl = String(settings?.referral_base_url || '');
@@ -35,8 +38,8 @@ export default function Partner() {
           </svg>
         </div>
         <div>
-          <div className="pw-page-header__title">Partner Dashboard</div>
-          <div className="pw-page-header__subtitle">Your commission earnings and stats</div>
+          <div className="pw-page-header__title">{t('partner.title')}</div>
+          <div className="pw-page-header__subtitle">{t('partner.subtitle')}</div>
         </div>
       </div>
 
@@ -44,25 +47,25 @@ export default function Partner() {
       <div className="pw-metric-row">
         <div className="pw-metric">
           <div className="pw-metric__value pw-metric__value--amber">{info.commission_pct}%</div>
-          <div className="pw-metric__label">Commission</div>
+          <div className="pw-metric__label">{t('partner.stat_commission')}</div>
         </div>
         <div className="pw-metric">
-          <div className="pw-metric__value pw-metric__value--green">&euro;{info.total_earned.toFixed(2)}</div>
-          <div className="pw-metric__label">Total Earned</div>
+          <div className="pw-metric__value pw-metric__value--green">{formatCurrency(info.total_earned)}</div>
+          <div className="pw-metric__label">{t('partner.stat_total_earned')}</div>
         </div>
         <div className="pw-metric">
-          <div className="pw-metric__value">&euro;{info.credit_balance.toFixed(2)}</div>
-          <div className="pw-metric__label">Credit Balance</div>
+          <div className="pw-metric__value">{formatCurrency(info.credit_balance)}</div>
+          <div className="pw-metric__label">{t('partner.stat_credit_balance')}</div>
         </div>
         <div className="pw-metric">
           <div className="pw-metric__value">{info.total_orders}</div>
-          <div className="pw-metric__label">Orders</div>
+          <div className="pw-metric__label">{t('partner.stat_orders')}</div>
         </div>
       </div>
 
       {/* Referral Link for Partner */}
       <div className="pw-section pw-section--padded">
-        <div className="pw-section__title" style={{ marginBottom: 14 }}>Your Partner Link</div>
+        <div className="pw-section__title" style={{ marginBottom: 14 }}>{t('partner.link_title')}</div>
         <div className="pw-share__link" style={{ marginBottom: 10 }}>
           <input
             className="pw-input"
@@ -73,30 +76,30 @@ export default function Partner() {
           />
           <CopyButton text={refUrl} />
         </div>
-        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 10 }}>Share this link to earn {info.commission_pct}% commission on every purchase.</div>
+        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 10 }}>{t('partner.link_hint', { pct: info.commission_pct })}</div>
       </div>
 
       {/* Referrals Table */}
       <div className="pw-section pw-section--padded">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <div className="pw-section__title">Your Referrals</div>
-          <span className="pw-table__badge pw-table__badge--active">{directReferrals.length} referrals</span>
+          <div className="pw-section__title">{t('partner.referrals_title')}</div>
+          <span className="pw-table__badge pw-table__badge--active">{t('partner.referrals_count', { count: directReferrals.length })}</span>
         </div>
         {refLoading ? (
-          <div className="pw-loading">Loading referrals...</div>
+          <div className="pw-loading">{t('partner.loading_referrals')}</div>
         ) : directReferrals.length === 0 ? (
           <div className="pw-empty">
-            <div className="pw-empty__desc">No referrals yet. Share your partner link to get started!</div>
+            <div className="pw-empty__desc">{t('partner.no_referrals')}</div>
           </div>
         ) : (
           <div className="pw-table-wrap" style={{ margin: '0 -28px' }}>
             <table className="pw-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Orders</th>
-                  <th>Status</th>
-                  <th>Joined</th>
+                  <th>{t('partner.th_name')}</th>
+                  <th>{t('partner.th_orders')}</th>
+                  <th>{t('partner.th_status')}</th>
+                  <th>{t('partner.th_joined')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -113,7 +116,7 @@ export default function Partner() {
                       <td>{r.order_count ?? 0}</td>
                       <td>
                         <span className={`pw-table__badge ${active ? 'pw-table__badge--active' : ''}`}>
-                          {active ? 'Active' : 'Inactive'}
+                          {active ? t('partner.status_active') : t('partner.status_inactive')}
                         </span>
                       </td>
                       <td>{timeAgo(r.created_at || '')}</td>
@@ -128,10 +131,10 @@ export default function Partner() {
 
       {/* How it works */}
       <div className="pw-section pw-section--padded">
-        <div className="pw-section__title" style={{ marginBottom: 12 }}>How It Works</div>
+        <div className="pw-section__title" style={{ marginBottom: 12 }}>{t('partner.how_title')}</div>
         <div className="pw-partner-info">
-          <p>As a partner, you earn <span className="pw-partner-highlight">{info.commission_pct}% commission</span> on every order placed by customers you refer.</p>
-          <p>Your credit balance accumulates as referred customers make purchases. Credits can be applied toward future orders or withdrawn.</p>
+          <p>{t('partner.how_desc', { pct: info.commission_pct })}</p>
+          <p>{t('partner.how_desc2')}</p>
         </div>
       </div>
     </div>

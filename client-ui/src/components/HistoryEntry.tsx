@@ -1,5 +1,6 @@
 import React from 'react';
-import { timeAgo, formatPoints } from '@pionts/shared';
+import { formatPoints } from '@pionts/shared';
+import { useTimeAgo } from '../i18n/timeAgoLocalized';
 
 interface HistoryEntryProps {
   points: number;
@@ -9,6 +10,7 @@ interface HistoryEntryProps {
 
 const HistoryEntry = React.memo(function HistoryEntry({ points, description, created_at }: HistoryEntryProps) {
   const isPositive = points >= 0;
+  const timeAgo = useTimeAgo();
 
   return (
     <li className="pw-history-item">

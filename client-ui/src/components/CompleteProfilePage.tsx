@@ -1,13 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+import { useI18n } from '../i18n';
 
 export default function CompleteProfilePage() {
   const { api, settings, refresh, customer } = useWidgetConfig();
+  const { t } = useI18n();
   const [name, setName] = useState(customer?.name || '');
   const [bdayMonth, setBdayMonth] = useState('01');
   const [bdayDay, setBdayDay] = useState('01');
@@ -24,7 +21,7 @@ export default function CompleteProfilePage() {
     const data: { name?: string; birthday?: string } = {};
     if (needsName) {
       if (!name.trim() || name.trim().length < 2) {
-        setError('Please enter your name (at least 2 characters)');
+        setError(t('profile.error_name'));
         return;
       }
       data.name = name.trim();
@@ -38,11 +35,11 @@ export default function CompleteProfilePage() {
       await api.updateProfile(data);
       refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save profile');
+      setError(err instanceof Error ? err.message : t('profile.error_save'));
     } finally {
       setLoading(false);
     }
-  }, [api, name, bdayMonth, bdayDay, needsName, needsBirthday, refresh]);
+  }, [api, name, bdayMonth, bdayDay, needsName, needsBirthday, refresh, t]);
 
   return (
     <div className="pw-login">
@@ -50,7 +47,7 @@ export default function CompleteProfilePage() {
         <div className="pw-login__accent" />
         <div className="pw-login__body">
           <h1 className="pw-login__title">{String(settings?.widget_brand_name || 'Rewards')}</h1>
-          <p className="pw-login__desc">Complete your profile to start earning points.</p>
+          <p className="pw-login__desc">{t('profile.title')}</p>
 
           {error && <div className="pw-error" style={{ marginBottom: 16 }}>{error}</div>}
 
@@ -58,11 +55,11 @@ export default function CompleteProfilePage() {
             {needsName && (
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>
-                  Full Name
+                  {t('profile.label_name')}
                 </label>
                 <input
                   type="text"
-                  placeholder="John Doe"
+                  placeholder={t('profile.placeholder_name')}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -75,7 +72,7 @@ export default function CompleteProfilePage() {
             {needsBirthday && (
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>
-                  Date of Birth
+                  {t('profile.label_birthday')}
                 </label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <select
@@ -84,8 +81,8 @@ export default function CompleteProfilePage() {
                     className="pw-input"
                     style={{ flex: 2 }}
                   >
-                    {MONTHS.map((m, i) => (
-                      <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{t(`months.${i + 1}`)}</option>
                     ))}
                   </select>
                   <select
@@ -108,7 +105,7 @@ export default function CompleteProfilePage() {
               className="pw-btn pw-btn--primary pw-btn--full"
               style={{ padding: '12px 16px' }}
             >
-              {loading ? 'Saving...' : 'Continue'}
+              {loading ? t('profile.btn_saving') : t('profile.btn_continue')}
             </button>
           </form>
         </div>

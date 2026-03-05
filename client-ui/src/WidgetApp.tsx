@@ -4,6 +4,7 @@ import useCustomer from './hooks/useCustomer';
 import LoginPage from './components/LoginPage';
 import CompleteProfilePage from './components/CompleteProfilePage';
 import { HomeIcon, UsersIcon, GiftIcon, StarIcon, ChartIcon } from '@pionts/shared';
+import { useI18n } from './i18n';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Referrals = lazy(() => import('./pages/referrals'));
@@ -60,6 +61,7 @@ const PAGE_MAP: Record<string, React.LazyExoticComponent<React.ComponentType>> =
 export default function WidgetApp() {
   const { authenticated, loading, settings } = useWidgetConfig();
   const { data: customerData } = useCustomer();
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('');
 
   const modules = customerData?.enabled_modules;
@@ -69,28 +71,26 @@ export default function WidgetApp() {
 
   const tabs = useMemo(() => {
     if (isPartner) {
-      // Partners: Home (partner hero) + Partner + Leaderboard — no referrals, redeem, earn
-      const t: TabDef[] = [
-        { key: 'dashboard', label: 'Home', icon: TAB_ICONS.home },
-        { key: 'partner', label: 'Partner', icon: TAB_ICONS.dollar },
+      const td: TabDef[] = [
+        { key: 'dashboard', label: t('tabs.home'), icon: TAB_ICONS.home },
+        { key: 'partner', label: t('tabs.partner'), icon: TAB_ICONS.dollar },
       ];
       if (leaderboardEnabled) {
-        t.push({ key: 'leaderboard', label: 'Leaders', icon: TAB_ICONS.chart });
+        td.push({ key: 'leaderboard', label: t('tabs.leaders'), icon: TAB_ICONS.chart });
       }
-      return t;
+      return td;
     }
 
-    // Regular customers — no partner tab, no leaderboard
-    const t: TabDef[] = [{ key: 'dashboard', label: 'Home', icon: TAB_ICONS.home }];
+    const td: TabDef[] = [{ key: 'dashboard', label: t('tabs.home'), icon: TAB_ICONS.home }];
     if (modules?.referrals !== false) {
-      t.push({ key: 'referrals', label: 'Referrals', icon: TAB_ICONS.users });
+      td.push({ key: 'referrals', label: t('tabs.referrals'), icon: TAB_ICONS.users });
     }
     if (modules?.points !== false) {
-      t.push({ key: 'redeem', label: 'Redeem', icon: TAB_ICONS.gift });
-      t.push({ key: 'earn', label: 'Earn', icon: TAB_ICONS.star });
+      td.push({ key: 'redeem', label: t('tabs.redeem'), icon: TAB_ICONS.gift });
+      td.push({ key: 'earn', label: t('tabs.earn'), icon: TAB_ICONS.star });
     }
-    return t;
-  }, [isPartner, modules, leaderboardEnabled]);
+    return td;
+  }, [isPartner, modules, leaderboardEnabled, t]);
 
   useEffect(() => {
     if (!tabs.find((t) => t.key === activeTab)) {
@@ -112,7 +112,7 @@ export default function WidgetApp() {
   if (loading) {
     return (
       <div className="pw-page">
-        <div className="pw-loading">Loading...</div>
+        <div className="pw-loading">{t('common.loading')}</div>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function WidgetApp() {
     <div className="pw-page">
       <TabNav active={activeTab} onChange={setActiveTab} tabs={tabs} />
       <main className="pw-main">
-        <Suspense fallback={<div className="pw-loading">Loading...</div>}>
+        <Suspense fallback={<div className="pw-loading">{t('common.loading')}</div>}>
           {PageComponent && <PageComponent />}
         </Suspense>
       </main>

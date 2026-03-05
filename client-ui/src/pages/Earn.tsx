@@ -4,11 +4,7 @@ import useCustomer from '../hooks/useCustomer';
 import EarnItem from '../components/EarnItem';
 import { StarIcon } from '@pionts/shared';
 import type { EarnAction } from '@pionts/shared';
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+import { useI18n } from '../i18n';
 
 // Fallback earn actions for backward compatibility (when API doesn't return earn_actions)
 const FALLBACK_ACTIONS: (EarnAction & { legacyFlag?: string })[] = [
@@ -33,6 +29,7 @@ const LEGACY_FLAG_MAP: Record<string, string> = {
 export default function Earn() {
   const { api, settings } = useWidgetConfig();
   const { data, loading, error, refresh } = useCustomer();
+  const { t } = useI18n();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [tab, setTab] = useState<'onetime' | 'repeatable'>('onetime');
   const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
@@ -51,11 +48,11 @@ export default function Earn() {
       setShowBirthdayPicker(false);
       refresh();
     } catch (err: any) {
-      setBdayError(err?.message || 'Failed to set birthday');
+      setBdayError(err?.message || t('earn.error_birthday'));
     } finally {
       birthdaySubmitting.current = false;
     }
-  }, [api, bdayMonth, bdayDay, refresh]);
+  }, [api, bdayMonth, bdayDay, refresh, t]);
 
   // Get actions -- dynamic from API or fallback to hardcoded
   const actions = useMemo(() => {
@@ -105,10 +102,10 @@ export default function Earn() {
       const shareUrl = storeUrl ? `${storeUrl}${storeUrl.includes('?') ? '&' : '?'}ref=${data.referral_code}` : '';
       try {
         if (navigator.share) {
-          await navigator.share({ title: brandName, text: `Check out ${brandName}!`, url: shareUrl });
+          await navigator.share({ title: brandName, text: t('earn.share_text', { brand: brandName }), url: shareUrl });
         } else {
           window.open(
-            `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Check out ${brandName}!`)}`,
+            `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(t('earn.share_text', { brand: brandName }))}`,
             '_blank',
             'noopener,width=600,height=400',
           );
@@ -127,7 +124,7 @@ export default function Earn() {
     } finally {
       setLoadingAction(null);
     }
-  }, [api, refresh, data, settings, storeUrl]);
+  }, [api, refresh, data, settings, storeUrl, t]);
 
   // Build the action button (or undefined) for a given earn action
   const getActionButton = useCallback((action: EarnAction): React.ReactNode | undefined => {
@@ -142,7 +139,7 @@ export default function Earn() {
           disabled={loadingAction === action.slug}
           type="button"
         >
-          {loadingAction === action.slug ? '...' : 'Follow'}
+          {loadingAction === action.slug ? '...' : t('earn.btn_follow')}
         </button>
       );
     }
@@ -155,7 +152,7 @@ export default function Earn() {
           disabled={loadingAction === action.slug}
           type="button"
         >
-          {loadingAction === action.slug ? '...' : 'Share'}
+          {loadingAction === action.slug ? '...' : t('earn.btn_share')}
         </button>
       );
     }
@@ -169,7 +166,7 @@ export default function Earn() {
           disabled={loadingAction === action.slug}
           type="button"
         >
-          {loadingAction === action.slug ? '...' : 'Claim'}
+          {loadingAction === action.slug ? '...' : t('earn.btn_claim')}
         </button>
       );
     }
@@ -190,8 +187,8 @@ export default function Earn() {
                   className="pw-btn pw-btn--sm"
                   style={{ padding: '4px 6px', fontSize: 12 }}
                 >
-                  {MONTHS.map((m, i) => (
-                    <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{t(`months.${i + 1}`)}</option>
                   ))}
                 </select>
                 <select
@@ -209,7 +206,7 @@ export default function Earn() {
                   onClick={handleSetBirthday}
                   type="button"
                 >
-                  Save
+                  {t('common.save')}
                 </button>
               </div>
               {bdayError && <span style={{ color: '#ef4444', fontSize: 11 }}>{bdayError}</span>}
@@ -222,7 +219,7 @@ export default function Earn() {
             onClick={() => setShowBirthdayPicker(true)}
             type="button"
           >
-            Set Birthday
+            {t('earn.btn_set_birthday')}
           </button>
         );
       }
@@ -234,7 +231,7 @@ export default function Earn() {
       if (birthdayMonth !== currentMonth) {
         return (
           <span style={{ fontSize: 11, color: '#9ca3af' }}>
-            Available in {MONTHS[birthdayMonth - 1]}
+            {t('earn.available_in', { month: t(`months.${birthdayMonth}`) })}
           </span>
         );
       }
@@ -247,26 +244,26 @@ export default function Earn() {
           disabled={loadingAction === action.slug}
           type="button"
         >
-          {loadingAction === action.slug ? '...' : 'Claim'}
+          {loadingAction === action.slug ? '...' : t('earn.btn_claim')}
         </button>
       );
     }
 
     return undefined;
-  }, [isCompleted, handleAction, loadingAction, data, showBirthdayPicker, bdayMonth, bdayDay, bdayError, handleSetBirthday]);
+  }, [isCompleted, handleAction, loadingAction, data, showBirthdayPicker, bdayMonth, bdayDay, bdayError, handleSetBirthday, t]);
 
   // Tag for repeatable / yearly actions
   const getTag = useCallback((action: EarnAction): string | undefined => {
-    if (action.frequency === 'yearly') return 'yearly';
+    if (action.frequency === 'yearly') return t('earn.tag_yearly');
     if (action.frequency === 'repeatable') {
-      if (action.slug.includes('review')) return 'per review';
-      if (action.slug.includes('share')) return 'per share';
-      return 'repeatable';
+      if (action.slug.includes('review')) return t('earn.tag_per_review');
+      if (action.slug.includes('share')) return t('earn.tag_per_share');
+      return t('earn.tag_repeatable');
     }
     return undefined;
-  }, []);
+  }, [t]);
 
-  if (loading) return <div className="pw-loading">Loading...</div>;
+  if (loading) return <div className="pw-loading">{t('common.loading')}</div>;
   if (error) return <div className="pw-error">{error}</div>;
   if (!data) return null;
 
@@ -278,15 +275,15 @@ export default function Earn() {
           <StarIcon size={24} />
         </div>
         <div>
-          <div className="pw-page-header__title">Earn Points</div>
-          <div className="pw-page-header__subtitle">Complete actions to earn rewards</div>
+          <div className="pw-page-header__title">{t('earn.title')}</div>
+          <div className="pw-page-header__subtitle">{t('earn.subtitle')}</div>
         </div>
       </div>
 
       {/* Progress Bar */}
       <div className="pw-section pw-section--padded">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <span className="pw-section__title" style={{ textTransform: 'none', letterSpacing: 0 }}>Progress</span>
+          <span className="pw-section__title" style={{ textTransform: 'none', letterSpacing: 0 }}>{t('earn.progress')}</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--pionts-primary, #3b82f6)' }}>{doneCount}/{totalOneTime}</span>
         </div>
         <div className="pw-progress-bar">
@@ -302,7 +299,7 @@ export default function Earn() {
             onClick={() => setTab('onetime')}
             type="button"
           >
-            One-Time
+            {t('earn.tab_onetime')}
             <span className="pw-tab-toggle__badge">{doneCount}/{totalOneTime}</span>
           </button>
           <button
@@ -310,7 +307,7 @@ export default function Earn() {
             onClick={() => setTab('repeatable')}
             type="button"
           >
-            Repeatable
+            {t('earn.tab_repeatable')}
           </button>
         </div>
 
@@ -326,7 +323,7 @@ export default function Earn() {
               />
             ))}
             {oneTimeActions.length === 0 && (
-              <li className="pw-empty"><div className="pw-empty__desc">No one-time actions available.</div></li>
+              <li className="pw-empty"><div className="pw-empty__desc">{t('earn.no_onetime')}</div></li>
             )}
           </ul>
         )}
@@ -344,7 +341,7 @@ export default function Earn() {
               />
             ))}
             {repeatableActions.length === 0 && (
-              <li className="pw-empty"><div className="pw-empty__desc">No repeatable actions available.</div></li>
+              <li className="pw-empty"><div className="pw-empty__desc">{t('earn.no_repeatable')}</div></li>
             )}
           </ul>
         )}
@@ -354,15 +351,15 @@ export default function Earn() {
       <div className="pw-metric-row">
         <div className="pw-metric">
           <div className="pw-metric__value pw-metric__value--orange">{data.points_balance}</div>
-          <div className="pw-metric__label">Balance</div>
+          <div className="pw-metric__label">{t('earn.stat_balance')}</div>
         </div>
         <div className="pw-metric">
           <div className="pw-metric__value pw-metric__value--green">{data.points_earned_total}</div>
-          <div className="pw-metric__label">Total Earned</div>
+          <div className="pw-metric__label">{t('earn.stat_total_earned')}</div>
         </div>
         <div className="pw-metric">
           <div className="pw-metric__value pw-metric__value--blue">{data.order_count}</div>
-          <div className="pw-metric__label">Orders</div>
+          <div className="pw-metric__label">{t('earn.stat_orders')}</div>
         </div>
       </div>
     </div>

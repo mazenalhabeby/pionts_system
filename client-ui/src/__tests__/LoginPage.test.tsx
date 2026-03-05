@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import LoginPage from '../components/LoginPage';
 import { WidgetProvider } from '../context/WidgetContext';
 import { WidgetConfigProvider } from '../context/WidgetConfigContext';
+import { I18nProvider } from '../i18n';
 import type { SdkConfig } from '@pionts/shared';
 
 // Mock api-sdk module
@@ -43,11 +44,13 @@ const testConfig: SdkConfig = {
 
 function renderLoginPage() {
   return render(
-    <WidgetProvider config={testConfig}>
-      <WidgetConfigProvider>
-        <LoginPage />
-      </WidgetConfigProvider>
-    </WidgetProvider>
+    <I18nProvider locale="en">
+      <WidgetProvider config={testConfig}>
+        <WidgetConfigProvider>
+          <LoginPage />
+        </WidgetConfigProvider>
+      </WidgetProvider>
+    </I18nProvider>
   );
 }
 

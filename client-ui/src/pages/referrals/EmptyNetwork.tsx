@@ -1,4 +1,8 @@
+import { useI18n } from '../../i18n';
+
 export default function EmptyNetwork() {
+  const { t } = useI18n();
+
   return (
     <div className="pw-empty">
       <div className="pw-empty__icon">
@@ -12,8 +16,8 @@ export default function EmptyNetwork() {
           <path d="M36 40a6 6 0 0 1 12 0" fill="#f5f5f5"/>
         </svg>
       </div>
-      <div className="pw-empty__title">Your network starts here</div>
-      <div className="pw-empty__desc">When your referrals invite others, your network tree will grow. You earn points from up to 3 levels deep.</div>
+      <div className="pw-empty__title">{t('network.empty_title')}</div>
+      <div className="pw-empty__desc">{t('network.empty_desc')}</div>
     </div>
   );
 }
