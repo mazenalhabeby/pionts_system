@@ -13,6 +13,18 @@ export interface WidgetApi {
   sendCode: (email: string) => Promise<unknown>;
   verifyCode: (email: string, code: string) => Promise<{ token?: string }>;
   getLeaderboard: () => Promise<any[]>;
+  applyPartner: (data: PartnerApplyData) => Promise<{ success: boolean; status: string; reason?: string }>;
+}
+
+// ─── Partner Application Data ───
+export interface PartnerApplyData {
+  dateOfBirth: string; // YYYY-MM-DD
+  socialMedia: { platform: string; url: string; followers?: string }[];
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  iban: string;
 }
 
 // ─── SDK Config (passed to Loyalty.init) ───

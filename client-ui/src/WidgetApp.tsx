@@ -3,6 +3,7 @@ import { useWidgetConfig } from './context/WidgetConfigContext';
 import useCustomer from './hooks/useCustomer';
 import LoginPage from './components/LoginPage';
 import CompleteProfilePage from './components/CompleteProfilePage';
+import PartnerCTAFooter from './components/PartnerCTAFooter';
 import { HomeIcon, UsersIcon, GiftIcon, StarIcon, ChartIcon } from '@pionts/shared';
 import { useI18n } from './i18n';
 
@@ -121,20 +122,24 @@ export default function WidgetApp() {
     return <LoginPage />;
   }
 
-  if (customerData && (!customerData.name || !customerData.birthday)) {
+  // Block widget until name and FULL birth date (YYYY-MM-DD) are provided
+  const hasValidBirthday = customerData?.birthday && customerData.birthday.split('-').length === 3;
+  if (customerData && (!customerData.name || !hasValidBirthday)) {
     return <CompleteProfilePage />;
   }
 
   const PageComponent = PAGE_MAP[activeTab];
+  const showPartnerCTA = modules?.partners && !isPartner;
 
   return (
     <div className="pw-page">
       <TabNav active={activeTab} onChange={setActiveTab} tabs={tabs} />
-      <main className="pw-main">
+      <main className={`pw-main${showPartnerCTA ? ' pw-main--with-footer' : ''}`}>
         <Suspense fallback={<div className="pw-loading">{t('common.loading')}</div>}>
           {PageComponent && <PageComponent />}
         </Suspense>
       </main>
+      {showPartnerCTA && <PartnerCTAFooter />}
     </div>
   );
 }

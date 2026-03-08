@@ -139,6 +139,7 @@ export class SdkService {
       referral_discount_percent: allSettings.referral_discount_percent || '5',
       gamification_enabled: allSettings.gamification_enabled || 'false',
       gamification_tiers: allSettings.gamification_tiers || '[]',
+      shopify_domain: allSettings.shopify_domain || '',
       leaderboard_enabled: allSettings.leaderboard_enabled || 'false',
     };
   }

@@ -16,7 +16,10 @@ import { EarnActionsService } from '../earn-actions/earn-actions.service';
 import { SdkSignupDto } from './dto/sdk-signup.dto';
 import { SdkAwardDto } from './dto/sdk-award.dto';
 import { SdkRedeemDto } from './dto/sdk-redeem.dto';
+import { SdkPartnerApplyDto } from './dto/sdk-partner-apply.dto';
 import { EmailService } from '../customer-auth/email.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { PartnersService } from '../partners/partners.service';
 
 @ApiTags('SDK')
 @Controller('api/v1/sdk')
@@ -31,6 +34,8 @@ export class SdkController {
     private readonly configService: AppConfigService,
     private readonly earnActionsService: EarnActionsService,
     private readonly emailService: EmailService,
+    private readonly prisma: PrismaService,
+    private readonly partnersService: PartnersService,
   ) {}
 
   private requireCustomer(customer: any): void {
@@ -190,15 +195,46 @@ export class SdkController {
       await this.customersService.updateName(customer.id, trimmed);
     }
     if (body.birthday !== undefined) {
-      if (!/^\d{2}-\d{2}$/.test(body.birthday)) {
-        throw new BadRequestException('Birthday must be in MM-DD format');
+      // Support both YYYY-MM-DD (new) and MM-DD (legacy) formats
+      const isFullDate = /^\d{4}-\d{2}-\d{2}$/.test(body.birthday);
+      const isLegacyDate = /^\d{2}-\d{2}$/.test(body.birthday);
+
+      if (!isFullDate && !isLegacyDate) {
+        throw new BadRequestException('Birthday must be in YYYY-MM-DD or MM-DD format');
       }
-      const [monthStr, dayStr] = body.birthday.split('-');
-      const month = parseInt(monthStr, 10);
-      const day = parseInt(dayStr, 10);
+
+      const parts = body.birthday.split('-');
+      let year: number | null = null;
+      let month: number;
+      let day: number;
+
+      if (isFullDate) {
+        // YYYY-MM-DD format
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+        day = parseInt(parts[2], 10);
+
+        // Validate age (13-120 years)
+        const birthDate = new Date(year, month - 1, day);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        if (age < 13 || age > 120) {
+          throw new BadRequestException('Invalid birth date');
+        }
+      } else {
+        // MM-DD format (legacy)
+        month = parseInt(parts[0], 10);
+        day = parseInt(parts[1], 10);
+      }
+
       if (month < 1 || month > 12 || day < 1 || day > 31) {
         throw new BadRequestException('Invalid birthday date');
       }
+
       await this.customersService.setBirthday(customer.id, body.birthday);
     }
     return { success: true };
@@ -313,6 +349,80 @@ export class SdkController {
 
     const token = this.sdkService.generateCustomerToken(project.id, body.email);
     return { token };
+  }
+
+  @Post('partner/apply')
+  async applyPartner(
+    @SdkCustomer() customer: any,
+    @SdkProject() project: any,
+    @Body() body: SdkPartnerApplyDto,
+  ) {
+    this.requireCustomer(customer);
+
+    if (!project.partnersEnabled) {
+      throw new BadRequestException('Partner program is not enabled');
+    }
+
+    if (customer.isPartner) {
+      return { success: true, status: 'already_partner' };
+    }
+
+    // Check if already applied
+    const existing = await this.prisma.partnerApplication.findUnique({
+      where: { projectId_customerId: { projectId: project.id, customerId: customer.id } },
+    });
+    if (existing) {
+      return { success: existing.status === 'approved', status: existing.status };
+    }
+
+    // Validate age >= 18
+    const dob = new Date(body.dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+
+    if (age < 18) {
+      await this.prisma.partnerApplication.create({
+        data: {
+          projectId: project.id,
+          customerId: customer.id,
+          status: 'rejected',
+          dateOfBirth: body.dateOfBirth,
+          socialMedia: body.socialMedia as any,
+          address: body.address,
+          city: body.city,
+          postalCode: body.postalCode,
+          country: body.country,
+          iban: body.iban,
+          rejectionReason: 'under_18',
+        },
+      });
+      return { success: false, status: 'rejected', reason: 'under_18' };
+    }
+
+    // Approved — save application + promote to partner
+    await this.prisma.partnerApplication.create({
+      data: {
+        projectId: project.id,
+        customerId: customer.id,
+        status: 'approved',
+        dateOfBirth: body.dateOfBirth,
+        socialMedia: body.socialMedia as any,
+        address: body.address,
+        city: body.city,
+        postalCode: body.postalCode,
+        country: body.country,
+        iban: body.iban,
+      },
+    });
+
+    const defaultCommission = this.configService.getInt(project.id, 'partner_default_commission_pct') || 10;
+    await this.partnersService.promoteToPartner(project.id, customer.id, defaultCommission);
+
+    return { success: true, status: 'approved' };
   }
 
   @Get('leaderboard')

@@ -12,10 +12,13 @@ import { useI18n } from '../i18n';
 import { useTimeAgo } from '../i18n/timeAgoLocalized';
 
 export default function Redeem() {
-  const { api } = useWidgetConfig();
+  const { api, settings } = useWidgetConfig();
   const { data, loading, error, refresh } = useCustomer();
   const { t, formatCurrency } = useI18n();
   const timeAgo = useTimeAgo();
+
+  // Get Shopify domain from settings
+  const shopifyDomain = (settings as Record<string, unknown>)?.shopify_domain as string | undefined;
   const [redemptions, setRedemptions] = useState<Redemption[]>([]);
   const [redemptionsLoading, setRedemptionsLoading] = useState(true);
   const [loadingTier, setLoadingTier] = useState<number | null>(null);
@@ -155,33 +158,51 @@ export default function Redeem() {
             <span className="pw-table__badge pw-table__badge--active">{t('redeem.active_count', { count: unusedCodes.length })}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {unusedCodes.map((r) => (
-              <div key={r.id} className="pw-discount-card">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 18, fontWeight: 800, color: '#1f2937' }}>{t('redeem.off', { currency: formatCurrency(r.discount_amount) })}</span>
+            {unusedCodes.map((r) => {
+              const checkoutUrl = shopifyDomain
+                ? `https://${shopifyDomain}/discount/${r.discount_code}`
+                : null;
+
+              return (
+                <div key={r.id} className="pw-discount-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: '#1f2937' }}>{t('redeem.off', { currency: formatCurrency(r.discount_amount) })}</span>
+                      </div>
+                      <div style={{ fontFamily: "'SF Mono', Monaco, monospace", fontSize: 12, color: '#6b7280', letterSpacing: 0.5 }}>{r.discount_code}</div>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{timeAgo(r.created_at)}</div>
                     </div>
-                    <div style={{ fontFamily: "'SF Mono', Monaco, monospace", fontSize: 12, color: '#6b7280', letterSpacing: 0.5 }}>{r.discount_code}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{timeAgo(r.created_at)}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                      {checkoutUrl && (
+                        <button
+                          type="button"
+                          className="pw-btn pw-btn--sm pw-btn--primary"
+                          onClick={() => window.open(checkoutUrl, '_blank')}
+                          style={{ fontSize: 12, padding: '6px 12px' }}
+                        >
+                          🛍️ Apply & Checkout
+                        </button>
+                      )}
+                      <CopyButton text={r.discount_code} />
+                      <button
+                        type="button"
+                        className="pw-btn pw-btn--sm pw-btn--cancel"
+                        disabled={cancellingId === r.id}
+                        onClick={() => handleCancel(r)}
+                      >
+                        {cancellingId === r.id ? '...' : t('common.cancel')}
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-                    <CopyButton text={r.discount_code} />
-                    <button
-                      type="button"
-                      className="pw-btn pw-btn--sm pw-btn--cancel"
-                      disabled={cancellingId === r.id}
-                      onClick={() => handleCancel(r)}
-                    >
-                      {cancellingId === r.id ? '...' : t('common.cancel')}
-                    </button>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 8, borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>
+                    {checkoutUrl
+                      ? `Click "Apply & Checkout" to automatically apply this discount, or copy code to use later. Cancel to get ${r.points_spent} points back.`
+                      : t('redeem.cancel_hint', { pts: r.points_spent })}
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 8, borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>
-                  {t('redeem.cancel_hint', { pts: r.points_spent })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

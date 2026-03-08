@@ -1,4 +1,4 @@
-import type { WidgetApi } from '@pionts/shared';
+import type { WidgetApi, PartnerApplyData } from '@pionts/shared';
 
 interface SdkApiConfig {
   apiBase: string;
@@ -133,6 +133,12 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
       }),
 
     getLeaderboard: () => request('/leaderboard'),
+
+    applyPartner: (data: PartnerApplyData) =>
+      request('/partner/apply', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
 
     getConfig: () => publicRequest('/config'),
   };

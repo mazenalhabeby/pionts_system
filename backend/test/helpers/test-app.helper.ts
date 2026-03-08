@@ -6,8 +6,14 @@ import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/prisma/prisma.service';
+import { EmailSenderService } from '../../src/notifications/email-sender.service';
 import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
 import { testPrisma } from './prisma-test.helper';
+
+/** Mock EmailSenderService that always succeeds without SMTP. */
+const mockEmailSenderService = {
+  send: async () => true,
+};
 
 /** ThrottlerGuard override that always passes (for most E2E tests). */
 class NoopThrottlerGuard extends ThrottlerGuard {
@@ -28,6 +34,8 @@ export async function createTestApp(): Promise<INestApplication> {
     .useValue(testPrisma)
     .overrideProvider(APP_GUARD)
     .useClass(NoopThrottlerGuard)
+    .overrideProvider(EmailSenderService)
+    .useValue(mockEmailSenderService)
     .compile();
 
   const app = moduleFixture.createNestApplication({ logger: ['warn'] as LogLevel[] });
@@ -65,6 +73,8 @@ export async function createTestAppWithThrottling(): Promise<INestApplication> {
   })
     .overrideProvider(PrismaService)
     .useValue(testPrisma)
+    .overrideProvider(EmailSenderService)
+    .useValue(mockEmailSenderService)
     .compile();
 
   const app = moduleFixture.createNestApplication({ logger: ['warn'] as LogLevel[] });

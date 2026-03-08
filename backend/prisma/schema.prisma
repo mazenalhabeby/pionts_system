@@ -81,7 +81,8 @@ model Project {
   earnActions     EarnAction[]
   redemptionTiers RedemptionTier[]
   referralLevels  ReferralLevel[]
-  partnerEarnings PartnerEarning[]
+  partnerEarnings      PartnerEarning[]
+  partnerApplications  PartnerApplication[]
 
   @@map("projects")
 }
@@ -139,6 +140,7 @@ model Customer {
   verificationCode     String?   @map("verification_code")
   verificationExpiry   String?   @map("verification_expiry")
   isPartner            Boolean   @default(false) @map("is_partner")
+  partnerAppliedAt     DateTime? @map("partner_applied_at")
   partnerCommissionPct Decimal?  @map("partner_commission_pct") @db.Decimal(5, 2)
   partnerCreditBalance Decimal   @default(0) @map("partner_credit_balance") @db.Decimal(10, 2)
   createdAt            DateTime  @default(now()) @map("created_at")
@@ -152,6 +154,7 @@ model Customer {
   actionLogs                CustomerActionLog[]
   partnerEarningsAsPartner  PartnerEarning[]   @relation("PartnerEarnings")
   partnerEarningsAsCustomer PartnerEarning[]   @relation("PartnerCustomerOrders")
+  partnerApplication        PartnerApplication?
 
   @@unique([projectId, email])
   @@unique([projectId, referralCode])
@@ -346,6 +349,28 @@ model PartnerEarning {
 
   @@index([projectId, partnerId])
   @@map("partner_earnings")
+}
+
+model PartnerApplication {
+  id              Int      @id @default(autoincrement())
+  projectId       Int      @map("project_id")
+  customerId      Int      @unique @map("customer_id")
+  status          String   @default("pending") // pending | approved | rejected
+  dateOfBirth     String   @map("date_of_birth") // YYYY-MM-DD
+  socialMedia     Json     @map("social_media")   // [{platform, url, followers}]
+  address         String
+  city            String
+  postalCode      String   @map("postal_code")
+  country         String
+  iban            String
+  rejectionReason String?  @map("rejection_reason")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  project  Project  @relation(fields: [projectId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@unique([projectId, customerId])
+  @@map("partner_applications")
 }
 
 model Invitation {

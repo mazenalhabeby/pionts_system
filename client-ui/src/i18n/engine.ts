@@ -43,13 +43,14 @@ export interface CurrencyConfig {
 
 export function createCurrencyFormatter(config: CurrencyConfig): (amount: number) => string {
   return (amount: number) => {
-    const parts = amount.toFixed(config.decimals).split('.');
+    const num = typeof amount === 'number' ? amount : Number(amount) || 0;
+    const parts = num.toFixed(config.decimals).split('.');
     const formatted = config.separator === ',' && parts.length === 2
       ? `${parts[0]},${parts[1]}`
       : parts.join('.');
     // Strip trailing zeros for whole numbers (e.g. "5.00" -> "5" when decimals=0 or amount is integer)
-    const clean = Number.isInteger(amount) && config.decimals > 0
-      ? String(amount)
+    const clean = Number.isInteger(num) && config.decimals > 0
+      ? String(num)
       : formatted;
     return config.position === 'prefix'
       ? `${config.symbol}${clean}`

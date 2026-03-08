@@ -30,6 +30,7 @@ export type {
   WidgetApi,
   SdkConfig,
   UseFetchResult,
+  PartnerApplyData,
 } from './types/api.types';
 
 // Utils
