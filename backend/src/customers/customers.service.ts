@@ -120,7 +120,8 @@ export class CustomersService {
         where: { id: customerId },
         data: {
           pointsBalance: { increment: points },
-          pointsEarnedTotal: { increment: points },
+          // Only increment pointsEarnedTotal for actual earnings, not refunds
+          pointsEarnedTotal: type === 'refund' ? undefined : { increment: points },
           lastActivity: new Date(),
         },
       }),
