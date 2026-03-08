@@ -20,7 +20,7 @@ export class EarnActionsController {
   @Post()
   @ProjectRoles('editor')
   async create(@Param('id') id: string, @Body() body: {
-    slug: string;
+    slug?: string;
     label: string;
     points: number;
     category?: string;
@@ -28,8 +28,9 @@ export class EarnActionsController {
     socialUrl?: string;
     sortOrder?: number;
   }) {
-    if (!body.slug || !body.label) throw new BadRequestException('slug and label are required');
-    return this.earnActionsService.createAction(parseInt(id, 10), body);
+    if (!body.label) throw new BadRequestException('label is required');
+    const slug = body.slug || body.label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    return this.earnActionsService.createAction(parseInt(id, 10), { ...body, slug });
   }
 
   @Put(':actionId')

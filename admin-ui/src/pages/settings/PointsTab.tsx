@@ -123,14 +123,15 @@ export default function PointsTab({ pid, canEdit }: { pid: number; canEdit: bool
     setAddingAction(true);
     setActionError(null);
     try {
+      const hasUrl = !!newActionUrl.trim();
       const payload: Record<string, unknown> = {
         label: newActionLabel.trim(),
         points: parseInt(newActionPoints, 10),
-        category: 'custom',
-        frequency: newActionFrequency,
+        category: hasUrl ? 'social_follow' : 'custom',
+        frequency: hasUrl ? 'one_time' : newActionFrequency,
         enabled: true,
       };
-      if (newActionUrl.trim()) payload.socialUrl = newActionUrl.trim();
+      if (hasUrl) payload.socialUrl = newActionUrl.trim();
       await earnActionsApi.create(pid, payload);
       setNewActionLabel('');
       setNewActionPoints('');
@@ -258,16 +259,50 @@ export default function PointsTab({ pid, canEdit }: { pid: number; canEdit: bool
                     </div>
                   </div>
 
-                  {/* Social URL */}
-                  {action.category === 'social_follow' && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-text-faint">URL</span>
-                      <InlineEdit
-                        value={action.socialUrl || ''}
-                        onSave={(val) => handleActionUpdate(action.id, { socialUrl: val })}
-                        className="w-36"
-                        disabled={!canEdit}
-                      />
+                  {/* URL (shown for any action that has one, or social_follow) */}
+                  {(action.socialUrl || action.category === 'social_follow') && (
+                    <div className="relative group/url flex items-center gap-1.5 max-w-[140px]">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-faint shrink-0">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                      {action.socialUrl ? (
+                        <span className="text-[11px] text-text-faint truncate cursor-default">{action.socialUrl}</span>
+                      ) : (
+                        <span className="text-[11px] text-text-faint/40 italic">No URL</span>
+                      )}
+                      {/* Tooltip on hover */}
+                      {action.socialUrl && (
+                        <div className="absolute bottom-full left-0 mb-1.5 hidden group-hover/url:block z-20">
+                          <div className="bg-bg-card border border-border-default rounded-lg shadow-lg px-3 py-2 text-[11px] text-text-primary whitespace-nowrap max-w-[320px]">
+                            <div className="truncate">{action.socialUrl}</div>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const val = prompt('Edit URL:', action.socialUrl || '');
+                                  if (val !== null) handleActionUpdate(action.id, { socialUrl: val });
+                                }}
+                                className="mt-1 text-[10px] text-accent hover:underline bg-transparent border-none p-0 cursor-pointer"
+                              >
+                                Edit URL
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {!action.socialUrl && canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = prompt('Enter URL:');
+                            if (val) handleActionUpdate(action.id, { socialUrl: val });
+                          }}
+                          className="text-[10px] text-accent hover:underline bg-transparent border-none p-0 cursor-pointer shrink-0"
+                        >
+                          Add
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -290,7 +325,7 @@ export default function PointsTab({ pid, canEdit }: { pid: number; canEdit: bool
                   />
 
                   {/* Delete */}
-                  {action.category === 'custom' && canEdit && (
+                  {(action.category === 'custom' || action.category === 'social_follow') && canEdit && (
                     <button
                       type="button"
                       onClick={() => handleActionDelete(action.id)}

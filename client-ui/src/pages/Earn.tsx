@@ -95,7 +95,7 @@ export default function Earn() {
     const list = (data?.earn_actions && data.earn_actions.length > 0)
       ? data.earn_actions.filter(a => a.enabled)
       : FALLBACK_ACTIONS;
-    return list.filter(a => a.category !== 'social_follow' || !!a.social_url);
+    return list.filter(a => a.category !== 'social_follow' || a.social_url);
   }, [data?.earn_actions]);
 
   // Completion check: action.completed > completed_actions[] > legacy boolean flags
@@ -195,7 +195,7 @@ export default function Earn() {
     // Completed one-time actions don't need a button
     if (isCompleted(action) && action.frequency === 'one_time') return undefined;
 
-    if (action.category === 'social_follow') {
+    if (action.category === 'social_follow' || action.social_url) {
       const timer = socialTimers[action.slug];
 
       // State 2: Timer running — disabled countdown button
@@ -330,6 +330,20 @@ export default function Earn() {
       }
 
       // It's birthday month — show claim button
+      return (
+        <button
+          className="pw-btn pw-btn--primary pw-btn--sm"
+          onClick={() => handleAction(action)}
+          disabled={loadingAction === action.slug}
+          type="button"
+        >
+          {loadingAction === action.slug ? '...' : t('earn.btn_claim')}
+        </button>
+      );
+    }
+
+    // Generic custom action — show Claim button
+    if (action.category === 'custom') {
       return (
         <button
           className="pw-btn pw-btn--primary pw-btn--sm"

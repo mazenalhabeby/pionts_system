@@ -90,6 +90,31 @@ export class DashboardController {
     };
   }
 
+  @Post('customers')
+  @ProjectRoles('editor')
+  async createCustomer(@Param('id') id: string, @Body() body: { email: string; name?: string; birthday?: string }) {
+    const projectId = parseInt(id, 10);
+    if (!body.email) throw new BadRequestException('email is required');
+    const customer = await this.customersService.createCustomer(projectId, body.email, body.name, body.birthday);
+    return { customer: toSnakeCaseCustomer(customer) };
+  }
+
+  @Put('customers/:custId')
+  @ProjectRoles('editor')
+  async updateCustomer(@Param('id') id: string, @Param('custId') custId: string, @Body() body: { email?: string; name?: string; birthday?: string; referred_by?: string | null }) {
+    const projectId = parseInt(id, 10);
+    const customer = await this.customersService.updateCustomer(projectId, parseInt(custId, 10), body);
+    return { customer: toSnakeCaseCustomer(customer) };
+  }
+
+  @Delete('customers/:custId')
+  @ProjectRoles('editor')
+  async deleteCustomer(@Param('id') id: string, @Param('custId') custId: string) {
+    const projectId = parseInt(id, 10);
+    await this.customersService.deleteCustomer(projectId, parseInt(custId, 10));
+    return { success: true };
+  }
+
   @Post('customers/:custId/award')
   @ProjectRoles('editor')
   async awardPoints(@Param('id') id: string, @Param('custId') custId: string, @Body() dto: AwardDeductDto) {

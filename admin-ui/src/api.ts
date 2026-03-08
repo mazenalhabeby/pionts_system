@@ -172,6 +172,12 @@ export const dashboardApi = {
       body: JSON.stringify(settings),
     }),
   getReferrals: (pid: number | string): Promise<any> => request(`/api/v1/projects/${pid}/referrals`),
+  createCustomer: (pid: number | string, data: { email: string; name?: string; birthday?: string }): Promise<any> =>
+    request(`/api/v1/projects/${pid}/customers`, { method: 'POST', body: JSON.stringify(data) }),
+  updateCustomer: (pid: number | string, custId: number | string, data: { email?: string; name?: string; birthday?: string; referred_by?: string | null }): Promise<any> =>
+    request(`/api/v1/projects/${pid}/customers/${custId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCustomer: (pid: number | string, custId: number | string): Promise<any> =>
+    request(`/api/v1/projects/${pid}/customers/${custId}`, { method: 'DELETE' }),
 };
 
 // ─── Earn Actions API (project-scoped) ───

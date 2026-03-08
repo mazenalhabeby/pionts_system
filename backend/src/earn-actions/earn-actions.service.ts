@@ -83,7 +83,7 @@ export class EarnActionsService {
   async deleteAction(projectId: number, id: number) {
     const action = await this.prisma.earnAction.findUnique({ where: { id } });
     if (!action || action.projectId !== projectId) return false;
-    if (action.category !== 'custom') return false;
+    if (action.category !== 'custom' && action.category !== 'social_follow') return false;
     await this.prisma.earnAction.delete({ where: { id } });
     return true;
   }

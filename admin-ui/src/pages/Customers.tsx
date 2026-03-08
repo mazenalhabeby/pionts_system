@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { dashboardApi, orgApi, analyticsApi } from '../api';
+import { dashboardApi, orgApi, analyticsApi, getErrorMessage } from '../api';
 import { useProject } from '../context/ProjectContext';
 import { useFetch, useDebounce, timeAgo } from '@pionts/shared';
 import { Alert } from '../components/ui/alert';
@@ -31,7 +31,7 @@ function SortIcon({ active, dir }: SortIconProps) {
 export default function Customers() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { currentProject, projects } = useProject();
+  const { currentProject, projects, canEdit } = useProject();
   const pid = currentProject?.id;
 
   const initialSegment = (searchParams.get('segment') as Segment) || 'all';
@@ -82,11 +82,42 @@ export default function Customers() {
     return orgApi.getCustomers(params);
   }, [pid, debouncedSearch, sortKey, sortDir, page, effectiveSegment]);
 
-  const { data, loading, error } = useFetch(fetchCustomers, [pid, debouncedSearch, sortKey, sortDir, page, effectiveSegment]);
+  const { data, loading, error, refresh } = useFetch(fetchCustomers, [pid, debouncedSearch, sortKey, sortDir, page, effectiveSegment]);
 
   const customers = data?.customers || [];
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Add customer form state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addEmail, setAddEmail] = useState('');
+  const [addName, setAddName] = useState('');
+  const [addBirthday, setAddBirthday] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  async function handleAddCustomer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pid || !addEmail.trim()) return;
+    setAddLoading(true);
+    setAddError(null);
+    try {
+      await dashboardApi.createCustomer(pid, {
+        email: addEmail.trim(),
+        name: addName.trim() || undefined,
+        birthday: addBirthday || undefined,
+      });
+      setAddEmail('');
+      setAddName('');
+      setAddBirthday('');
+      setShowAddForm(false);
+      refresh();
+    } catch (err) {
+      setAddError(getErrorMessage(err));
+    } finally {
+      setAddLoading(false);
+    }
+  }
 
   function handleSort(key: string) {
     if (key === sortKey) {
@@ -143,9 +174,76 @@ export default function Customers() {
               <span className="ml-2.5 text-[16px] font-semibold text-text-faint align-middle">{total.toLocaleString()}</span>
             )}
           </div>
-          <div className="text-[13px] text-text-muted mt-1.5 leading-relaxed">
-            {pid ? `Manage and track ${currentProject.name} loyalty members` : 'Browse all customers across your projects'}
+          <div className="flex items-center gap-3 mt-1.5">
+            <div className="text-[13px] text-text-muted leading-relaxed flex-1">
+              {pid ? `Manage and track ${currentProject.name} loyalty members` : 'Browse all customers across your projects'}
+            </div>
+            {pid && canEdit && (
+              <button
+                type="button"
+                onClick={() => setShowAddForm((v) => !v)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-[12px] font-bold border-none cursor-pointer font-sans transition-all duration-200 shadow-[0_0_16px_rgba(255,60,0,0.25)] hover:shadow-[0_0_24px_rgba(255,60,0,0.4)] hover:brightness-110 active:scale-[0.97]"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                Add Customer
+              </button>
+            )}
           </div>
+
+          {/* Add customer form */}
+          {showAddForm && pid && (
+            <form onSubmit={handleAddCustomer} className="mt-4 p-4 bg-bg-surface-raised/80 border border-border-default rounded-xl">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+                  <label className="text-[10px] text-text-faint uppercase tracking-[0.1em] font-semibold">Email *</label>
+                  <input
+                    type="email"
+                    required
+                    value={addEmail}
+                    onChange={(e) => setAddEmail(e.target.value)}
+                    placeholder="customer@example.com"
+                    className="bg-bg-inset border border-border-default text-text-primary py-2 px-3 rounded-lg text-sm font-sans outline-none transition-all duration-200 placeholder:text-text-faint focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(255,60,0,0.06)]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
+                  <label className="text-[10px] text-text-faint uppercase tracking-[0.1em] font-semibold">Name</label>
+                  <input
+                    type="text"
+                    value={addName}
+                    onChange={(e) => setAddName(e.target.value)}
+                    placeholder="John Doe"
+                    className="bg-bg-inset border border-border-default text-text-primary py-2 px-3 rounded-lg text-sm font-sans outline-none transition-all duration-200 placeholder:text-text-faint focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(255,60,0,0.06)]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 min-w-[150px]">
+                  <label className="text-[10px] text-text-faint uppercase tracking-[0.1em] font-semibold">Birthday</label>
+                  <input
+                    type="date"
+                    value={addBirthday}
+                    onChange={(e) => setAddBirthday(e.target.value)}
+                    className="bg-bg-inset border border-border-default text-text-primary py-2 px-3 rounded-lg text-sm font-sans outline-none transition-all duration-200 focus:border-primary/50 focus:shadow-[0_0_0_3px_rgba(255,60,0,0.06)]"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    disabled={addLoading || !addEmail.trim()}
+                    className="px-4 py-2 rounded-lg bg-primary text-white text-[12px] font-bold border-none cursor-pointer font-sans transition-all duration-200 hover:brightness-110 active:scale-[0.97] disabled:opacity-50"
+                  >
+                    {addLoading ? 'Creating...' : 'Create'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddForm(false); setAddError(null); }}
+                    className="px-4 py-2 rounded-lg bg-transparent text-text-faint text-[12px] font-semibold border border-border-default cursor-pointer font-sans transition-all duration-200 hover:text-text-secondary hover:border-border-focus"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+              {addError && <Alert className="mt-3">{addError}</Alert>}
+            </form>
+          )}
 
           {/* Search + Segment filter chips */}
           <div className="flex items-center gap-3 mt-5 flex-wrap">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { dashboardApi, partnersApi, getErrorMessage } from '../../api';
 import { useProject } from '../../context/ProjectContext';
 import { useFetch, timeAgo } from '@pionts/shared';
@@ -335,6 +335,8 @@ function PartnerActions({ customer, projectId, onUpdate }: {
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const confirm = useConfirm();
   const { currentProject, canEdit } = useProject();
   const pid = currentProject?.id;
   const { data, loading, error, refresh } = useFetch(
@@ -353,6 +355,28 @@ export default function CustomerDetail() {
   const directReferrals = data.directReferrals || [];
   const referredByCustomer = data.referredByCustomer;
   const grandparent = data.grandparent;
+
+  async function handleUpdateCustomer(updateData: { email?: string; name?: string; birthday?: string; referred_by?: string | null }) {
+    await dashboardApi.updateCustomer(pid!, id!, updateData);
+    refresh();
+  }
+
+  async function handleDeleteCustomer() {
+    const ok = await confirm({
+      title: 'Delete Customer',
+      message: `This will permanently delete ${customer.name || customer.email} and all their data (points, referrals, redemptions). This cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      safetyText: 'DELETE',
+    });
+    if (!ok) return;
+    try {
+      await dashboardApi.deleteCustomer(pid!, id!);
+      navigate('/customers');
+    } catch (err) {
+      setActionMessage({ type: 'error', text: getErrorMessage(err) || 'Failed to delete customer.' });
+    }
+  }
 
   async function handleAward({ points, reason }: { points: number; reason: string }) {
     setActionMessage(null);
@@ -378,9 +402,9 @@ export default function CustomerDetail() {
 
   return (
     <div className="flex flex-col gap-5">
-      <CustomerHero customer={customer} />
+      <CustomerHero customer={customer} canEdit={canEdit} onDelete={handleDeleteCustomer} />
 
-      <CustomerProfile customer={customer} referredByCustomer={referredByCustomer} />
+      <CustomerProfile customer={customer} referredByCustomer={referredByCustomer} canEdit={canEdit} onSave={handleUpdateCustomer} />
 
       {actionMessage && (
         <Alert variant={actionMessage.type === 'success' ? 'success' : 'error'}>

@@ -10,9 +10,11 @@ interface CustomerHeroProps {
     order_count?: number;
     is_partner?: boolean;
   };
+  canEdit?: boolean;
+  onDelete?: () => void;
 }
 
-export default function CustomerHero({ customer }: CustomerHeroProps) {
+export default function CustomerHero({ customer, canEdit, onDelete }: CustomerHeroProps) {
   const stats = [
     { label: 'Balance', value: customer.points_balance || 0, color: 'text-accent', glow: 'rgba(255, 60, 0, 0.35)' },
     { label: 'Earned', value: customer.points_earned_total || 0, color: 'text-success', glow: 'rgba(80, 227, 194, 0.35)' },
@@ -58,6 +60,17 @@ export default function CustomerHero({ customer }: CustomerHeroProps) {
               <div className="text-[9px] text-text-faint mt-1.5 uppercase tracking-[0.1em] font-semibold">{s.label}</div>
             </div>
           ))}
+          {canEdit && onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="px-4 py-2.5 rounded-xl bg-transparent text-error/80 border border-error/20 cursor-pointer text-[11px] font-bold font-sans transition-all duration-200 hover:bg-error-dim hover:border-error/40 hover:text-error active:scale-[0.97] min-w-[96px]"
+              title="Delete Customer"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-1"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>

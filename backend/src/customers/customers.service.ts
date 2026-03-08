@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Optional, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Optional, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReferralCodeService } from '../utils/referral-code.service';
 import { NotificationService } from '../notifications/notification.service';
@@ -388,5 +388,119 @@ export class CustomersService {
       direct: Number(r.direct),
       network: Number(r.direct), // network count requires recursive query; use direct as approximation in leaderboard
     }));
+  }
+
+  async createCustomer(projectId: number, email: string, name?: string, birthday?: string) {
+    const existing = await this.findByEmail(projectId, email);
+    if (existing) throw new ConflictException('A customer with this email already exists');
+
+    if (this.billingService) {
+      await this.billingService.canCreateCustomer(projectId);
+    }
+
+    const code = await this.referralCodeService.generate(projectId);
+    return this.prisma.customer.create({
+      data: {
+        projectId,
+        email,
+        name: name || '',
+        referralCode: code,
+        birthday: birthday || null,
+      },
+    });
+  }
+
+  async updateCustomer(projectId: number, customerId: number, data: { email?: string; name?: string; birthday?: string; referred_by?: string | null }) {
+    const customer = await this.findById(projectId, customerId);
+    if (!customer) throw new NotFoundException('Customer not found');
+
+    if (data.email && data.email !== customer.email) {
+      const existing = await this.findByEmail(projectId, data.email);
+      if (existing) throw new ConflictException('A customer with this email already exists');
+    }
+
+    const updates: any = {};
+    if (data.email !== undefined) updates.email = data.email;
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.birthday !== undefined) updates.birthday = data.birthday || null;
+
+    // Handle referred_by changes (also manages referral tree)
+    if (data.referred_by !== undefined) {
+      const newCode = data.referred_by?.trim() || null;
+      const oldCode = customer.referredBy || null;
+
+      if (newCode !== oldCode) {
+        if (newCode) {
+          // Validate the referral code exists and isn't self-referral
+          const referrer = await this.findByReferralCode(projectId, newCode);
+          if (!referrer) throw new NotFoundException('Referral code not found');
+          if (referrer.id === customerId) throw new ConflictException('Cannot refer yourself');
+
+          // Upsert referral tree entry
+          const existing = await this.prisma.referralTree.findUnique({
+            where: { projectId_customerId: { projectId, customerId } },
+          });
+          if (existing) {
+            await this.prisma.referralTree.update({
+              where: { projectId_customerId: { projectId, customerId } },
+              data: { parentId: referrer.id },
+            });
+          } else {
+            await this.prisma.referralTree.create({
+              data: { projectId, customerId, parentId: referrer.id },
+            });
+          }
+        } else {
+          // Remove referral tree entry
+          await this.prisma.referralTree.deleteMany({
+            where: { projectId, customerId },
+          });
+        }
+        updates.referredBy = newCode;
+      }
+    }
+
+    return this.prisma.customer.update({
+      where: { id: customerId },
+      data: updates,
+    });
+  }
+
+  async deleteCustomer(projectId: number, customerId: number) {
+    const customer = await this.findById(projectId, customerId);
+    if (!customer) throw new NotFoundException('Customer not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      // Delete related records in dependency order
+      await tx.pointsLog.deleteMany({ where: { projectId, customerId } });
+      await tx.redemption.deleteMany({ where: { projectId, customerId } });
+      await tx.customerActionLog.deleteMany({ where: { projectId, customerId } });
+      await tx.socialFollowClaim.deleteMany({ where: { projectId, customerId } });
+      await tx.emailQueue.deleteMany({ where: { projectId, customerId } });
+      await tx.partnerEarning.deleteMany({
+        where: { projectId, OR: [{ partnerId: customerId }, { customerId }] },
+      });
+      await tx.partnerApplication.deleteMany({ where: { projectId, customerId } });
+
+      // Delete own referral tree entry
+      await tx.referralTree.deleteMany({ where: { projectId, customerId } });
+
+      // Clear referral references from children who were referred by this customer
+      // Find children where parentId = customerId
+      const children = await tx.referralTree.findMany({
+        where: { projectId, parentId: customerId },
+        select: { customerId: true },
+      });
+      if (children.length > 0) {
+        await tx.referralTree.deleteMany({ where: { projectId, parentId: customerId } });
+        await tx.customer.updateMany({
+          where: { id: { in: children.map((c) => c.customerId) } },
+          data: { referredBy: null },
+        });
+      }
+
+      // Delete the customer
+      await tx.customer.delete({ where: { id: customerId } });
+    });
   }
 }
