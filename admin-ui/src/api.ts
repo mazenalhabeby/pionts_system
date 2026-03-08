@@ -22,10 +22,12 @@ async function request<T = unknown>(path: string, options: RequestOptions = {}):
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...options.headers };
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
+  const isAuthEndpoint = path.startsWith('/auth/');
+
   let res = await fetch(path, { ...options, headers, credentials: 'include' });
 
-  // On 401, try silent refresh once
-  if (res.status === 401 && !options._retried) {
+  // On 401, try silent refresh once (skip for auth endpoints like login/register)
+  if (res.status === 401 && !options._retried && !isAuthEndpoint) {
     const refreshed = await silentRefresh();
     if (refreshed) {
       headers['Authorization'] = `Bearer ${accessToken}`;
@@ -33,12 +35,12 @@ async function request<T = unknown>(path: string, options: RequestOptions = {}):
     }
   }
 
-  if (res.status === 401) {
+  const data = await res.json().catch(() => ({}));
+
+  if (res.status === 401 && !isAuthEndpoint) {
     window.dispatchEvent(new Event('auth:unauthorized'));
-    throw new Error('Unauthorized');
   }
 
-  const data = await res.json();
   if (!res.ok) throw new Error(data.message || data.error || 'Request failed');
   return data as T;
 }

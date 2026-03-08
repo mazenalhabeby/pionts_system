@@ -14,13 +14,29 @@ export default function Login() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
     setError('');
+
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    if (!password.trim()) {
+      setError('Please enter your password.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await login(email, password);
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || 'Login failed');
+      const msg = getErrorMessage(err);
+      if (msg === 'Invalid credentials') {
+        setError('Incorrect email or password. Please try again.');
+      } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+        setError('Unable to reach the server. Check your connection and try again.');
+      } else {
+        setError(msg || 'Something went wrong. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

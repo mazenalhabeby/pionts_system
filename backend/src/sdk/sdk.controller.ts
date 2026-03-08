@@ -133,6 +133,35 @@ export class SdkController {
     return this.redemptionsService.redeemGeneric(project.id, customer, dto.tier_points);
   }
 
+  @Post('social/initiate')
+  async initiateSocialFollow(
+    @SdkCustomer() customer: any,
+    @SdkProject() project: any,
+    @Body() body: { type: string },
+  ) {
+    this.requireCustomer(customer);
+
+    const slug = body.type;
+    if (!slug) throw new BadRequestException('Action type is required');
+
+    const action = await this.earnActionsService.getAction(project.id, slug);
+    if (!action || !action.enabled) {
+      throw new BadRequestException('Unknown or disabled action');
+    }
+    if (action.category !== 'social_follow') {
+      throw new BadRequestException('Action is not a social follow');
+    }
+
+    // Check if already completed
+    const done = await this.earnActionsService.hasCompleted(project.id, customer.id, slug);
+    if (done) {
+      throw new BadRequestException('Already completed');
+    }
+
+    const claim = await this.earnActionsService.initiateSocialClaim(project.id, customer.id, slug);
+    return { initiated: true, initiated_at: claim.initiatedAt.toISOString() };
+  }
+
   @Post('award')
   async award(@SdkCustomer() customer: any, @SdkProject() project: any, @Body() dto: SdkAwardDto) {
     this.requireCustomer(customer);
@@ -154,6 +183,24 @@ export class SdkController {
       if (birthdayMonth !== currentMonth) {
         throw new BadRequestException('Birthday bonus is only available during your birthday month.');
       }
+    }
+
+    // Social follow verification: require initiation + delay elapsed
+    if (action.category === 'social_follow') {
+      const claimStatus = await this.earnActionsService.getSocialClaimStatus(project.id, customer.id, slug);
+      if (!claimStatus || !claimStatus.initiated) {
+        throw new BadRequestException('Social follow must be initiated first');
+      }
+      if (claimStatus.claimed) {
+        return { points_awarded: 0, new_balance: customer.pointsBalance };
+      }
+      const delaySec = this.configService.getInt(project.id, 'social_follow_claim_delay') || 30;
+      const elapsed = (Date.now() - new Date(claimStatus.initiated_at).getTime()) / 1000;
+      if (elapsed < delaySec) {
+        const remaining = Math.ceil(delaySec - elapsed);
+        throw new BadRequestException(`Please wait ${remaining} more seconds before claiming`);
+      }
+      await this.earnActionsService.completeSocialClaim(project.id, customer.id, slug);
     }
 
     // Check completion based on frequency

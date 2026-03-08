@@ -29,7 +29,7 @@ export class SdkService {
     const [
       history, referralStats, referralEarnings, pointsBreakdown,
       redemptionStats, earnActions, completedSlugs, redemptionTiers,
-      referralLevels, partnerInfo,
+      referralLevels, partnerInfo, pendingSocialClaims,
     ] = await Promise.all([
       this.customersService.getHistory(projectId, customer.id),
       project?.referralsEnabled
@@ -53,6 +53,7 @@ export class SdkService {
       project?.partnersEnabled && customer.isPartner
         ? this.partnersService.getPartnerInfo(projectId, customer.id)
         : null,
+      this.earnActionsService.getPendingSocialClaims(projectId, customer.id),
     ]);
 
     const settings = await this.getProjectPublicSettings(projectId);
@@ -106,6 +107,10 @@ export class SdkService {
         points: l.points,
       })),
       partner_info: partnerInfo,
+      pending_social_claims: pendingSocialClaims.map((c) => ({
+        slug: c.actionSlug,
+        initiated_at: c.initiatedAt.toISOString(),
+      })),
     };
   }
 
@@ -141,6 +146,7 @@ export class SdkService {
       gamification_tiers: allSettings.gamification_tiers || '[]',
       shopify_domain: allSettings.shopify_domain || '',
       leaderboard_enabled: allSettings.leaderboard_enabled || 'false',
+      social_follow_claim_delay: allSettings.social_follow_claim_delay || '30',
     };
   }
 

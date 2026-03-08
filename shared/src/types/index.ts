@@ -154,6 +154,7 @@ export interface CustomerData extends Customer {
   completed_actions?: string[];
   referral_levels?: ReferralLevelConfig[];
   partner_info?: PartnerInfo | null;
+  pending_social_claims?: { slug: string; initiated_at: string }[];
 }
 
 // ─── Project Settings ───

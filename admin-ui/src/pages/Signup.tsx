@@ -18,14 +18,38 @@ export default function Signup() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.email.trim() || !form.password.trim() || !form.orgName.trim()) return;
     setError('');
+
+    if (!form.orgName.trim()) {
+      setError('Please enter your organization name.');
+      return;
+    }
+    if (!form.email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    if (!form.password.trim()) {
+      setError('Please enter a password.');
+      return;
+    }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await signup(form);
       navigate('/projects');
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || 'Signup failed');
+      const msg = getErrorMessage(err);
+      if (msg === 'Email already registered') {
+        setError('This email is already registered. Try signing in instead.');
+      } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+        setError('Unable to reach the server. Check your connection and try again.');
+      } else {
+        setError(msg || 'Something went wrong. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

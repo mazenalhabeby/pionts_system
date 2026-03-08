@@ -99,6 +99,12 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
         body: JSON.stringify({ type }),
       }),
 
+    initiateSocialFollow: (type) =>
+      request('/social/initiate', {
+        method: 'POST',
+        body: JSON.stringify({ type }),
+      }),
+
     checkRef: (code) => request(`/check-ref/${code}`),
 
     getMyReferrals: () => request('/customer/referrals'),

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-/** Default earn actions seeded on project creation */
+/** Default earn actions seeded on project creation (social follows added by admin with URL) */
 const DEFAULT_ACTIONS = [
   { slug: 'signup', label: 'Sign up', points: 20, category: 'predefined', frequency: 'one_time', sortOrder: 0 },
   { slug: 'purchase', label: 'Every purchase', points: 10, category: 'predefined', frequency: 'repeatable', sortOrder: 1 },
@@ -10,8 +10,6 @@ const DEFAULT_ACTIONS = [
   { slug: 'review_text', label: 'Text review', points: 5, category: 'predefined', frequency: 'repeatable', sortOrder: 4 },
   { slug: 'share_product', label: 'Share a product', points: 5, category: 'predefined', frequency: 'repeatable', sortOrder: 5 },
   { slug: 'birthday', label: 'Birthday bonus', points: 25, category: 'predefined', frequency: 'yearly', sortOrder: 6 },
-  { slug: 'follow_tiktok', label: 'Follow on TikTok', points: 10, category: 'social_follow', frequency: 'one_time', sortOrder: 7 },
-  { slug: 'follow_instagram', label: 'Follow on Instagram', points: 10, category: 'social_follow', frequency: 'one_time', sortOrder: 8 },
 ];
 
 @Injectable()
@@ -130,6 +128,48 @@ export class EarnActionsService {
       select: { actionSlug: true, year: true },
     });
     return entries.map((e) => e.year ? `${e.actionSlug}:${e.year}` : e.actionSlug);
+  }
+
+  // ── Social Follow Claim Methods ──
+
+  async initiateSocialClaim(projectId: number, customerId: number, slug: string) {
+    return this.prisma.socialFollowClaim.upsert({
+      where: {
+        projectId_customerId_actionSlug: { projectId, customerId, actionSlug: slug },
+      },
+      update: {}, // Don't reset timer on re-click
+      create: { projectId, customerId, actionSlug: slug },
+    });
+  }
+
+  async getSocialClaimStatus(projectId: number, customerId: number, slug: string) {
+    const claim = await this.prisma.socialFollowClaim.findUnique({
+      where: {
+        projectId_customerId_actionSlug: { projectId, customerId, actionSlug: slug },
+      },
+    });
+    if (!claim) return null;
+    return {
+      initiated: true,
+      initiated_at: claim.initiatedAt.toISOString(),
+      claimed: !!claim.claimedAt,
+    };
+  }
+
+  async completeSocialClaim(projectId: number, customerId: number, slug: string) {
+    await this.prisma.socialFollowClaim.update({
+      where: {
+        projectId_customerId_actionSlug: { projectId, customerId, actionSlug: slug },
+      },
+      data: { claimedAt: new Date() },
+    });
+  }
+
+  async getPendingSocialClaims(projectId: number, customerId: number) {
+    return this.prisma.socialFollowClaim.findMany({
+      where: { projectId, customerId, claimedAt: null },
+      select: { actionSlug: true, initiatedAt: true },
+    });
   }
 
   async getCompletedSlugs(projectId: number, customerId: number, currentYear?: number): Promise<Set<string>> {

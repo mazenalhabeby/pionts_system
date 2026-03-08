@@ -3119,3 +3119,23 @@ a:hover {
     height: 10px;
   }
 }
+
+/* ── Social Follow Verification ── */
+
+.pw-btn--countdown {
+  background: var(--pionts-bg, #f3f4f6) !important;
+  color: #6b7280 !important;
+  border: 1px solid #e5e7eb !important;
+  font-variant-numeric: tabular-nums;
+  min-width: 72px;
+  cursor: not-allowed;
+}
+
+.pw-btn--pulse {
+  animation: pw-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pw-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--pionts-primary, #3b82f6) 40%, transparent); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+}

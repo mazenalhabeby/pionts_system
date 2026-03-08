@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
 import useCustomer from '../hooks/useCustomer';
 import EarnItem from '../components/EarnItem';
@@ -10,12 +10,10 @@ import { useI18n } from '../i18n';
 const FALLBACK_ACTIONS: (EarnAction & { legacyFlag?: string })[] = [
   { id: 0, slug: 'signup', label: 'Sign up', points: 20, category: 'predefined', frequency: 'one_time', enabled: true, sort_order: 0, legacyFlag: 'signup_rewarded' },
   { id: 0, slug: 'first_order', label: 'First order', points: 50, category: 'predefined', frequency: 'one_time', enabled: true, sort_order: 1, legacyFlag: 'first_order_rewarded' },
-  { id: 0, slug: 'follow_tiktok', label: 'Follow us on TikTok', points: 10, category: 'social_follow', frequency: 'one_time', enabled: true, sort_order: 2, social_url: '', legacyFlag: 'followed_tiktok' },
-  { id: 0, slug: 'follow_instagram', label: 'Follow us on Instagram', points: 10, category: 'social_follow', frequency: 'one_time', enabled: true, sort_order: 3, social_url: '', legacyFlag: 'followed_instagram' },
-  { id: 0, slug: 'share_product', label: 'Share a product', points: 5, category: 'predefined', frequency: 'repeatable', enabled: true, sort_order: 4 },
-  { id: 0, slug: 'review_photo', label: 'Leave a photo review', points: 12, category: 'predefined', frequency: 'repeatable', enabled: true, sort_order: 5 },
-  { id: 0, slug: 'review_text', label: 'Leave a text review', points: 5, category: 'predefined', frequency: 'repeatable', enabled: true, sort_order: 6 },
-  { id: 0, slug: 'birthday', label: 'Birthday bonus', points: 25, category: 'predefined', frequency: 'yearly', enabled: true, sort_order: 7 },
+  { id: 0, slug: 'share_product', label: 'Share a product', points: 5, category: 'predefined', frequency: 'repeatable', enabled: true, sort_order: 2 },
+  { id: 0, slug: 'review_photo', label: 'Leave a photo review', points: 12, category: 'predefined', frequency: 'repeatable', enabled: true, sort_order: 3 },
+  { id: 0, slug: 'review_text', label: 'Leave a text review', points: 5, category: 'predefined', frequency: 'repeatable', enabled: true, sort_order: 4 },
+  { id: 0, slug: 'birthday', label: 'Birthday bonus', points: 25, category: 'predefined', frequency: 'yearly', enabled: true, sort_order: 5 },
 ];
 
 /** Legacy boolean flag map for old API responses that don't include completed_actions */
@@ -31,6 +29,7 @@ export default function Earn() {
   const { data, loading, error, refresh } = useCustomer();
   const { t } = useI18n();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [socialTimers, setSocialTimers] = useState<Record<string, { initiatedAt: number; timeLeft: number }>>({});
   const [tab, setTab] = useState<'onetime' | 'repeatable'>('onetime');
   const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
   const [bdayMonth, setBdayMonth] = useState('01');
@@ -38,6 +37,42 @@ export default function Earn() {
   const [bdayError, setBdayError] = useState<string | null>(null);
   const birthdaySubmitting = useRef(false);
   const storeUrl = settings?.referral_base_url || '';
+  const claimDelay = parseInt(settings?.social_follow_claim_delay || '30', 10) || 30;
+
+  // Initialize social timers from pending claims returned by API
+  useEffect(() => {
+    if (!data?.pending_social_claims?.length) return;
+    setSocialTimers((prev) => {
+      const next = { ...prev };
+      for (const claim of data.pending_social_claims!) {
+        if (next[claim.slug]) continue; // don't overwrite active timer
+        const elapsed = (Date.now() - new Date(claim.initiated_at).getTime()) / 1000;
+        const remaining = Math.max(0, Math.ceil(claimDelay - elapsed));
+        next[claim.slug] = { initiatedAt: new Date(claim.initiated_at).getTime(), timeLeft: remaining };
+      }
+      return next;
+    });
+  }, [data?.pending_social_claims, claimDelay]);
+
+  // Countdown interval for active social timers
+  useEffect(() => {
+    const hasActive = Object.values(socialTimers).some((t) => t.timeLeft > 0);
+    if (!hasActive) return;
+    const interval = setInterval(() => {
+      setSocialTimers((prev) => {
+        const next: typeof prev = {};
+        let changed = false;
+        for (const [slug, timer] of Object.entries(prev)) {
+          const elapsed = (Date.now() - timer.initiatedAt) / 1000;
+          const remaining = Math.max(0, Math.ceil(claimDelay - elapsed));
+          if (remaining !== timer.timeLeft) changed = true;
+          next[slug] = { ...timer, timeLeft: remaining };
+        }
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [socialTimers, claimDelay]);
 
   const handleSetBirthday = useCallback(async () => {
     if (birthdaySubmitting.current) return;
@@ -55,17 +90,13 @@ export default function Earn() {
   }, [api, bdayMonth, bdayDay, refresh, t]);
 
   // Get actions -- dynamic from API or fallback to hardcoded
+  // Hide social_follow actions that have no URL configured
   const actions = useMemo(() => {
-    if (data?.earn_actions && data.earn_actions.length > 0) {
-      return data.earn_actions.filter(a => a.enabled);
-    }
-    // Fallback: use hardcoded list with settings for social URLs
-    return FALLBACK_ACTIONS.map(a => {
-      if (a.slug === 'follow_tiktok') return { ...a, social_url: settings?.social_tiktok_url || 'https://www.tiktok.com' };
-      if (a.slug === 'follow_instagram') return { ...a, social_url: settings?.social_instagram_url || 'https://www.instagram.com' };
-      return a;
-    });
-  }, [data?.earn_actions, settings]);
+    const list = (data?.earn_actions && data.earn_actions.length > 0)
+      ? data.earn_actions.filter(a => a.enabled)
+      : FALLBACK_ACTIONS;
+    return list.filter(a => a.category !== 'social_follow' || !!a.social_url);
+  }, [data?.earn_actions]);
 
   // Completion check: action.completed > completed_actions[] > legacy boolean flags
   const isCompleted = useCallback((action: EarnAction): boolean => {
@@ -92,11 +123,44 @@ export default function Earn() {
   const totalOneTime = oneTimeActions.length;
   const progressPct = totalOneTime > 0 ? (doneCount / totalOneTime) * 100 : 0;
 
-  // Unified action handler for social follow + share
-  const handleAction = useCallback(async (action: EarnAction) => {
-    if (action.category === 'social_follow' && action.social_url) {
+  // Initiate social follow — opens social page + starts server-side timer
+  const handleSocialInitiate = useCallback(async (action: EarnAction) => {
+    if (action.social_url) {
       window.open(action.social_url, '_blank', 'noopener');
-    } else if (action.slug === 'share_product') {
+    }
+    try {
+      const result = await api.initiateSocialFollow(action.slug);
+      const initiatedAt = new Date(result.initiated_at).getTime();
+      setSocialTimers((prev) => ({
+        ...prev,
+        [action.slug]: { initiatedAt, timeLeft: claimDelay },
+      }));
+    } catch {
+      // silently fail — user can retry
+    }
+  }, [api, claimDelay]);
+
+  // Claim social follow after timer elapsed
+  const handleSocialClaim = useCallback(async (action: EarnAction) => {
+    setLoadingAction(action.slug);
+    try {
+      await api.award(action.slug);
+      setSocialTimers((prev) => {
+        const next = { ...prev };
+        delete next[action.slug];
+        return next;
+      });
+      refresh();
+    } catch {
+      // silently fail, user can retry
+    } finally {
+      setLoadingAction(null);
+    }
+  }, [api, refresh]);
+
+  // Unified action handler for non-social actions
+  const handleAction = useCallback(async (action: EarnAction) => {
+    if (action.slug === 'share_product') {
       if (!data) return;
       const brandName = String(settings?.widget_brand_name || 'Our Store');
       const shareUrl = storeUrl ? `${storeUrl}${storeUrl.includes('?') ? '&' : '?'}ref=${data.referral_code}` : '';
@@ -132,14 +196,43 @@ export default function Earn() {
     if (isCompleted(action) && action.frequency === 'one_time') return undefined;
 
     if (action.category === 'social_follow') {
+      const timer = socialTimers[action.slug];
+
+      // State 2: Timer running — disabled countdown button
+      if (timer && timer.timeLeft > 0) {
+        return (
+          <button
+            className="pw-btn pw-btn--sm pw-btn--countdown"
+            disabled
+            type="button"
+          >
+            {t('earn.btn_claim_in', { seconds: String(timer.timeLeft) })}
+          </button>
+        );
+      }
+
+      // State 3: Timer done — pulsing claim button
+      if (timer && timer.timeLeft === 0) {
+        return (
+          <button
+            className="pw-btn pw-btn--primary pw-btn--sm pw-btn--pulse"
+            onClick={() => handleSocialClaim(action)}
+            disabled={loadingAction === action.slug}
+            type="button"
+          >
+            {loadingAction === action.slug ? t('earn.btn_verifying') : t('earn.btn_claim')}
+          </button>
+        );
+      }
+
+      // State 1: Not initiated — follow button
       return (
         <button
           className="pw-btn pw-btn--primary pw-btn--sm"
-          onClick={() => handleAction(action)}
-          disabled={loadingAction === action.slug}
+          onClick={() => handleSocialInitiate(action)}
           type="button"
         >
-          {loadingAction === action.slug ? '...' : t('earn.btn_follow')}
+          {t('earn.btn_follow')}
         </button>
       );
     }
@@ -250,7 +343,7 @@ export default function Earn() {
     }
 
     return undefined;
-  }, [isCompleted, handleAction, loadingAction, data, showBirthdayPicker, bdayMonth, bdayDay, bdayError, handleSetBirthday, t]);
+  }, [isCompleted, handleAction, handleSocialInitiate, handleSocialClaim, socialTimers, loadingAction, data, showBirthdayPicker, bdayMonth, bdayDay, bdayError, handleSetBirthday, t]);
 
   // Tag for repeatable / yearly actions
   const getTag = useCallback((action: EarnAction): string | undefined => {

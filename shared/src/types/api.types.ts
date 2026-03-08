@@ -5,6 +5,7 @@ export interface WidgetApi {
   getCustomer: () => Promise<CustomerData>;
   redeem: (tier_points: number) => Promise<unknown>;
   award: (type: string) => Promise<unknown>;
+  initiateSocialFollow: (type: string) => Promise<{ initiated: boolean; initiated_at: string }>;
   getMyReferrals: () => Promise<ReferralData>;
   getMyRedemptions: () => Promise<Redemption[]>;
   cancelRedemption: (id: number | string) => Promise<{ points_returned: number; new_balance: number }>;

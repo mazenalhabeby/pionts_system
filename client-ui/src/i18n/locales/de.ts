@@ -118,6 +118,8 @@ const de: TranslationMap = {
   'earn.btn_follow': 'Folgen',
   'earn.btn_share': 'Teilen',
   'earn.btn_claim': 'Einl\u00F6sen',
+  'earn.btn_claim_in': 'In {{seconds}}s einl\u00F6sen',
+  'earn.btn_verifying': 'Wird gepr\u00FCft...',
   'earn.btn_set_birthday': 'Geburtstag eintragen',
   'earn.available_in': 'Verf\u00FCgbar im {{month}}',
   'earn.tag_yearly': 'j\u00E4hrlich',

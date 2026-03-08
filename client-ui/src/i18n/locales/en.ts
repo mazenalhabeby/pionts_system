@@ -118,6 +118,8 @@ const en: TranslationMap = {
   'earn.btn_follow': 'Follow',
   'earn.btn_share': 'Share',
   'earn.btn_claim': 'Claim',
+  'earn.btn_claim_in': 'Claim in {{seconds}}s',
+  'earn.btn_verifying': 'Verifying...',
   'earn.btn_set_birthday': 'Set Birthday',
   'earn.available_in': 'Available in {{month}}',
   'earn.tag_yearly': 'yearly',

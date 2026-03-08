@@ -155,6 +155,7 @@ model Customer {
   partnerEarningsAsPartner  PartnerEarning[]   @relation("PartnerEarnings")
   partnerEarningsAsCustomer PartnerEarning[]   @relation("PartnerCustomerOrders")
   partnerApplication        PartnerApplication?
+  socialFollowClaims        SocialFollowClaim[]
 
   @@unique([projectId, email])
   @@unique([projectId, referralCode])
@@ -304,6 +305,21 @@ model CustomerActionLog {
   @@unique([projectId, customerId, actionSlug, year])
   @@index([projectId, customerId])
   @@map("customer_action_log")
+}
+
+model SocialFollowClaim {
+  id          Int       @id @default(autoincrement())
+  projectId   Int       @map("project_id")
+  customerId  Int       @map("customer_id")
+  actionSlug  String    @map("action_slug")
+  initiatedAt DateTime  @default(now()) @map("initiated_at")
+  claimedAt   DateTime? @map("claimed_at")
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@unique([projectId, customerId, actionSlug])
+  @@index([projectId, customerId])
+  @@map("social_follow_claims")
 }
 
 model RedemptionTier {
