@@ -25,7 +25,7 @@ async function boot() {
   window.__PIONTS_CONFIG__ = {
     projectKey: PROJECT_KEY,
     apiBase: API_BASE,
-    customer: { email: CUSTOMER_EMAIL, name: CUSTOMER_NAME, hmac },
+    // customer: { email: CUSTOMER_EMAIL, name: CUSTOMER_NAME, hmac },
     mode: 'embedded',
     containerEl: document.getElementById('pionts-root')!,
   };

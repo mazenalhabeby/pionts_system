@@ -32,7 +32,7 @@ export default function ReferralLinkSection({ refUrl, directCount, directReferra
         />
         <CopyButton text={refUrl} />
       </div>
-      <div style={{ fontSize: 12, color: '#9ca3af' }}>{t('ref_link.share_hint', { discount: discountPercent, pts: referrerPoints })}</div>
+      <div style={{ fontSize: 12, color: '#71717a' }}>{t('ref_link.share_hint', { discount: discountPercent, pts: referrerPoints })}</div>
 
       {/* Direct Referrals Table */}
       <div className="pw-section__title" style={{ marginTop: 24, marginBottom: 12 }}>{t('ref_link.table_title')}</div>

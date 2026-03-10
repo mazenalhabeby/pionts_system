@@ -101,11 +101,11 @@ export default function Redeem() {
           <div style={{ flex: 1 }}>
             <div className="pw-section__title" style={{ marginBottom: 4 }}>{t('redeem.balance_label')}</div>
             {nextTier ? (
-              <div style={{ fontSize: 13, color: '#9ca3af', marginBottom: 12 }}>
+              <div style={{ fontSize: 13, color: '#71717a', marginBottom: 12 }}>
                 {t('redeem.pts_to_unlock', { pts: nextTier.points - data.points_balance, currency: formatCurrency(nextTier.discount) })}
               </div>
             ) : (
-              <div style={{ fontSize: 13, color: '#9ca3af', marginBottom: 12 }}>{t('redeem.all_unlocked')}</div>
+              <div style={{ fontSize: 13, color: '#71717a', marginBottom: 12 }}>{t('redeem.all_unlocked')}</div>
             )}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {tiers.map((ti) => (
@@ -117,8 +117,8 @@ export default function Redeem() {
                     padding: '3px 10px',
                     borderRadius: 100,
                     ...(data.points_balance >= ti.points
-                      ? { color: 'var(--pionts-primary, #3b82f6)', background: 'color-mix(in srgb, var(--pionts-primary, #3b82f6) 10%, #fff)' }
-                      : { color: '#ccc', background: '#f5f5f7' }),
+                      ? { color: 'var(--pionts-primary, #3b82f6)', background: 'color-mix(in srgb, var(--pionts-primary, #3b82f6) 12%, transparent)' }
+                      : { color: '#52525b', background: 'rgba(255,255,255,0.06)' }),
                   }}
                 >
                   {ti.points}
@@ -168,10 +168,10 @@ export default function Redeem() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: '#1f2937' }}>{t('redeem.off', { currency: formatCurrency(r.discount_amount) })}</span>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: '#fafafa' }}>{t('redeem.off', { currency: formatCurrency(r.discount_amount) })}</span>
                       </div>
-                      <div style={{ fontFamily: "'SF Mono', Monaco, monospace", fontSize: 12, color: '#6b7280', letterSpacing: 0.5 }}>{r.discount_code}</div>
-                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{timeAgo(r.created_at)}</div>
+                      <div style={{ fontFamily: "'SF Mono', Monaco, monospace", fontSize: 12, color: '#a1a1aa', letterSpacing: 0.5 }}>{r.discount_code}</div>
+                      <div style={{ fontSize: 11, color: '#71717a', marginTop: 4 }}>{timeAgo(r.created_at)}</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                       {checkoutUrl && (
@@ -195,7 +195,7 @@ export default function Redeem() {
                       </button>
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 8, borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>
+                  <div style={{ fontSize: 11, color: '#71717a', marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
                     {checkoutUrl
                       ? `Click "Apply & Checkout" to automatically apply this discount, or copy code to use later. Cancel to get ${r.points_spent} points back.`
                       : t('redeem.cancel_hint', { pts: r.points_spent })}
@@ -213,10 +213,10 @@ export default function Redeem() {
           <div className="pw-section__title" style={{ marginBottom: 12 }}>{t('redeem.used_codes')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {usedCodes.map((r) => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 12, background: '#f9fafb', opacity: 0.6 }}>
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', opacity: 0.6 }}>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#9ca3af' }}>{t('redeem.off', { currency: formatCurrency(r.discount_amount) })}</span>
-                  <span style={{ fontSize: 11, color: '#ccc', marginLeft: 8 }}>{timeAgo(r.created_at)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#71717a' }}>{t('redeem.off', { currency: formatCurrency(r.discount_amount) })}</span>
+                  <span style={{ fontSize: 11, color: '#52525b', marginLeft: 8 }}>{timeAgo(r.created_at)}</span>
                 </div>
                 <span className="pw-table__badge">{t('redeem.badge_used')}</span>
               </div>

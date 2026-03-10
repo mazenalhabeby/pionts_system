@@ -11,8 +11,11 @@ export class EmailSenderService {
 
   constructor(private readonly configService: ConfigService) {
     this.defaultFrom = this.configService.get<string>('FROM_EMAIL') || 'Pionts <noreply@pionts.com>';
+    const isDev = this.configService.get<string>('NODE_ENV') !== 'production';
     const host = this.configService.get<string>('SMTP_HOST');
-    if (host) {
+    if (isDev) {
+      this.logger.warn('Development mode — emails will be logged to console only');
+    } else if (host) {
       const port = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
       this.transporter = nodemailer.createTransport({
         host,

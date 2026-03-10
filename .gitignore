@@ -4,3 +4,4 @@ node_modules/
 admin-ui/dist/
 backend/dist/
 client-ui/dist/
+documentation/

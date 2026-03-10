@@ -2,16 +2,62 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
 import { useI18n } from '../i18n';
 
-const INCENTIVE_ICONS: Record<string, string> = {
-  signup: '\uD83C\uDF81',
-  first_order: '\uD83D\uDED2',
-  purchase: '\uD83D\uDCB0',
-  birthday: '\uD83C\uDF82',
-  review_photo: '\uD83D\uDCF8',
-  review_text: '\u270D\uFE0F',
-  follow_tiktok: '\uD83C\uDFB5',
-  follow_instagram: '\uD83D\uDCF7',
-  share_product: '\uD83D\uDD17',
+const INCENTIVE_ICONS: Record<string, React.ReactNode> = {
+  signup: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 7H5M8 4v6M14 8a6 6 0 11-12 0 6 6 0 0112 0z" />
+    </svg>
+  ),
+  first_order: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 1h2.5l1.1 5.5a1.5 1.5 0 001.5 1.2h5.4a1.5 1.5 0 001.4-1l1.1-4H4" />
+      <circle cx="6" cy="13" r="1" />
+      <circle cx="12" cy="13" r="1" />
+    </svg>
+  ),
+  purchase: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" />
+      <path d="M1.5 7h13" />
+    </svg>
+  ),
+  birthday: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1v2M4 5.5h8a1 1 0 011 1v2H3v-2a1 1 0 011-1zM2.5 8.5h11v4a1 1 0 01-1 1h-9a1 1 0 01-1-1v-4z" />
+    </svg>
+  ),
+  review_photo: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="3" width="13" height="10" rx="1.5" />
+      <circle cx="5.5" cy="6.5" r="1.5" />
+      <path d="M14.5 10.5l-3.5-3-4 4-2-1.5L1.5 13" />
+    </svg>
+  ),
+  review_text: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 5h7M4.5 8h5M2.5 1.5h11a1 1 0 011 1v9a1 1 0 01-1 1h-3l-2.5 2.5L5.5 12.5h-3a1 1 0 01-1-1v-9a1 1 0 011-1z" />
+    </svg>
+  ),
+  follow_tiktok: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 1.5v9a3.5 3.5 0 11-2.5-3.35M10 1.5h2a3 3 0 003 3" />
+    </svg>
+  ),
+  follow_instagram: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="1.5" width="13" height="13" rx="3.5" />
+      <circle cx="8" cy="8" r="3" />
+      <circle cx="12" cy="4" r="0.5" fill="currentColor" />
+    </svg>
+  ),
+  share_product: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="3" r="2" />
+      <circle cx="4" cy="8" r="2" />
+      <circle cx="12" cy="13" r="2" />
+      <path d="M5.8 9.1l4.4 2.8M10.2 4.1l-4.4 2.8" />
+    </svg>
+  ),
 };
 
 const INCENTIVE_PRIORITY: Record<string, number> = {
@@ -44,7 +90,11 @@ export default function LoginPage() {
       .slice(0, MAX_INCENTIVES)
       .map((a) => ({
         slug: a.slug,
-        icon: INCENTIVE_ICONS[a.slug] || '\u2B50',
+        icon: INCENTIVE_ICONS[a.slug] || (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="8,1 10,6 15,6 11,9.5 12.5,14.5 8,11.5 3.5,14.5 5,9.5 1,6 6,6" />
+          </svg>
+        ),
         label: a.label,
         points: a.points,
       }));
@@ -90,124 +140,139 @@ export default function LoginPage() {
 
   return (
     <div className="pw-login">
-      {/* Left side — Content */}
-      <div className="pw-login__content">
-        <div className="pw-login__content-inner">
-          <h1 className="pw-login__heading">
-            {brandName}
-            <br />
-            <span className="pw-login__heading-accent">{t('login.heading_accent')}</span>
-          </h1>
-          <p className="pw-login__subtitle">
-            {step === 'email'
-              ? t('login.subtitle_email')
-              : t('login.subtitle_code', { email })}
-          </p>
+      <div className="pw-login__coins" aria-hidden="true">
+        <div className="pw-login__coin pw-login__coin--1" />
+        <div className="pw-login__coin pw-login__coin--2" />
+        <div className="pw-login__coin pw-login__coin--3" />
+        <div className="pw-login__coin pw-login__coin--4" />
+        <div className="pw-login__coin pw-login__coin--5" />
+      </div>
 
-          {error && <div className="pw-error" style={{ marginBottom: 16 }}>{error}</div>}
+      <div className="pw-login__card">
+        <h1 className="pw-login__heading">
+          {brandName}
+          <br />
+          <span className="pw-login__heading-accent">{t('login.heading_accent')}</span>
+        </h1>
+        <p className="pw-login__subtitle">
+          {step === 'email'
+            ? t('login.subtitle_email')
+            : t('login.subtitle_code', { email })}
+        </p>
 
-          {step === 'email' ? (
-            <form onSubmit={handleSendCode} className="pw-login__form">
-              <div className="pw-login__input-row">
-                <input
-                  type="email"
-                  placeholder={t('login.placeholder_email')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoFocus
-                  className="pw-input pw-login__input"
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !email}
-                  className="pw-btn pw-btn--primary pw-login__cta"
-                >
-                  {loading ? t('login.btn_sending') : t('login.btn_get_started')}
-                </button>
+        {step === 'email' && (
+          <div className="pw-login__value-props">
+            <div className="pw-login__vp">
+              <div className="pw-login__vp-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+                  <path d="M9 1.5l2.2 4.4 4.8.7-3.5 3.4.8 4.8L9 12.5l-4.3 2.3.8-4.8L2 6.6l4.8-.7L9 1.5z" />
+                </svg>
               </div>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyCode} className="pw-login__form">
+              <span className="pw-login__vp-label">{t('login.bonus_points')}</span>
+            </div>
+            <div className="pw-login__vp">
+              <div className="pw-login__vp-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M2 9.5V3a1 1 0 011-1h6.5L17 9.5 9.5 17 2 9.5z" />
+                  <circle cx="6" cy="6" r="1.5" fill="currentColor" />
+                </svg>
+              </div>
+              <span className="pw-login__vp-label">{t('login.earn_discounts')}</span>
+            </div>
+            <div className="pw-login__vp">
+              <div className="pw-login__vp-icon">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <circle cx="6.5" cy="5" r="2.5" />
+                  <path d="M1 16c0-3 2.5-5.5 5.5-5.5S12 13 12 16" />
+                  <circle cx="13" cy="5.5" r="2" />
+                  <path d="M13.5 10c2 .5 3.5 2.5 3.5 5" />
+                </svg>
+              </div>
+              <span className="pw-login__vp-label">{t('login.refer_friends')}</span>
+            </div>
+          </div>
+        )}
+
+        {error && <div className="pw-error" style={{ marginBottom: 16 }}>{error}</div>}
+
+        {step === 'email' ? (
+          <form onSubmit={handleSendCode} className="pw-login__form">
+            <div className="pw-login__input-row">
               <input
-                type="text"
-                placeholder={t('login.placeholder_code')}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                maxLength={6}
-                inputMode="numeric"
-                autoComplete="one-time-code"
+                type="email"
+                placeholder={t('login.placeholder_email')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 autoFocus
-                className="pw-input pw-input--code"
-                style={{ marginBottom: 16 }}
+                className="pw-input pw-login__input"
               />
               <button
                 type="submit"
-                disabled={loading || code.length !== 6}
-                className="pw-btn pw-btn--primary pw-btn--full"
-                style={{ padding: '12px 16px' }}
+                disabled={loading || !email}
+                className="pw-btn pw-btn--primary pw-login__cta"
               >
-                {loading ? t('login.btn_verifying') : t('login.btn_verify')}
+                {loading ? t('login.btn_sending') : t('login.btn_get_started')}
               </button>
-              <button
-                type="button"
-                className="pw-login__back"
-                onClick={handleBack}
-              >
-                {t('login.back_email')}
-              </button>
-            </form>
-          )}
-
-          {/* Incentive chips — below form */}
-          {incentives.length > 0 && step === 'email' && (
-            <div className="pw-login__chips" data-testid="incentive-grid">
-              {incentives.map((inc) => (
-                <span key={inc.slug} className="pw-login__chip">
-                  <span className="pw-login__chip-icon">{inc.icon}</span>
-                  +{inc.points} {inc.label}
-                </span>
-              ))}
-              {showReferralBadge && (
-                <span className="pw-login__chip pw-login__chip--referral">
-                  <span className="pw-login__chip-icon">{'\uD83E\uDD1D'}</span>
-                  {t('login.referral_discount', { percent: String(referralDiscount) })}
-                </span>
-              )}
             </div>
-          )}
-        </div>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyCode} className="pw-login__form">
+            <input
+              type="text"
+              placeholder={t('login.placeholder_code')}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              maxLength={6}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              required
+              autoFocus
+              className="pw-input pw-input--code"
+              style={{ marginBottom: 16 }}
+            />
+            <button
+              type="submit"
+              disabled={loading || code.length !== 6}
+              className="pw-btn pw-btn--primary pw-btn--full"
+              style={{ padding: '12px 16px' }}
+            >
+              {loading ? t('login.btn_verifying') : t('login.btn_verify')}
+            </button>
+            <button
+              type="button"
+              className="pw-login__back"
+              onClick={handleBack}
+            >
+              {t('login.back_email')}
+            </button>
+          </form>
+        )}
+
+        {/* Incentive chips — below form */}
+        {incentives.length > 0 && step === 'email' && (
+          <div className="pw-login__chips" data-testid="incentive-grid">
+            {incentives.map((inc) => (
+              <span key={inc.slug} className="pw-login__chip">
+                <span className="pw-login__chip-icon">{inc.icon}</span>
+                +{inc.points} {inc.label}
+              </span>
+            ))}
+            {showReferralBadge && (
+              <span className="pw-login__chip pw-login__chip--referral">
+                <span className="pw-login__chip-icon">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 7a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1 14v-1a4 4 0 014-4h2M12.5 9l2 2-2 2M10 7a2.5 2.5 0 100-5" />
+                  </svg>
+                </span>
+                {t('login.referral_discount', { percent: String(referralDiscount) })}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Right side — Visual showcase */}
-      <div className="pw-login__visual">
-        <div className="pw-login__scene">
-          <div className="pw-login__float pw-login__float--gift1">{'\uD83C\uDF81'}</div>
-          <div className="pw-login__float pw-login__float--gift2">{'\uD83C\uDF80'}</div>
-          <div className="pw-login__float pw-login__float--coin1">{'\uD83E\uDE99'}</div>
-          <div className="pw-login__float pw-login__float--coin2">{'\uD83E\uDE99'}</div>
-          <div className="pw-login__float pw-login__float--star1">{'\u2B50'}</div>
-          <div className="pw-login__float pw-login__float--star2">{'\u2728'}</div>
-          <div className="pw-login__float pw-login__float--confetti1">{'\uD83C\uDF89'}</div>
-          <div className="pw-login__float pw-login__float--heart">{'\u2764\uFE0F'}</div>
-
-          <div className="pw-login__reward-card">
-            <div className="pw-login__reward-icon">{'\uD83C\uDFC6'}</div>
-            <div className="pw-login__reward-pts">+100</div>
-            <div className="pw-login__reward-label">{t('login.bonus_points')}</div>
-          </div>
-
-          <div className="pw-login__mini-card pw-login__mini-card--top">
-            <span>{'\uD83D\uDCB3'}</span> {t('login.earn_discounts')}
-          </div>
-          <div className="pw-login__mini-card pw-login__mini-card--bottom">
-            <span>{'\uD83D\uDC65'}</span> {t('login.refer_friends')}
-          </div>
-        </div>
-      </div>
-
-      <div className="pw-login__stripe" />
+      <div className="pw-login__accent-line" />
     </div>
   );
 }

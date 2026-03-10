@@ -238,333 +238,260 @@ export default function PartnerApplyForm({ onClose }: Props) {
     const approved = result.status === 'approved';
     return (
       <div className="pw-login">
-        <div className="pw-login__content">
-          <div className="pw-login__content-inner" style={{ textAlign: 'center', paddingTop: '60px' }}>
-            <div style={{ fontSize: '64px', marginBottom: '20px' }}>
-              {approved ? '\u2705' : '\u274C'}
-            </div>
-            <h1 className="pw-login__heading">
-              <span className="pw-login__heading-accent">
-                {approved ? t('apply.result_approved_title') : t('apply.result_rejected_title')}
-              </span>
-            </h1>
-            <p className="pw-login__subtitle">
-              {approved ? t('apply.result_approved_desc') : t('apply.result_rejected_desc')}
-            </p>
-            <button
-              type="button"
-              className="pw-btn pw-btn--primary pw-btn--full pw-profile__submit"
-              onClick={onClose}
-            >
-              {approved ? t('apply.btn_done') : t('apply.btn_close')}
-            </button>
+        <div className="pw-login__card" style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>
+            {approved ? '\u2705' : '\u274C'}
           </div>
+          <h1 className="pw-login__heading">
+            <span className="pw-login__heading-accent">
+              {approved ? t('apply.result_approved_title') : t('apply.result_rejected_title')}
+            </span>
+          </h1>
+          <p className="pw-login__subtitle">
+            {approved ? t('apply.result_approved_desc') : t('apply.result_rejected_desc')}
+          </p>
+          <button
+            type="button"
+            className="pw-btn pw-btn--primary pw-btn--full pw-profile__submit"
+            onClick={onClose}
+          >
+            {approved ? t('apply.btn_done') : t('apply.btn_close')}
+          </button>
         </div>
-        <div className="pw-login__visual">
-          <div className="pw-login__scene">
-            <div className="pw-login__float pw-login__float--gift1">{approved ? '\uD83C\uDF89' : '\uD83D\uDE14'}</div>
-            <div className="pw-login__float pw-login__float--gift2">{approved ? '\uD83D\uDC8E' : '\uD83D\uDD12'}</div>
-            <div className="pw-login__float pw-login__float--coin1">{approved ? '\uD83D\uDE80' : '\u23F3'}</div>
-            <div className="pw-login__float pw-login__float--coin2">{approved ? '\u2728' : '\uD83D\uDCAD'}</div>
-            <div className="pw-login__reward-card">
-              <div className="pw-login__reward-icon">{approved ? '\uD83C\uDF1F' : '\u26A0\uFE0F'}</div>
-              <div className="pw-login__reward-pts">
-                {approved ? t('apply.result_welcome') : t('apply.result_sorry')}
-              </div>
-              <div className="pw-login__reward-label">
-                {approved ? t('apply.result_partner_label') : t('apply.result_age_label')}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="pw-login__stripe" />
+        <div className="pw-login__accent-line" />
       </div>
     );
   }
 
   return (
     <div className="pw-login pw-apply-form">
-      {/* Left side — Form */}
-      <div className="pw-login__content">
-        <div className="pw-login__content-inner">
-          <button type="button" className="pw-apply-form__back" onClick={onClose}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {t('apply.back')}
-          </button>
+      <div className="pw-login__card">
+        <button type="button" className="pw-apply-form__back" onClick={onClose}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {t('apply.back')}
+        </button>
 
-          <h1 className="pw-login__heading">
-            {brandName}
-            <br />
-            <span className="pw-login__heading-accent">{t('apply.heading')}</span>
-          </h1>
-          <p className="pw-login__subtitle">{t('apply.subtitle')}</p>
+        <h1 className="pw-login__heading">
+          {brandName}
+          <br />
+          <span className="pw-login__heading-accent">{t('apply.heading')}</span>
+        </h1>
+        <p className="pw-login__subtitle">{t('apply.subtitle')}</p>
 
-          {error && <div className="pw-error pw-profile__error">{error}</div>}
+        {error && <div className="pw-error pw-profile__error">{error}</div>}
 
-          <form onSubmit={handleSubmit} className="pw-login__form">
-            {/* Section 1: Date of Birth */}
-            <div className="pw-apply-form__section">
-              <div className="pw-apply-form__section-title">{t('apply.section_dob')} *</div>
-              <div style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>
-                You must be 18 or older to become a partner
-              </div>
-              <div className="pw-profile__bday-row">
-                <select
-                  value={dobDay}
-                  onChange={(e) => setDobDay(e.target.value)}
-                  className="pw-input pw-profile__select pw-profile__select--day"
-                >
-                  <option value="">{t('apply.day')}</option>
-                  {Array.from({ length: 31 }, (_, i) => (
-                    <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
-                  ))}
-                </select>
-                <select
-                  value={dobMonth}
-                  onChange={(e) => setDobMonth(e.target.value)}
-                  className="pw-input pw-profile__select pw-profile__select--month"
-                >
-                  <option value="">{t('apply.month')}</option>
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i + 1} value={String(i + 1)}>{t(`months.${i + 1}`)}</option>
-                  ))}
-                </select>
-                <select
-                  value={dobYear}
-                  onChange={(e) => setDobYear(e.target.value)}
-                  className="pw-input pw-profile__select"
-                  style={{ flex: 1 }}
-                >
-                  <option value="">{t('apply.year')}</option>
-                  {years.map(y => (
-                    <option key={y} value={String(y)}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              {isUnder18 && (
-                <div className="pw-apply-form__age-warn">{t('apply.age_warning')}</div>
-              )}
+        <form onSubmit={handleSubmit} className="pw-login__form">
+          {/* Section 1: Date of Birth */}
+          <div className="pw-apply-form__section">
+            <div className="pw-apply-form__section-title">{t('apply.section_dob')} *</div>
+            <div className="pw-apply-form__field-hint" style={{ marginBottom: '12px' }}>
+              You must be 18 or older to become a partner
             </div>
-
-            {/* Section 2: Social Media */}
-            <div className="pw-apply-form__section">
-              <div className="pw-apply-form__section-title">{t('apply.section_social')} *</div>
-              <p className="pw-apply-form__section-hint">
-                {t('apply.social_hint')}. We'll review your account before approval.
-              </p>
-              <div className="pw-apply-form__chips">
-                {PLATFORMS.map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`pw-apply-form__chip${activePlatforms.has(p) ? ' pw-apply-form__chip--active' : ''}`}
-                    onClick={() => togglePlatform(p)}
-                  >
-                    {PLATFORM_LABELS[p]}
-                  </button>
+            <div className="pw-profile__bday-row">
+              <select
+                value={dobDay}
+                onChange={(e) => setDobDay(e.target.value)}
+                className="pw-input pw-profile__select pw-profile__select--day"
+              >
+                <option value="">{t('apply.day')}</option>
+                {Array.from({ length: 31 }, (_, i) => (
+                  <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
                 ))}
-              </div>
-              {Array.from(activePlatforms).map(p => {
-                const urlValue = socialUrls[p] || '';
-                const urlError = urlErrors[p];
-                const urlIsValid = urlValue.trim() && !urlError && validateSocialUrl(p, urlValue) === null;
-
-                return (
-                  <div key={p} className="pw-apply-form__field-group">
-                    <label className="pw-profile__label">{PLATFORM_LABELS[p]} *</label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type="url"
-                        placeholder={PLATFORM_PLACEHOLDERS[p]}
-                        value={urlValue}
-                        onChange={(e) => handleSocialUrlChange(p, e.target.value)}
-                        className={`pw-input${urlError ? ' pw-input--error' : ''}${urlIsValid ? ' pw-input--valid' : ''}`}
-                        style={{ paddingRight: urlIsValid ? '36px' : '12px' }}
-                      />
-                      {urlIsValid && (
-                        <span style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          color: '#10b981',
-                          fontSize: '18px',
-                        }}>✓</span>
-                      )}
-                    </div>
-                    {urlError && (
-                      <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                        {urlError}
-                      </div>
-                    )}
-                    <input
-                      type="text"
-                      placeholder={t('apply.placeholder_followers')}
-                      value={socialFollowers[p] || ''}
-                      onChange={(e) => updateSocialFollowers(p, e.target.value)}
-                      className="pw-input"
-                      style={{ marginTop: '6px' }}
-                    />
-                    <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                      Optional: Approximate follower/subscriber count
-                    </div>
-                  </div>
-                );
-              })}
+              </select>
+              <select
+                value={dobMonth}
+                onChange={(e) => setDobMonth(e.target.value)}
+                className="pw-input pw-profile__select pw-profile__select--month"
+              >
+                <option value="">{t('apply.month')}</option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={String(i + 1)}>{t(`months.${i + 1}`)}</option>
+                ))}
+              </select>
+              <select
+                value={dobYear}
+                onChange={(e) => setDobYear(e.target.value)}
+                className="pw-input pw-profile__select"
+                style={{ flex: 1 }}
+              >
+                <option value="">{t('apply.year')}</option>
+                {years.map(y => (
+                  <option key={y} value={String(y)}>{y}</option>
+                ))}
+              </select>
             </div>
+            {isUnder18 && (
+              <div className="pw-apply-form__age-warn">{t('apply.age_warning')}</div>
+            )}
+          </div>
 
-            {/* Section 3: Address */}
-            <div className="pw-apply-form__section">
-              <div className="pw-apply-form__section-title">{t('apply.section_address')} *</div>
-              <div style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>
-                Required for contract and tax purposes
-              </div>
-              <div className="pw-profile__field">
-                <label className="pw-profile__label">{t('apply.label_address')} *</label>
+          {/* Section 2: Social Media */}
+          <div className="pw-apply-form__section">
+            <div className="pw-apply-form__section-title">{t('apply.section_social')} *</div>
+            <p className="pw-apply-form__section-hint">
+              {t('apply.social_hint')}. We'll review your account before approval.
+            </p>
+            <div className="pw-apply-form__chips">
+              {PLATFORMS.map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pw-apply-form__chip${activePlatforms.has(p) ? ' pw-apply-form__chip--active' : ''}`}
+                  onClick={() => togglePlatform(p)}
+                >
+                  {PLATFORM_LABELS[p]}
+                </button>
+              ))}
+            </div>
+            {Array.from(activePlatforms).map(p => {
+              const urlValue = socialUrls[p] || '';
+              const urlError = urlErrors[p];
+              const urlIsValid = urlValue.trim() && !urlError && validateSocialUrl(p, urlValue) === null;
+
+              return (
+                <div key={p} className="pw-apply-form__field-group">
+                  <label className="pw-profile__label">{PLATFORM_LABELS[p]} *</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="url"
+                      placeholder={PLATFORM_PLACEHOLDERS[p]}
+                      value={urlValue}
+                      onChange={(e) => handleSocialUrlChange(p, e.target.value)}
+                      className={`pw-input${urlError ? ' pw-input--error' : ''}${urlIsValid ? ' pw-input--valid' : ''}`}
+                      style={{ paddingRight: urlIsValid ? '36px' : '12px' }}
+                    />
+                    {urlIsValid && (
+                      <span className="pw-apply-form__url-valid">✓</span>
+                    )}
+                  </div>
+                  {urlError && (
+                    <div className="pw-apply-form__url-error">{urlError}</div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder={t('apply.placeholder_followers')}
+                    value={socialFollowers[p] || ''}
+                    onChange={(e) => updateSocialFollowers(p, e.target.value)}
+                    className="pw-input"
+                    style={{ marginTop: '6px' }}
+                  />
+                  <div className="pw-apply-form__field-hint">
+                    Optional: Approximate follower/subscriber count
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Section 3: Address */}
+          <div className="pw-apply-form__section">
+            <div className="pw-apply-form__section-title">{t('apply.section_address')} *</div>
+            <div className="pw-apply-form__field-hint" style={{ marginBottom: '12px' }}>
+              Required for contract and tax purposes
+            </div>
+            <div className="pw-profile__field">
+              <label className="pw-profile__label">{t('apply.label_address')} *</label>
+              <input
+                type="text"
+                placeholder={t('apply.placeholder_address')}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="pw-input"
+              />
+            </div>
+            <div className="pw-profile__bday-row">
+              <div className="pw-profile__field" style={{ flex: 2 }}>
+                <label className="pw-profile__label">{t('apply.label_city')} *</label>
                 <input
                   type="text"
-                  placeholder={t('apply.placeholder_address')}
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder={t('apply.placeholder_city')}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
                   className="pw-input"
                 />
               </div>
-              <div className="pw-profile__bday-row">
-                <div className="pw-profile__field" style={{ flex: 2 }}>
-                  <label className="pw-profile__label">{t('apply.label_city')} *</label>
-                  <input
-                    type="text"
-                    placeholder={t('apply.placeholder_city')}
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="pw-input"
-                  />
-                </div>
-                <div className="pw-profile__field" style={{ flex: 1 }}>
-                  <label className="pw-profile__label">{t('apply.label_postal')} *</label>
-                  <input
-                    type="text"
-                    placeholder={t('apply.placeholder_postal')}
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
-                    className="pw-input"
-                  />
-                </div>
-              </div>
-              <div className="pw-profile__field">
-                <label className="pw-profile__label">{t('apply.label_country')} *</label>
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="pw-input pw-profile__select"
-                >
-                  <option value="">{t('apply.placeholder_country')}</option>
-                  {COUNTRIES.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+              <div className="pw-profile__field" style={{ flex: 1 }}>
+                <label className="pw-profile__label">{t('apply.label_postal')} *</label>
+                <input
+                  type="text"
+                  placeholder={t('apply.placeholder_postal')}
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  className="pw-input"
+                />
               </div>
             </div>
+            <div className="pw-profile__field">
+              <label className="pw-profile__label">{t('apply.label_country')} *</label>
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="pw-input pw-profile__select"
+              >
+                <option value="">{t('apply.placeholder_country')}</option>
+                {COUNTRIES.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-            {/* Section 4: IBAN */}
-            <div className="pw-apply-form__section">
-              <div className="pw-apply-form__section-title">{t('apply.section_iban')}</div>
-              <div style={{
-                background: '#fff3cd',
-                border: '1px solid #ffc107',
-                borderRadius: '8px',
-                padding: '12px',
-                marginBottom: '16px',
-                fontSize: '13px',
-                color: '#856404',
-              }}>
-                <strong>💰 Important:</strong> This is where you'll receive your partner commission payouts. Make sure the IBAN is correct and belongs to you.
-              </div>
-              <div className="pw-profile__field">
-                <label className="pw-profile__label">{t('apply.label_iban')} *</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    placeholder="DE89 3704 0044 0532 0130 00"
-                    value={iban}
-                    onChange={(e) => setIban(e.target.value)}
-                    onBlur={() => setIbanTouched(true)}
-                    className={`pw-input${ibanTouched && ibanValid === false ? ' pw-input--error' : ''}${ibanValid === true ? ' pw-input--valid' : ''}`}
-                    style={{
-                      paddingRight: ibanValid === true ? '36px' : '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                    maxLength={34}
-                  />
-                  {ibanValid === true && (
-                    <span style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: '#10b981',
-                      fontSize: '18px',
-                    }}>✓</span>
-                  )}
-                </div>
-                {ibanTouched && ibanValid === false && (
-                  <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                    Invalid IBAN format. Please check and try again.
-                  </div>
-                )}
+          {/* Section 4: IBAN */}
+          <div className="pw-apply-form__section">
+            <div className="pw-apply-form__section-title">{t('apply.section_iban')}</div>
+            <div className="pw-apply-form__iban-notice">
+              <strong>Important:</strong> This is where you'll receive your partner commission payouts. Make sure the IBAN is correct and belongs to you.
+            </div>
+            <div className="pw-profile__field">
+              <label className="pw-profile__label">{t('apply.label_iban')} *</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="DE89 3704 0044 0532 0130 00"
+                  value={iban}
+                  onChange={(e) => setIban(e.target.value)}
+                  onBlur={() => setIbanTouched(true)}
+                  className={`pw-input${ibanTouched && ibanValid === false ? ' pw-input--error' : ''}${ibanValid === true ? ' pw-input--valid' : ''}`}
+                  style={{
+                    paddingRight: ibanValid === true ? '36px' : '12px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}
+                  maxLength={34}
+                />
                 {ibanValid === true && (
-                  <div style={{ color: '#10b981', fontSize: '12px', marginTop: '4px' }}>
-                    ✓ Valid IBAN format
-                  </div>
+                  <span className="pw-apply-form__url-valid">✓</span>
                 )}
-                <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                  🔒 Your IBAN is securely encrypted and only used for commission payouts
+              </div>
+              {ibanTouched && ibanValid === false && (
+                <div className="pw-apply-form__url-error">
+                  Invalid IBAN format. Please check and try again.
                 </div>
+              )}
+              {ibanValid === true && (
+                <div style={{ color: '#10b981', fontSize: '12px', marginTop: '4px' }}>
+                  ✓ Valid IBAN format
+                </div>
+              )}
+              <div className="pw-apply-form__field-hint">
+                Your IBAN is securely encrypted and only used for commission payouts
               </div>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="pw-btn pw-btn--primary pw-btn--full pw-profile__submit"
-            >
-              {loading ? t('apply.btn_submitting') : t('apply.btn_submit')}
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="pw-btn pw-btn--primary pw-btn--full pw-profile__submit"
+          >
+            {loading ? t('apply.btn_submitting') : t('apply.btn_submit')}
+          </button>
+        </form>
       </div>
 
-      {/* Right side — Visual showcase */}
-      <div className="pw-login__visual">
-        <div className="pw-login__scene">
-          <div className="pw-login__float pw-login__float--gift1">{'\uD83D\uDC8E'}</div>
-          <div className="pw-login__float pw-login__float--gift2">{'\uD83D\uDE80'}</div>
-          <div className="pw-login__float pw-login__float--coin1">{'\uD83D\uDCB0'}</div>
-          <div className="pw-login__float pw-login__float--coin2">{'\u2B50'}</div>
-          <div className="pw-login__float pw-login__float--star1">{'\uD83C\uDF1F'}</div>
-          <div className="pw-login__float pw-login__float--star2">{'\u2728'}</div>
-          <div className="pw-login__float pw-login__float--confetti1">{'\uD83C\uDF89'}</div>
-          <div className="pw-login__float pw-login__float--heart">{'\u2764\uFE0F'}</div>
-
-          <div className="pw-login__reward-card">
-            <div className="pw-login__reward-icon">{'\uD83E\uDD1D'}</div>
-            <div className="pw-login__reward-pts">{t('apply.visual_title')}</div>
-            <div className="pw-login__reward-label">{t('apply.visual_subtitle')}</div>
-          </div>
-
-          <div className="pw-login__mini-card pw-login__mini-card--top">
-            <span>{'\uD83D\uDCB8'}</span> {t('apply.visual_commission')}
-          </div>
-          <div className="pw-login__mini-card pw-login__mini-card--bottom">
-            <span>{'\uD83C\uDFC6'}</span> {t('apply.visual_exclusive')}
-          </div>
-        </div>
-      </div>
-
-      <div className="pw-login__stripe" />
+      <div className="pw-login__accent-line" />
     </div>
   );
 }

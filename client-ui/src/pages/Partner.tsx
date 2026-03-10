@@ -76,7 +76,7 @@ export default function Partner() {
           />
           <CopyButton text={refUrl} />
         </div>
-        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 10 }}>{t('partner.link_hint', { pct: info.commission_pct })}</div>
+        <div style={{ fontSize: 12, color: '#71717a', marginTop: 10 }}>{t('partner.link_hint', { pct: info.commission_pct })}</div>
       </div>
 
       {/* Referrals Table */}

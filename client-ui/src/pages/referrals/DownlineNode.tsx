@@ -38,21 +38,21 @@ export default function DownlineNode({ node, depth = 0, generation, levelLabels,
           {/* Info */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{node.name || t('common.unknown')}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#fafafa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{node.name || t('common.unknown')}</span>
               <span className={`nt-lvl-d${tier}`} style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', padding: '2px 7px', borderRadius: 6, flexShrink: 0 }}>{levelLabels[tier]}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, fontFamily: "'SF Mono', Monaco, monospace", color: '#bbb', letterSpacing: 0.5 }}>{node.referral_code}</span>
               {levelEarn[tier] && (
                 <>
-                  <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#ddd', flexShrink: 0, display: 'inline-block' }} />
+                  <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#52525b', flexShrink: 0, display: 'inline-block' }} />
                   <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>{levelEarn[tier]}</span>
                 </>
               )}
             </div>
             {/* Stats row */}
             {(hasChildren || descendants > 0) && (
-              <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>
+              <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#71717a', fontWeight: 500 }}>
                 <UsersIcon size={13} />
                 {descendants > children.length
                   ? t('downline.total_count', { direct: children.length, total: descendants })

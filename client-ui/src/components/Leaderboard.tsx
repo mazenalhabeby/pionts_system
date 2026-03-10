@@ -121,7 +121,7 @@ export default function Leaderboard() {
 
             {/* Right: Top 10 List */}
             <div className="pw-lb-list-card">
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#1f2937', marginBottom: 12 }}>{t('leaderboard.top_10')}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fafafa', marginBottom: 12 }}>{t('leaderboard.top_10')}</div>
               <div className="pw-lb-list">
                 {top10.map((entry, i) => {
                   const isMe = myEmail === entry.email;
@@ -150,10 +150,10 @@ export default function Leaderboard() {
                 <div className="pw-lb-you__rank">{myRank || '-'}</div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#1f2937' }}>{customerData.name || t('common.you')}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#fafafa' }}>{customerData.name || t('common.you')}</span>
                     <span className="pw-lb-you__badge">{t('leaderboard.you_badge')}</span>
                   </div>
-                  <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>
+                  <div style={{ fontSize: 12, color: '#71717a', marginTop: 1 }}>
                     {t('leaderboard.referrals_count', { count: myEntry ? myEntry.network : (customerData.referral_stats?.network || 0) })}
                   </div>
                 </div>

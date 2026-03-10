@@ -86,115 +86,85 @@ export default function CompleteProfilePage() {
 
   return (
     <div className="pw-login">
-      {/* Left side — Form */}
-      <div className="pw-login__content">
-        <div className="pw-login__content-inner">
-          <h1 className="pw-login__heading">
-            {brandName}
-            <br />
-            <span className="pw-login__heading-accent">{t('profile.heading')}</span>
-          </h1>
-          <p className="pw-login__subtitle">{t('profile.title')}</p>
+      <div className="pw-login__card">
+        <h1 className="pw-login__heading">
+          {brandName}
+          <br />
+          <span className="pw-login__heading-accent">{t('profile.heading')}</span>
+        </h1>
+        <p className="pw-login__subtitle">{t('profile.title')}</p>
 
-          {error && <div className="pw-error pw-profile__error">{error}</div>}
+        {error && <div className="pw-error pw-profile__error">{error}</div>}
 
-          <form onSubmit={handleSubmit} className="pw-login__form">
-            <div className="pw-profile__field">
-              <label className="pw-profile__label">{t('profile.label_name')} *</label>
-              <input
-                type="text"
-                placeholder={t('profile.placeholder_name')}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+        <form onSubmit={handleSubmit} className="pw-login__form">
+          <div className="pw-profile__field">
+            <label className="pw-profile__label">{t('profile.label_name')} *</label>
+            <input
+              type="text"
+              placeholder={t('profile.placeholder_name')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoFocus
+              className="pw-input"
+            />
+          </div>
+
+          <div className="pw-profile__field">
+            <label className="pw-profile__label">{t('profile.label_birthday')} *</label>
+            <div className="pw-login__field-hint">
+              Required for age verification and birthday rewards
+            </div>
+            <div className="pw-profile__bday-row">
+              <select
+                value={bdayDay}
+                onChange={(e) => setBdayDay(e.target.value)}
+                className="pw-input pw-profile__select pw-profile__select--day"
                 required
-                autoFocus
-                className="pw-input"
-              />
+              >
+                <option value="">Day</option>
+                {Array.from({ length: 31 }, (_, i) => (
+                  <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
+                ))}
+              </select>
+              <select
+                value={bdayMonth}
+                onChange={(e) => setBdayMonth(e.target.value)}
+                className="pw-input pw-profile__select pw-profile__select--month"
+                required
+              >
+                <option value="">Month</option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={String(i + 1)}>{t(`months.${i + 1}`)}</option>
+                ))}
+              </select>
+              <select
+                value={bdayYear}
+                onChange={(e) => setBdayYear(e.target.value)}
+                className="pw-input pw-profile__select"
+                style={{ flex: 1 }}
+                required
+              >
+                <option value="">Year</option>
+                {Array.from({ length: 108 }, (_, i) => {
+                  const year = new Date().getFullYear() - 13 - i; // 13 to 120 years old
+                  return <option key={year} value={String(year)}>{year}</option>;
+                })}
+              </select>
             </div>
+          </div>
 
-            <div className="pw-profile__field">
-              <label className="pw-profile__label">{t('profile.label_birthday')} *</label>
-              <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
-                Required for age verification and birthday rewards
-              </div>
-              <div className="pw-profile__bday-row">
-                <select
-                  value={bdayDay}
-                  onChange={(e) => setBdayDay(e.target.value)}
-                  className="pw-input pw-profile__select pw-profile__select--day"
-                  required
-                >
-                  <option value="">Day</option>
-                  {Array.from({ length: 31 }, (_, i) => (
-                    <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
-                  ))}
-                </select>
-                <select
-                  value={bdayMonth}
-                  onChange={(e) => setBdayMonth(e.target.value)}
-                  className="pw-input pw-profile__select pw-profile__select--month"
-                  required
-                >
-                  <option value="">Month</option>
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i + 1} value={String(i + 1)}>{t(`months.${i + 1}`)}</option>
-                  ))}
-                </select>
-                <select
-                  value={bdayYear}
-                  onChange={(e) => setBdayYear(e.target.value)}
-                  className="pw-input pw-profile__select"
-                  style={{ flex: 1 }}
-                  required
-                >
-                  <option value="">Year</option>
-                  {Array.from({ length: 108 }, (_, i) => {
-                    const year = new Date().getFullYear() - 13 - i; // 13 to 120 years old
-                    return <option key={year} value={String(year)}>{year}</option>;
-                  })}
-                </select>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="pw-btn pw-btn--primary pw-btn--full pw-profile__submit"
-            >
-              {loading ? t('profile.btn_saving') : t('profile.btn_continue')}
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="pw-btn pw-btn--primary pw-btn--full pw-profile__submit"
+          >
+            {loading ? t('profile.btn_saving') : t('profile.btn_continue')}
+          </button>
+        </form>
       </div>
 
-      {/* Right side — Visual showcase */}
-      <div className="pw-login__visual">
-        <div className="pw-login__scene">
-          <div className="pw-login__float pw-login__float--gift1">{'\uD83D\uDC4B'}</div>
-          <div className="pw-login__float pw-login__float--gift2">{'\uD83C\uDF89'}</div>
-          <div className="pw-login__float pw-login__float--coin1">{'\uD83E\uDE99'}</div>
-          <div className="pw-login__float pw-login__float--coin2">{'\u2B50'}</div>
-          <div className="pw-login__float pw-login__float--star1">{'\uD83C\uDF82'}</div>
-          <div className="pw-login__float pw-login__float--star2">{'\u2728'}</div>
-          <div className="pw-login__float pw-login__float--confetti1">{'\uD83C\uDF81'}</div>
-          <div className="pw-login__float pw-login__float--heart">{'\u2764\uFE0F'}</div>
-
-          <div className="pw-login__reward-card">
-            <div className="pw-login__reward-icon">{'\uD83D\uDE80'}</div>
-            <div className="pw-login__reward-pts">{t('profile.almost_there')}</div>
-            <div className="pw-login__reward-label">{t('profile.one_more_step')}</div>
-          </div>
-
-          <div className="pw-login__mini-card pw-login__mini-card--top">
-            <span>{'\uD83C\uDF82'}</span> {t('profile.birthday_bonus')}
-          </div>
-          <div className="pw-login__mini-card pw-login__mini-card--bottom">
-            <span>{'\uD83C\uDFC6'}</span> {t('profile.earn_rewards')}
-          </div>
-        </div>
-      </div>
-
-      <div className="pw-login__stripe" />
+      <div className="pw-login__accent-line" />
     </div>
   );
 }

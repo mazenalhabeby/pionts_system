@@ -32,6 +32,7 @@ describe('EmailSenderService', () => {
 
     beforeEach(() => {
       const configMap: Record<string, string> = {
+        NODE_ENV: 'production',
         SMTP_HOST: 'smtp.example.com',
         SMTP_PORT: '587',
         SMTP_USER: 'user@example.com',
@@ -82,6 +83,7 @@ describe('EmailSenderService', () => {
   describe('SMTP_SECURE auto-detection', () => {
     it('should set secure=true when port is 465', () => {
       const configMap: Record<string, string> = {
+        NODE_ENV: 'production',
         SMTP_HOST: 'smtp.example.com',
         SMTP_PORT: '465',
         SMTP_USER: 'u',
@@ -96,6 +98,7 @@ describe('EmailSenderService', () => {
 
     it('should set secure=true when SMTP_SECURE is "true"', () => {
       const configMap: Record<string, string> = {
+        NODE_ENV: 'production',
         SMTP_HOST: 'smtp.example.com',
         SMTP_PORT: '587',
         SMTP_USER: 'u',

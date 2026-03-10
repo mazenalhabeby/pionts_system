@@ -323,7 +323,7 @@ export default function Earn() {
       const currentMonth = new Date().getMonth() + 1;
       if (birthdayMonth !== currentMonth) {
         return (
-          <span style={{ fontSize: 11, color: '#9ca3af' }}>
+          <span style={{ fontSize: 11, color: '#71717a' }}>
             {t('earn.available_in', { month: t(`months.${birthdayMonth}`) })}
           </span>
         );

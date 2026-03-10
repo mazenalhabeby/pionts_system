@@ -37,7 +37,7 @@ export default function NetworkTreeSection({
     <>
       {/* Network toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#9ca3af' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#71717a' }}>
           <span style={{ fontWeight: 700, color: '#555' }}>{tPlural('network.members', totalDescendants)}</span>
           <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#ccc', display: 'inline-block' }} />
           <span>{t('network.up_to_levels', { count: levelLabels.length })}</span>
@@ -84,7 +84,7 @@ export default function NetworkTreeSection({
       {/* Legend */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid #f0f0f3' }}>
         {levelLabels.map((label, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#71717a', whiteSpace: 'nowrap' }}>
             <span className={`nt-legend-dot-d${Math.min(i, 2)}`} style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0 }} />
             {label} — {levelEarn[i] || t('network.view_only')}
           </div>
