@@ -395,7 +395,24 @@ export class SdkController {
     await this.customersService.clearVerificationCode(customer.id);
 
     const token = this.sdkService.generateCustomerToken(project.id, body.email);
-    return { token };
+    const { accessToken, refreshToken } = this.sdkService.generateCustomerTokens(project.id, body.email);
+    return { token, accessToken, refreshToken };
+  }
+
+  @Post('auth/refresh')
+  async refreshToken(@SdkProject() project: any, @Body() body: { refreshToken: string }) {
+    if (!body.refreshToken) throw new BadRequestException('Refresh token is required');
+
+    const tokens = await this.sdkService.refreshCustomerTokens(body.refreshToken);
+    if (!tokens) throw new UnauthorizedException('Invalid or expired refresh token');
+
+    // Verify the refresh token belongs to this project
+    const payload = this.sdkService.verifyCustomerToken(tokens.accessToken);
+    if (!payload || payload.projectId !== project.id) {
+      throw new UnauthorizedException('Token does not match project');
+    }
+
+    return tokens;
   }
 
   @Post('partner/apply')

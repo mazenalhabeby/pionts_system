@@ -205,6 +205,42 @@ export class SdkService {
     );
   }
 
+  generateCustomerTokens(projectId: number, email: string): { accessToken: string; refreshToken: string } {
+    const accessToken = this.jwtService.sign(
+      { projectId, email, type: 'sdk_customer' },
+      {
+        secret: process.env.JWT_SECRET || 'dev-jwt-secret',
+        expiresIn: '15m' as any,
+      },
+    );
+    const refreshToken = this.jwtService.sign(
+      { projectId, email, type: 'sdk_customer_refresh' },
+      {
+        secret: process.env.JWT_REFRESH_SECRET || 'dev-jwt-refresh-secret',
+        expiresIn: '7d' as any,
+      },
+    );
+    return { accessToken, refreshToken };
+  }
+
+  async refreshCustomerTokens(token: string): Promise<{ accessToken: string; refreshToken: string } | null> {
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_REFRESH_SECRET || 'dev-jwt-refresh-secret',
+      });
+      if (payload.type !== 'sdk_customer_refresh') return null;
+
+      // Verify customer still exists
+      const customer = await this.customersService.findByEmail(payload.projectId, payload.email);
+      if (!customer) return null;
+
+      // Rotate: issue new token pair
+      return this.generateCustomerTokens(payload.projectId, payload.email);
+    } catch {
+      return null;
+    }
+  }
+
   verifyCustomerToken(token: string): { projectId: number; email: string } | null {
     try {
       const payload = this.jwtService.verify(token, {

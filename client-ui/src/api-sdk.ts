@@ -8,15 +8,54 @@ interface SdkApiConfig {
   getToken: () => string | null;
   getReferralCode: () => string | null;
   getName: () => string | null;
+  getRefreshToken?: () => string | null;
+  onTokenRefreshed?: (accessToken: string, refreshToken: string) => void;
+  onAuthExpired?: () => void;
 }
 
 export interface SdkApi extends WidgetApi {
   signup: (email: string, name: string, referral_code?: string) => Promise<unknown>;
   checkRef: (code: string) => Promise<unknown>;
   getConfig: () => Promise<any>;
+  refreshAuth: () => Promise<boolean>;
 }
 
-export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken, getReferralCode, getName }: SdkApiConfig): SdkApi {
+export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken, getReferralCode, getName, getRefreshToken, onTokenRefreshed, onAuthExpired }: SdkApiConfig): SdkApi {
+
+  // Dedup concurrent refresh attempts
+  let refreshPromise: Promise<boolean> | null = null;
+
+  async function refreshAuth(): Promise<boolean> {
+    const rt = getRefreshToken?.();
+    if (!rt) return false;
+
+    try {
+      const res = await fetch(`${apiBase}/api/v1/sdk/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Project-Key': projectKey,
+        },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.accessToken && data.refreshToken) {
+        onTokenRefreshed?.(data.accessToken, data.refreshToken);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  async function deduplicatedRefresh(): Promise<boolean> {
+    if (!refreshPromise) {
+      refreshPromise = refreshAuth().finally(() => { refreshPromise = null; });
+    }
+    return refreshPromise;
+  }
 
   async function publicRequest(path: string): Promise<any> {
     const res = await fetch(`${apiBase}/api/v1/sdk${path}`, {
@@ -32,7 +71,7 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
     return res.json();
   }
 
-  async function request(path: string, options: RequestInit = {}): Promise<any> {
+  function buildHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Project-Key': projectKey,
@@ -51,16 +90,45 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Always send referral code if cookie exists — backend deduplicates via !customer.referredBy
     const refCode = getReferralCode();
     if (refCode) {
       headers['X-Referral-Code'] = refCode;
     }
 
+    return headers;
+  }
+
+  async function request(path: string, options: RequestInit = {}): Promise<any> {
+    const headers = buildHeaders();
+
     const res = await fetch(`${apiBase}/api/v1/sdk${path}`, {
       headers,
       ...options,
     });
+
+    // On 401, try silent refresh then retry once
+    if (res.status === 401 && getRefreshToken?.()) {
+      const refreshed = await deduplicatedRefresh();
+      if (refreshed) {
+        const retryHeaders = buildHeaders();
+        const retryRes = await fetch(`${apiBase}/api/v1/sdk${path}`, {
+          headers: retryHeaders,
+          ...options,
+        });
+        if (!retryRes.ok) {
+          if (retryRes.status === 401) {
+            onAuthExpired?.();
+          }
+          const body = await retryRes.json().catch(() => ({}));
+          throw new Error(body.message || `Request failed (${retryRes.status})`);
+        }
+        return retryRes.json();
+      }
+      // Refresh failed — force logout
+      onAuthExpired?.();
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Request failed (${res.status})`);
+    }
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -147,5 +215,7 @@ export function createSdkApi({ apiBase, projectKey, getEmail, getHmac, getToken,
       }),
 
     getConfig: () => publicRequest('/config'),
+
+    refreshAuth: deduplicatedRefresh,
   };
 }

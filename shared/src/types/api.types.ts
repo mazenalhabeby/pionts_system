@@ -12,7 +12,7 @@ export interface WidgetApi {
   setBirthday: (birthday: string) => Promise<{ success: boolean; birthday: string }>;
   updateProfile: (data: { name?: string; birthday?: string }) => Promise<{ success: boolean }>;
   sendCode: (email: string) => Promise<unknown>;
-  verifyCode: (email: string, code: string) => Promise<{ token?: string }>;
+  verifyCode: (email: string, code: string) => Promise<{ token?: string; accessToken?: string; refreshToken?: string }>;
   getLeaderboard: () => Promise<any[]>;
   applyPartner: (data: PartnerApplyData) => Promise<{ success: boolean; status: string; reason?: string }>;
 }

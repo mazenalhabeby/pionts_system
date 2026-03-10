@@ -1913,7 +1913,7 @@ a:hover {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 460px;
+  max-width: 540px;
   padding: 48px 44px;
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(24px);
