@@ -4,11 +4,14 @@ interface EarnItemProps {
   done: boolean;
   label: string;
   points: number;
+  pointsMode?: 'flat' | 'per_amount';
   action?: React.ReactNode;
   tag?: string;
 }
 
-const EarnItem = React.memo(function EarnItem({ done, label, points, action, tag }: EarnItemProps) {
+const EarnItem = React.memo(function EarnItem({ done, label, points, pointsMode, action, tag }: EarnItemProps) {
+  const pointsLabel = pointsMode === 'per_amount' ? `${points}pt/€` : `+${points}`;
+
   return (
     <li className={`pw-earn-item ${done ? 'pw-earn-item--done' : ''}`}>
       <span className={`pw-earn-item__check ${done ? 'pw-earn-item__check--done' : 'pw-earn-item__check--pending'}`}>
@@ -20,7 +23,7 @@ const EarnItem = React.memo(function EarnItem({ done, label, points, action, tag
         {label}
         {tag && <span className="pw-earn-item__tag">{tag}</span>}
       </span>
-      <span className={`pw-earn-item__pts ${done ? 'pw-earn-item__pts--done' : 'pw-earn-item__pts--active'}`}>+{points}</span>
+      <span className={`pw-earn-item__pts ${done ? 'pw-earn-item__pts--done' : 'pw-earn-item__pts--active'}`}>{pointsLabel}</span>
       {!done && action}
     </li>
   );

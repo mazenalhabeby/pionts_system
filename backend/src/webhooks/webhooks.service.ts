@@ -50,14 +50,22 @@ export class WebhooksService {
 
     await this.customersService.incrementOrderCount(customer.id);
 
+    // Parse order total early (needed for dynamic purchase points + referral threshold)
+    const parsedTotal = typeof orderTotal === 'number' ? orderTotal : parseFloat(orderTotal || '0');
+
     // Points awarding (only if points module enabled)
     if (project.pointsEnabled) {
       const purchaseAction = await this.earnActionsService.getAction(projectId, 'purchase');
       if (purchaseAction?.enabled) {
-        await this.customersService.awardPoints(
-          projectId, customer.id, purchaseAction.points, 'purchase',
-          `Purchase — Order #${orderId}`, orderId,
-        );
+        const purchasePoints = purchaseAction.pointsMode === 'per_amount'
+          ? Math.floor(parsedTotal * purchaseAction.points)
+          : purchaseAction.points;
+        if (purchasePoints > 0) {
+          await this.customersService.awardPoints(
+            projectId, customer.id, purchasePoints, 'purchase',
+            `Purchase — Order #${orderId}`, orderId,
+          );
+        }
       }
 
       const firstOrderAction = await this.earnActionsService.getAction(projectId, 'first_order');
@@ -85,7 +93,6 @@ export class WebhooksService {
     }
 
     // Referral rewards (only if referrals module enabled)
-    const parsedTotal = typeof orderTotal === 'number' ? orderTotal : parseFloat(orderTotal || '0');
     if (project.referralsEnabled && !isNaN(parsedTotal) && parsedTotal >= this.configService.getInt(projectId, 'min_order_referral')) {
       const tree = await this.referralsService.getTreeEntry(projectId, customer.id);
       if (tree) {

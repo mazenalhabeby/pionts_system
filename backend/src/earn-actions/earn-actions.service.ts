@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 /** Default earn actions seeded on project creation (social follows added by admin with URL) */
 const DEFAULT_ACTIONS = [
   { slug: 'signup', label: 'Sign up', points: 20, category: 'predefined', frequency: 'one_time', sortOrder: 0 },
-  { slug: 'purchase', label: 'Every purchase', points: 10, category: 'predefined', frequency: 'repeatable', sortOrder: 1 },
+  { slug: 'purchase', label: 'Every purchase', points: 1, pointsMode: 'per_amount', category: 'predefined', frequency: 'repeatable', sortOrder: 1 },
   { slug: 'first_order', label: 'First order bonus', points: 50, category: 'predefined', frequency: 'one_time', sortOrder: 2 },
   { slug: 'review_photo', label: 'Photo review', points: 12, category: 'predefined', frequency: 'repeatable', sortOrder: 3 },
   { slug: 'review_text', label: 'Text review', points: 5, category: 'predefined', frequency: 'repeatable', sortOrder: 4 },
@@ -47,6 +47,7 @@ export class EarnActionsService {
     slug: string;
     label: string;
     points: number;
+    pointsMode?: string;
     category?: string;
     frequency?: string;
     socialUrl?: string;
@@ -58,6 +59,7 @@ export class EarnActionsService {
         slug: data.slug,
         label: data.label,
         points: data.points,
+        pointsMode: data.pointsMode || 'flat',
         category: data.category || 'custom',
         frequency: data.frequency || 'one_time',
         socialUrl: data.socialUrl,
@@ -69,6 +71,7 @@ export class EarnActionsService {
   async updateAction(projectId: number, id: number, data: {
     label?: string;
     points?: number;
+    pointsMode?: string;
     enabled?: boolean;
     socialUrl?: string;
     sortOrder?: number;

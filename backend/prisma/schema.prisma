@@ -278,6 +278,7 @@ model EarnAction {
   slug      String
   label     String
   points    Int      @default(0)
+  pointsMode String  @default("flat") @map("points_mode")
   category  String   // "predefined" | "social_follow" | "custom"
   frequency String   // "one_time" | "repeatable" | "yearly"
   enabled   Boolean  @default(true)

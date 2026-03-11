@@ -86,6 +86,7 @@ export interface EarnAction {
   slug: string;
   label: string;
   points: number;
+  points_mode?: 'flat' | 'per_amount';
   category: 'predefined' | 'social_follow' | 'custom';
   frequency: 'one_time' | 'repeatable' | 'yearly';
   enabled: boolean;

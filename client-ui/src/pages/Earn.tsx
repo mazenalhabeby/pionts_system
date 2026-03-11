@@ -426,6 +426,7 @@ export default function Earn() {
                 done={isCompleted(action)}
                 label={action.label}
                 points={action.points}
+                pointsMode={action.points_mode}
                 action={getActionButton(action)}
               />
             ))}
@@ -443,6 +444,7 @@ export default function Earn() {
                 done={false}
                 label={action.label}
                 points={action.points}
+                pointsMode={action.points_mode}
                 tag={getTag(action)}
                 action={getActionButton(action)}
               />

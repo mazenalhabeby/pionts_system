@@ -314,7 +314,20 @@ export default function PointsTab({ pid, canEdit }: { pid: number; canEdit: bool
                       type="number"
                       disabled={!canEdit}
                     />
-                    <span className="text-[11px] text-text-faint font-medium">pts</span>
+                    <span className="text-[11px] text-text-faint font-medium">
+                      {action.pointsMode === 'per_amount' ? 'pt/€' : 'pts'}
+                    </span>
+                    {action.slug === 'purchase' && canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => handleActionUpdate(action.id, {
+                          pointsMode: action.pointsMode === 'per_amount' ? 'flat' : 'per_amount',
+                        })}
+                        className="text-[10px] text-accent hover:underline bg-transparent border-none p-0 ml-1 cursor-pointer"
+                      >
+                        {action.pointsMode === 'per_amount' ? 'flat' : 'dynamic'}
+                      </button>
+                    )}
                   </div>
 
                   {/* Toggle */}

@@ -23,6 +23,7 @@ export class EarnActionsController {
     slug?: string;
     label: string;
     points: number;
+    pointsMode?: string;
     category?: string;
     frequency?: string;
     socialUrl?: string;
@@ -38,6 +39,7 @@ export class EarnActionsController {
   async update(@Param('id') id: string, @Param('actionId') actionId: string, @Body() body: {
     label?: string;
     points?: number;
+    pointsMode?: string;
     enabled?: boolean;
     socialUrl?: string;
     sortOrder?: number;
