@@ -76,12 +76,14 @@ export class RedemptionsService {
     const tier = await this.validateTier(projectId, customer.pointsBalance, tierPoints);
     const prefix = await this.getCodePrefix(projectId);
     const code = `${prefix}-${customer.referralCode}-${Date.now().toString(36)}`;
+    const shopifyCreated = await this.shopifyService.createDiscount(code, tier.discount);
     const { newBalance } = await this.executeRedemption(projectId, customer.id, tier, code);
 
     return {
       discount_code: code,
       discount_amount: tier.discount,
       new_balance: newBalance,
+      shopify_created: shopifyCreated,
     };
   }
 
