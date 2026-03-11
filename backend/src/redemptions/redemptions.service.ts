@@ -98,6 +98,9 @@ export class RedemptionsService {
       projectId, customerId, redemption.pointsSpent, 'refund', `Cancelled €${redemption.discountAmount} discount code`,
     );
 
+    // Delete the discount code from Shopify
+    await this.shopifyService.deleteDiscount(redemption.discountCode);
+
     await this.prisma.redemption.delete({ where: { id: redemptionId } });
 
     return { points_returned: redemption.pointsSpent, new_balance: newBalance };

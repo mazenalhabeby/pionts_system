@@ -98,4 +98,37 @@ export class ShopifyService {
       return false;
     }
   }
+
+  async deleteDiscount(code: string): Promise<boolean> {
+    if (!this.token || !this.store) return false;
+
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': this.token,
+      };
+
+      // Look up discount code to get its price_rule_id
+      const lookupRes = await this.fetchWithRetry(
+        `https://${this.store}/admin/api/2024-01/discount_codes/lookup.json?code=${encodeURIComponent(code)}`,
+        { method: 'GET', headers },
+      );
+
+      if (!lookupRes.ok) return false;
+      const lookupData = await lookupRes.json();
+      const priceRuleId = lookupData?.discount_code?.price_rule_id;
+      if (!priceRuleId) return false;
+
+      // Delete the price rule (cascades to discount code)
+      const deleteRes = await this.fetchWithRetry(
+        `https://${this.store}/admin/api/2024-01/price_rules/${priceRuleId}.json`,
+        { method: 'DELETE', headers },
+      );
+
+      return deleteRes.ok;
+    } catch (err) {
+      this.logger.error('Shopify discount deletion failed:', err);
+      return false;
+    }
+  }
 }
