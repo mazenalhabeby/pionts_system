@@ -20,6 +20,6 @@ export class EmailService {
       code,
     );
 
-    return this.emailSender.send(to, template.subject, template.html);
+    return this.emailSender.send(to, template.subject, template.html, brandName);
   }
 }

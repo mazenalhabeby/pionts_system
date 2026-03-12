@@ -371,7 +371,12 @@ export class SdkController {
     const expiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     await this.customersService.saveVerificationCode(customer.id, code, expiry);
-    const sent = await this.emailService.sendVerificationCode(body.email, code);
+
+    const settings = await this.configService.getAll(project.id);
+    const brandName = settings.widget_brand_name || project.name;
+    const primaryColor = settings.primary_color || '#3b82f6';
+
+    const sent = await this.emailService.sendVerificationCode(body.email, code, brandName, primaryColor);
     if (!sent) throw new BadRequestException('Failed to send verification email. Please try again.');
 
     return { success: true };

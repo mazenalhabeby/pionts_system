@@ -50,9 +50,9 @@ function TabNav({ active, onChange, tabs, onLogout }: { active: string; onChange
         className="pw-tab pw-tab--logout"
         onClick={onLogout}
         type="button"
-        title="Logout"
       >
-        <LogOutIcon size={18} />
+        <LogOutIcon size={16} />
+        <span>Logout</span>
       </button>
     </nav>
   );
