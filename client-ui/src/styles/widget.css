@@ -152,6 +152,16 @@ a:hover {
   background: var(--pionts-primary, #3b82f6);
 }
 
+.pw-tab--logout {
+  margin-left: auto;
+  color: #71717a;
+  padding: 16px 20px;
+}
+
+.pw-tab--logout:hover {
+  color: #ef4444;
+}
+
 /* ══════════════════════════════════════════════
    DASHBOARD
    ══════════════════════════════════════════════ */

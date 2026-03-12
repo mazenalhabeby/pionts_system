@@ -4,7 +4,7 @@ import useCustomer from './hooks/useCustomer';
 import LoginPage from './components/LoginPage';
 import CompleteProfilePage from './components/CompleteProfilePage';
 import PartnerCTAFooter from './components/PartnerCTAFooter';
-import { HomeIcon, UsersIcon, GiftIcon, StarIcon, ChartIcon } from '@pionts/shared';
+import { HomeIcon, UsersIcon, GiftIcon, StarIcon, ChartIcon, LogOutIcon } from '@pionts/shared';
 import { useI18n } from './i18n';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -29,7 +29,7 @@ const TAB_ICONS: Record<string, React.ReactNode> = {
   dollar: <StarIcon size={18} />,
 };
 
-function TabNav({ active, onChange, tabs }: { active: string; onChange: (key: string) => void; tabs: TabDef[] }) {
+function TabNav({ active, onChange, tabs, onLogout }: { active: string; onChange: (key: string) => void; tabs: TabDef[]; onLogout: () => void }) {
   return (
     <nav className="pw-tabs pionts-tab-scroll">
       {tabs.map((tab) => {
@@ -46,6 +46,14 @@ function TabNav({ active, onChange, tabs }: { active: string; onChange: (key: st
           </button>
         );
       })}
+      <button
+        className="pw-tab pw-tab--logout"
+        onClick={onLogout}
+        type="button"
+        title="Logout"
+      >
+        <LogOutIcon size={18} />
+      </button>
     </nav>
   );
 }
@@ -60,7 +68,7 @@ const PAGE_MAP: Record<string, React.LazyExoticComponent<React.ComponentType>> =
 };
 
 export default function WidgetApp() {
-  const { authenticated, loading, settings } = useWidgetConfig();
+  const { authenticated, loading, settings, logout } = useWidgetConfig();
   const { data: customerData } = useCustomer();
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('');
@@ -133,7 +141,7 @@ export default function WidgetApp() {
 
   return (
     <div className="pw-page">
-      <TabNav active={activeTab} onChange={setActiveTab} tabs={tabs} />
+      <TabNav active={activeTab} onChange={setActiveTab} tabs={tabs} onLogout={logout} />
       <main className={`pw-main${showPartnerCTA ? ' pw-main--with-footer' : ''}`}>
         <Suspense fallback={<div className="pw-loading">{t('common.loading')}</div>}>
           {PageComponent && <PageComponent />}
