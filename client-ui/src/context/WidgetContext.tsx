@@ -5,7 +5,7 @@ import type { SdkApi } from '../api-sdk';
 
 export interface PreAuthConfig {
   settings?: Record<string, string>;
-  earn_actions?: { slug: string; label: string; points: number; category: string; frequency: string }[];
+  earn_actions?: { slug: string; label: string; points: number; points_mode?: string; category: string; frequency: string }[];
   redemption_tiers?: { points: number; discount: number }[];
   referral_levels?: { level: number; points: number }[];
   enabled_modules?: { points: boolean; referrals: boolean; partners: boolean };

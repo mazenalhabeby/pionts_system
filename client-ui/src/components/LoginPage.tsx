@@ -149,16 +149,24 @@ export default function LoginPage() {
     return [...preAuthConfig.earn_actions]
       .sort((a, b) => (INCENTIVE_PRIORITY[a.slug] ?? 99) - (INCENTIVE_PRIORITY[b.slug] ?? 99))
       .slice(0, MAX_INCENTIVES)
-      .map((a) => ({
-        slug: a.slug,
-        icon: INCENTIVE_ICONS[a.slug] || (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="8,1 10,6 15,6 11,9.5 12.5,14.5 8,11.5 3.5,14.5 5,9.5 1,6 6,6" />
-          </svg>
-        ),
-        label: a.label,
-        points: a.points,
-      }));
+      .map((a) => {
+        let pointsText: string;
+        if (a.points_mode === 'per_amount') {
+          pointsText = `${a.points}pt/$1`;
+        } else {
+          pointsText = `+${a.points}`;
+        }
+        return {
+          slug: a.slug,
+          icon: INCENTIVE_ICONS[a.slug] || (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="8,1 10,6 15,6 11,9.5 12.5,14.5 8,11.5 3.5,14.5 5,9.5 1,6 6,6" />
+            </svg>
+          ),
+          label: a.label,
+          pointsText,
+        };
+      });
   }, [preAuthConfig?.earn_actions]);
 
   const referralDiscount = preAuthConfig?.settings?.referral_discount_percent;
@@ -333,7 +341,7 @@ export default function LoginPage() {
             {incentives.map((inc) => (
               <span key={inc.slug} className="pw-login__chip">
                 <span className="pw-login__chip-icon">{inc.icon}</span>
-                +{inc.points} {inc.label}
+                {inc.pointsText} {inc.label}
               </span>
             ))}
             {showReferralBadge && (
