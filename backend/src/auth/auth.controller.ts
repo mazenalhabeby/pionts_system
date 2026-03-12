@@ -101,6 +101,7 @@ export class AuthController {
       email: user.email,
       name: user.name,
       role: user.role,
+      isSuperAdmin: user.isSuperAdmin,
       org: {
         id: user.org.id,
         name: user.org.name,

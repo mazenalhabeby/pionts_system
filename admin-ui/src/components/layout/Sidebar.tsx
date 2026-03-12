@@ -23,6 +23,7 @@ import {
 import {
   PRIMARY_ICON_MAP,
   SECONDARY_ICON_MAP,
+  PLATFORM_ICON_MAP,
   SIDEBAR_OPEN_W,
 } from "./constants";
 import ProjectFavicon from "./ProjectFavicon";
@@ -34,6 +35,7 @@ interface SidebarProps {
   setMobileOpen: (v: boolean) => void;
   visibleNavItems: AppNavItem[];
   visibleSecondaryNav: SecondaryNavItem[];
+  platformNav: SecondaryNavItem[];
 }
 
 export default function Sidebar({
@@ -42,6 +44,7 @@ export default function Sidebar({
   setMobileOpen,
   visibleNavItems,
   visibleSecondaryNav,
+  platformNav,
 }: SidebarProps) {
   const { user, org, orgs, logout, switchOrg } = useAuth();
   const { currentProject } = useProject();
@@ -253,6 +256,46 @@ export default function Sidebar({
             );
           })}
         </div>
+
+        {/* Platform Admin Nav */}
+        {platformNav.length > 0 && (
+          <>
+            <div className="h-px bg-border-default my-3 mx-1" />
+            <div
+              className={`text-[10px] font-semibold uppercase tracking-wider text-text-faint px-3 mb-1.5 whitespace-nowrap transition-opacity duration-200 ${collapsed ? "opacity-0" : "opacity-100"}`}
+            >
+              Platform
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {platformNav.map((item) => {
+                const IconComponent = PLATFORM_ICON_MAP[item.icon];
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    end={item.path === "/platform"}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors duration-150 no-underline [&_svg]:shrink-0 ${
+                        isActive
+                          ? "bg-sidebar-active text-text-primary [&_svg]:opacity-100"
+                          : "text-text-muted hover:bg-sidebar-hover hover:text-text-secondary hover:no-underline [&_svg]:opacity-60"
+                      }`
+                    }
+                    title={collapsed ? item.label : undefined}
+                  >
+                    {IconComponent && <IconComponent size={18} />}
+                    <span
+                      className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? "opacity-0" : "opacity-100"}`}
+                    >
+                      {item.label}
+                    </span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          </>
+        )}
       </nav>
 
       {/* Bottom: User area */}

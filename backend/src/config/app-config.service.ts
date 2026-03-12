@@ -6,8 +6,15 @@ import { DEFAULTS } from './config.constants';
 export class AppConfigService {
   /** Per-project config cache: projectId → Map<key, value> */
   private cache = new Map<number, Map<string, string>>();
+  private cacheTimestamps = new Map<number, number>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private isCacheValid(projectId: number): boolean {
+    const ts = this.cacheTimestamps.get(projectId);
+    return !!ts && Date.now() - ts < this.CACHE_TTL;
+  }
 
   async loadSettingsForProject(projectId: number) {
     const rows = await this.prisma.setting.findMany({ where: { projectId } });
@@ -28,10 +35,11 @@ export class AppConfigService {
     }
 
     this.cache.set(projectId, projectConfig);
+    this.cacheTimestamps.set(projectId, Date.now());
   }
 
   private async ensureLoaded(projectId: number): Promise<Map<string, string>> {
-    if (!this.cache.has(projectId)) {
+    if (!this.cache.has(projectId) || !this.isCacheValid(projectId)) {
       await this.loadSettingsForProject(projectId);
     }
     return this.cache.get(projectId)!;
@@ -66,6 +74,7 @@ export class AppConfigService {
         projectConfig.set(key, val);
       }
     }
+    this.cacheTimestamps.set(projectId, Date.now());
   }
 
   async getRedemptionTiers(projectId: number) {

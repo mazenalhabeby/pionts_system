@@ -31,6 +31,12 @@ export interface SecondaryNavItem {
   ownerOnly?: boolean;
 }
 
+export const PLATFORM_NAV: SecondaryNavItem[] = [
+  { path: '/platform', label: 'Dashboard', icon: 'dashboard' },
+  { path: '/platform/orgs', label: 'Organizations', icon: 'building' },
+  { path: '/platform/users', label: 'Users', icon: 'users' },
+];
+
 export const SECONDARY_NAV: SecondaryNavItem[] = [
   { path: '/api-keys', label: 'API Keys', icon: 'key', minRole: 'admin' },
   { path: '/guides', label: 'Guides', icon: 'book' },

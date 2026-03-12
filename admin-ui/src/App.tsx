@@ -25,6 +25,10 @@ const ShopifyGuide = lazy(() => import('./pages/guides/ShopifyGuide'));
 const WordPressGuide = lazy(() => import('./pages/guides/WordPressGuide'));
 const CustomGuide = lazy(() => import('./pages/guides/CustomGuide'));
 const ApiReference = lazy(() => import('./pages/guides/ApiReference'));
+const PlatformDashboard = lazy(() => import('./pages/platform/Dashboard'));
+const PlatformOrgs = lazy(() => import('./pages/platform/Organizations'));
+const PlatformOrgDetail = lazy(() => import('./pages/platform/OrgDetail'));
+const PlatformUsers = lazy(() => import('./pages/platform/Users'));
 
 function PageLoader() {
   return <div className="text-center p-10 text-text-muted">Loading...</div>;
@@ -76,6 +80,10 @@ export default function App() {
           <Route path="/guides/api" element={<ApiReference />} />
           <Route path="/api-keys" element={<ApiKeys />} />
           <Route path="/org" element={<OrgSettings />} />
+          <Route path="/platform" element={<PlatformDashboard />} />
+          <Route path="/platform/orgs" element={<PlatformOrgs />} />
+          <Route path="/platform/orgs/:id" element={<PlatformOrgDetail />} />
+          <Route path="/platform/users" element={<PlatformUsers />} />
           <Route path="/accept-invite/:token" element={<AcceptInvite />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -29,6 +29,7 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   name         String?
+  isSuperAdmin Boolean  @default(false) @map("is_super_admin")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -84,6 +85,7 @@ model Project {
   partnerEarnings      PartnerEarning[]
   partnerApplications  PartnerApplication[]
 
+  @@index([orgId])
   @@map("projects")
 }
 
@@ -114,6 +116,7 @@ model ApiKey {
 
   project Project @relation(fields: [projectId], references: [id])
 
+  @@index([keyHash])
   @@map("api_keys")
 }
 
@@ -122,7 +125,7 @@ model ApiKey {
 model Customer {
   id                   Int       @id @default(autoincrement())
   projectId            Int       @map("project_id")
-  shopifyCustomerId    String?   @unique @map("shopify_customer_id")
+  shopifyCustomerId    String?   @map("shopify_customer_id")
   email                String
   name                 String?
   referralCode         String    @map("referral_code")
@@ -159,6 +162,7 @@ model Customer {
 
   @@unique([projectId, email])
   @@unique([projectId, referralCode])
+  @@unique([projectId, shopifyCustomerId])
   @@index([projectId, lastActivity])
   @@index([projectId, createdAt])
   @@map("customers")
@@ -196,6 +200,7 @@ model ReferralTree {
 
   @@unique([projectId, customerId])
   @@index([parentId])
+  @@index([projectId, parentId])
   @@map("referral_tree")
 }
 
@@ -212,7 +217,7 @@ model Redemption {
   project  Project  @relation(fields: [projectId], references: [id])
   customer Customer @relation(fields: [customerId], references: [id])
 
-  @@index([customerId])
+  @@index([projectId, customerId])
   @@map("redemptions")
 }
 

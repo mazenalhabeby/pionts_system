@@ -7,6 +7,7 @@ export interface JwtPayload {
   sub: number;  // userId
   email: string;
   currentOrgId: number;
+  isSuperAdmin?: boolean;
   // Legacy fields for backward compat during token transition
   orgId?: number;
   role?: string;
@@ -27,23 +28,24 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const currentOrgId = payload.currentOrgId ?? payload.orgId;
     if (!currentOrgId) throw new UnauthorizedException('Invalid token: missing org context');
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+    // Single indexed lookup using @@unique([userId, orgId]) compound index
+    const membership = await this.prisma.orgMembership.findUnique({
+      where: { userId_orgId: { userId: payload.sub, orgId: currentOrgId } },
       include: {
-        orgMemberships: { include: { org: true } },
+        user: { select: { id: true, email: true, name: true, isSuperAdmin: true, createdAt: true, updatedAt: true } },
+        org: true,
       },
     });
-    if (!user) throw new UnauthorizedException('User not found');
-
-    const membership = user.orgMemberships.find((m) => m.orgId === currentOrgId);
     if (!membership) throw new UnauthorizedException('Not a member of this organization');
 
     // Shim: attach org, orgId, and role so all existing guards/controllers work unchanged
     return {
-      ...user,
+      ...membership.user,
       org: membership.org,
       orgId: membership.orgId,
       role: membership.role,
+      isSuperAdmin: membership.user.isSuperAdmin,
+      orgMemberships: [membership],
     };
   }
 }

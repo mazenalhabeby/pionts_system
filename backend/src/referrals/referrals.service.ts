@@ -51,15 +51,15 @@ export class ReferralsService {
   }
 
   async getNetworkCount(projectId: number, customerId: number): Promise<number> {
-    // Recursive CTE to count all descendants
+    // Recursive CTE with depth limit to prevent infinite loops from circular refs
     const result = await this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
       WITH RECURSIVE chain AS (
-        SELECT customer_id FROM referral_tree
+        SELECT customer_id, 1 AS depth FROM referral_tree
         WHERE project_id = ${projectId} AND parent_id = ${customerId}
         UNION ALL
-        SELECT rt.customer_id FROM referral_tree rt
+        SELECT rt.customer_id, c.depth + 1 FROM referral_tree rt
         INNER JOIN chain c ON rt.parent_id = c.customer_id
-        WHERE rt.project_id = ${projectId}
+        WHERE rt.project_id = ${projectId} AND c.depth < 20
       )
       SELECT COUNT(*) as count FROM chain
     `);
@@ -78,11 +78,31 @@ export class ReferralsService {
     const referrer = await this.customersService.findByReferralCode(projectId, referrerCode);
     if (!referrer) return false;
 
+    // Self-referral check
+    if (referrer.id === customerId) return false;
+
     const directCount = await this.getDirectCount(projectId, referrer.id);
     if (directCount >= this.configService.getInt(projectId, 'max_direct_referrals')) return false;
 
     const existing = await this.getTreeEntry(projectId, customerId);
     if (existing) return false;
+
+    // Cycle detection: ensure referrer is not a descendant of customer
+    const descendantCount = await this.getNetworkCount(projectId, customerId);
+    if (descendantCount > 0) {
+      const isDescendant = await this.prisma.$queryRaw<Array<{ found: boolean }>>(Prisma.sql`
+        WITH RECURSIVE chain AS (
+          SELECT customer_id, 1 AS depth FROM referral_tree
+          WHERE project_id = ${projectId} AND parent_id = ${customerId}
+          UNION ALL
+          SELECT rt.customer_id, c.depth + 1 FROM referral_tree rt
+          INNER JOIN chain c ON rt.parent_id = c.customer_id
+          WHERE rt.project_id = ${projectId} AND c.depth < 20
+        )
+        SELECT EXISTS(SELECT 1 FROM chain WHERE customer_id = ${referrer.id}) as found
+      `);
+      if (isDescendant[0]?.found) return false;
+    }
 
     await this.prisma.referralTree.create({
       data: {
@@ -114,21 +134,21 @@ export class ReferralsService {
   /**
    * Walk up the referral chain from a customer, returning N levels of ancestors.
    * Level 2 = direct parent (the referrer), Level 3 = grandparent, etc.
+   * Uses a recursive CTE for a single DB round-trip instead of N sequential queries.
    */
   async walkUpline(projectId: number, customerId: number, maxLevels: number): Promise<Array<{ customerId: number; level: number }>> {
-    const upline: Array<{ customerId: number; level: number }> = [];
-    let currentId = customerId;
-
-    for (let level = 2; level <= maxLevels + 1; level++) {
-      const entry = await this.prisma.referralTree.findUnique({
-        where: { projectId_customerId: { projectId, customerId: currentId } },
-      });
-      if (!entry) break;
-      upline.push({ customerId: entry.parentId, level });
-      currentId = entry.parentId;
-    }
-
-    return upline;
+    const rows = await this.prisma.$queryRaw<Array<{ parent_id: number; lvl: bigint }>>(Prisma.sql`
+      WITH RECURSIVE upline AS (
+        SELECT parent_id, 2 AS lvl FROM referral_tree
+        WHERE project_id = ${projectId} AND customer_id = ${customerId}
+        UNION ALL
+        SELECT rt.parent_id, u.lvl + 1 FROM referral_tree rt
+        INNER JOIN upline u ON rt.customer_id = u.parent_id
+        WHERE rt.project_id = ${projectId} AND u.lvl < ${maxLevels + 1}
+      )
+      SELECT parent_id, lvl FROM upline ORDER BY lvl
+    `);
+    return rows.map(r => ({ customerId: Number(r.parent_id), level: Number(r.lvl) }));
   }
 
   async getDirectReferrals(projectId: number, customerId: number) {
@@ -220,23 +240,47 @@ export class ReferralsService {
     return directChildren.map((id) => this.buildNode(id, customerMap, childrenMap)).filter(Boolean);
   }
 
-  async getFullTree(projectId: number) {
-    const { customerMap, childrenMap, hasParent } = await this.buildTreeMaps(projectId, true);
+  async getFullTree(projectId: number, limit = 50, offset = 0) {
+    // Load only tree entries (not all customers) to determine structure
+    const treeEntries = await this.prisma.referralTree.findMany({
+      where: { projectId },
+      select: { customerId: true, parentId: true },
+    });
 
-    const roots: number[] = [];
-    for (const [parentId] of childrenMap) {
-      if (!hasParent.has(parentId)) roots.push(parentId);
+    const hasParent = new Set(treeEntries.map(t => t.customerId));
+    const childrenMap = new Map<number, number[]>();
+    for (const t of treeEntries) {
+      if (!childrenMap.has(t.parentId)) childrenMap.set(t.parentId, []);
+      childrenMap.get(t.parentId)!.push(t.customerId);
     }
 
-    const trees = roots.map((id) => this.buildNode(id, customerMap, childrenMap, true)).filter(Boolean);
+    // Find roots (parents that are not children of anyone)
+    const allRoots: number[] = [];
+    for (const [parentId] of childrenMap) {
+      if (!hasParent.has(parentId)) allRoots.push(parentId);
+    }
 
-    let deepest = 0;
-    const findDepth = (nodeId: number, depth: number) => {
-      if (depth > deepest) deepest = depth;
-      for (const cid of childrenMap.get(nodeId) || []) findDepth(cid, depth + 1);
+    // Paginate roots
+    const pagedRoots = allRoots.slice(offset, offset + limit);
+
+    // Collect all customer IDs needed for the paged subtrees
+    const neededIds = new Set<number>();
+    const collectIds = (id: number) => {
+      neededIds.add(id);
+      for (const cid of childrenMap.get(id) || []) collectIds(cid);
     };
-    for (const rootId of roots) findDepth(rootId, 1);
+    for (const rootId of pagedRoots) collectIds(rootId);
 
-    return { trees, totalChains: roots.length, deepest, totalMembers: hasParent.size };
+    // Load only the needed customers
+    const customers = await this.prisma.customer.findMany({
+      where: { id: { in: Array.from(neededIds) } },
+      select: { id: true, name: true, referralCode: true, email: true },
+    });
+    const customerMap = new Map(customers.map(c => [c.id, c]));
+
+    // Build trees for paged roots only
+    const trees = pagedRoots.map(id => this.buildNode(id, customerMap, childrenMap, true)).filter(Boolean);
+
+    return { trees, totalChains: allRoots.length, totalMembers: hasParent.size };
   }
 }

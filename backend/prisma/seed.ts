@@ -827,14 +827,43 @@ async function seedVelvet() {
   return { org, owner, project, pubKey, secKey, customerCount: vc.length, logCount: vlogs.length, orderCount: vUniqueOrders.length };
 }
 
+async function seedSuperAdmin() {
+  console.log('\n── Seeding Platform Super Admin ──');
+
+  const platformOrg = await prisma.organization.create({
+    data: { name: 'Pionts Platform', slug: 'pionts-platform' },
+  });
+
+  const passwordHash = await bcrypt.hash('admin123', 10);
+  const superAdmin = await prisma.user.create({
+    data: {
+      email: 'admin@pionts.com',
+      passwordHash,
+      name: 'Platform Admin',
+      isSuperAdmin: true,
+    },
+  });
+
+  await prisma.orgMembership.create({
+    data: { userId: superAdmin.id, orgId: platformOrg.id, role: 'owner' },
+  });
+
+  return { org: platformOrg, user: superAdmin };
+}
+
 async function main() {
   await clearAll();
 
+  const platform = await seedSuperAdmin();
   const brew = await seedBrewBean();
   const velvet = await seedVelvet();
 
   console.log('\n\n✅ Seed complete!\n');
   console.log('═══════════════════════════════════════════════════');
+  console.log(' SUPER ADMIN:');
+  console.log(`   Email: admin@pionts.com / admin123`);
+  console.log(`   Org: ${platform.org.name}`);
+  console.log('───────────────────────────────────────────────────');
   console.log(' ORG 1: Brew & Bean Co');
   console.log(`   Admin: admin@brewbean.com / admin (owner)`);
   console.log(`   Member: barista@brewbean.com / member (editor)`);

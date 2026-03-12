@@ -119,7 +119,7 @@ export class AuthService {
 
     // Default to first org
     const defaultMembership = user.orgMemberships[0];
-    const tokens = this.generateTokens(user.id, defaultMembership.orgId, user.email);
+    const tokens = this.generateTokens(user.id, defaultMembership.orgId, user.email, user.isSuperAdmin);
 
     const orgs = user.orgMemberships.map((m) => ({
       id: m.org.id,
@@ -130,7 +130,7 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: defaultMembership.role },
+      user: { id: user.id, email: user.email, name: user.name, role: defaultMembership.role, isSuperAdmin: user.isSuperAdmin },
       org: { id: defaultMembership.org.id, name: defaultMembership.org.name, slug: defaultMembership.org.slug },
       orgs,
     };
@@ -158,10 +158,10 @@ export class AuthService {
         if (user.orgMemberships.length === 0) {
           throw new UnauthorizedException('User has no organization memberships');
         }
-        return this.generateTokens(user.id, user.orgMemberships[0].orgId, user.email);
+        return this.generateTokens(user.id, user.orgMemberships[0].orgId, user.email, user.isSuperAdmin);
       }
 
-      return this.generateTokens(user.id, currentOrgId, user.email);
+      return this.generateTokens(user.id, currentOrgId, user.email, user.isSuperAdmin);
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -177,7 +177,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
 
-    const tokens = this.generateTokens(userId, targetOrgId, user.email);
+    const tokens = this.generateTokens(userId, targetOrgId, user.email, user.isSuperAdmin);
 
     return {
       ...tokens,
@@ -186,8 +186,8 @@ export class AuthService {
     };
   }
 
-  private generateTokens(userId: number, currentOrgId: number, email: string) {
-    const payload = { sub: userId, currentOrgId, email };
+  private generateTokens(userId: number, currentOrgId: number, email: string, isSuperAdmin = false) {
+    const payload = { sub: userId, currentOrgId, email, isSuperAdmin };
 
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET || 'dev-jwt-secret',

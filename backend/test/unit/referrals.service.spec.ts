@@ -144,12 +144,12 @@ describe('ReferralsService', () => {
   });
 
   describe('walkUpline', () => {
-    it('should walk up the referral chain N levels', async () => {
+    it('should walk up the referral chain N levels via CTE', async () => {
       // Customer 30 -> Parent 20 -> Grandparent 10
-      prisma.referralTree.findUnique
-        .mockResolvedValueOnce({ parentId: 20, customerId: 30 }) // level 2
-        .mockResolvedValueOnce({ parentId: 10, customerId: 20 }) // level 3
-        .mockResolvedValueOnce(null); // no more
+      prisma.$queryRaw.mockResolvedValueOnce([
+        { parent_id: 20, lvl: BigInt(2) },
+        { parent_id: 10, lvl: BigInt(3) },
+      ]);
 
       const upline = await service.walkUpline(1, 30, 3);
 
@@ -157,10 +157,11 @@ describe('ReferralsService', () => {
         { customerId: 20, level: 2 },
         { customerId: 10, level: 3 },
       ]);
+      expect(prisma.$queryRaw).toHaveBeenCalled();
     });
 
-    it('should stop when no more parents found', async () => {
-      prisma.referralTree.findUnique.mockResolvedValueOnce(null);
+    it('should return empty when no parents found', async () => {
+      prisma.$queryRaw.mockResolvedValueOnce([]);
 
       const upline = await service.walkUpline(1, 30, 5);
 

@@ -44,10 +44,50 @@ a:hover {
   max-width: 1520px;
   margin: 0 auto;
   font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  position: relative;
+  background: #09090b;
+}
+
+.pw-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background:
-    radial-gradient(ellipse at 15% 0%, color-mix(in srgb, var(--pionts-primary, #3b82f6) 8%, transparent) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 100%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
-    #09090b;
+    /* Gold glow — top-left */
+    radial-gradient(ellipse 1200px 1000px at 0% 0%,
+      rgba(251, 191, 36, 0.5) 0%,
+      rgba(245, 158, 11, 0.22) 22%,
+      rgba(217, 119, 6, 0.08) 45%,
+      transparent 70%),
+    /* Blue glow — bottom-right */
+    radial-gradient(ellipse 1300px 1100px at 100% 100%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 55%, transparent) 0%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 22%, transparent) 25%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 06%, transparent) 50%,
+      transparent 70%),
+    /* Secondary gold — top-right */
+    radial-gradient(ellipse 600px 500px at 90% 0%,
+      rgba(251, 191, 36, 0.2) 0%,
+      transparent 65%),
+    /* Secondary blue — bottom-left */
+    radial-gradient(ellipse 600px 500px at 0% 100%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 20%, transparent) 0%,
+      transparent 65%),
+    /* Gold center bleed */
+    radial-gradient(ellipse 700px 400px at 30% 35%,
+      rgba(251, 191, 36, 0.08) 0%,
+      transparent 60%),
+    /* Blue center bleed */
+    radial-gradient(ellipse 700px 400px at 70% 65%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 08%, transparent) 0%,
+      transparent 60%);
+}
+
+.pw-page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .pw-main {
@@ -59,9 +99,9 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(9, 9, 11, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: transparent;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.04),
     0 2px 8px rgba(0, 0, 0, 0.3);
@@ -83,14 +123,14 @@ a:hover {
   border: none;
   cursor: pointer;
   background: transparent;
-  color: #71717a;
+  color: #d4d4d8;
   transition: color 0.2s ease;
   font-family: inherit;
   flex-shrink: 0;
 }
 
 .pw-tab:hover {
-  color: #a1a1aa;
+  color: #e4e4e7;
 }
 
 .pw-tab--active {
@@ -200,7 +240,7 @@ a:hover {
 }
 
 .pw-hero__greeting {
-  color: #71717a;
+  color: #d4d4d8;
   font-size: 14px;
   font-weight: 500;
   margin: 0;
@@ -324,7 +364,7 @@ a:hover {
 
 .pw-stat__label {
   font-size: 10px;
-  color: #71717a;
+  color: #d4d4d8;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -526,7 +566,7 @@ a:hover {
 }
 
 .pw-card__badge--neutral {
-  color: #71717a;
+  color: #d4d4d8;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 8px;
 }
@@ -581,7 +621,7 @@ a:hover {
 
 .pw-share__subtitle {
   font-size: 12px;
-  color: #71717a;
+  color: #d4d4d8;
   margin: 6px 0 0;
 }
 
@@ -628,7 +668,7 @@ a:hover {
 
 .pw-share__stat {
   font-size: 12px;
-  color: #71717a;
+  color: #d4d4d8;
   font-weight: 500;
 }
 
@@ -684,7 +724,7 @@ a:hover {
 .pw-loading {
   text-align: center;
   padding: 40px;
-  color: #71717a;
+  color: #d4d4d8;
   font-size: 14px;
 }
 
@@ -764,7 +804,7 @@ a:hover {
   text-align: center;
   padding: 48px 20px;
   font-size: 14px;
-  color: #52525b;
+  color: #e4e4e7;
 }
 
 .pw-activity__list {
@@ -820,7 +860,7 @@ a:hover {
 
 .pw-history-time {
   flex-shrink: 0;
-  color: #52525b;
+  color: #e4e4e7;
   font-size: 12px;
   white-space: nowrap;
 }
@@ -898,7 +938,7 @@ a:hover {
 
 .pw-page-header__subtitle {
   font-size: 13px;
-  color: #71717a;
+  color: #d4d4d8;
   margin-top: 2px;
 }
 
@@ -970,11 +1010,11 @@ a:hover {
   font-family: inherit;
   transition: all 0.2s ease;
   background: transparent;
-  color: #71717a;
+  color: #d4d4d8;
 }
 
 .pw-tab-toggle__btn:hover:not(.pw-tab-toggle__btn--active) {
-  color: #a1a1aa;
+  color: #e4e4e7;
 }
 
 .pw-tab-toggle__btn--active {
@@ -989,7 +1029,7 @@ a:hover {
   padding: 2px 8px;
   border-radius: 100px;
   background: rgba(255, 255, 255, 0.08);
-  color: #71717a;
+  color: #d4d4d8;
 }
 
 .pw-tab-toggle__btn--active .pw-tab-toggle__badge {
@@ -1048,7 +1088,7 @@ a:hover {
 
 .pw-metric__label {
   font-size: 10px;
-  color: #71717a;
+  color: #d4d4d8;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1098,7 +1138,7 @@ a:hover {
 }
 
 .pw-btn--secondary {
-  color: #a1a1aa;
+  color: #e4e4e7;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1156,7 +1196,7 @@ a:hover {
   padding: 10px 20px;
   font-size: 12px;
   font-weight: 600;
-  color: #71717a;
+  color: #d4d4d8;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -1186,7 +1226,7 @@ a:hover {
 }
 
 .pw-table__code--used {
-  color: #52525b;
+  color: #e4e4e7;
   text-decoration: line-through;
 }
 
@@ -1199,7 +1239,7 @@ a:hover {
   padding: 3px 8px;
   border-radius: 100px;
   background: rgba(255, 255, 255, 0.06);
-  color: #71717a;
+  color: #d4d4d8;
 }
 
 .pw-table__badge--active {
@@ -1331,13 +1371,13 @@ a:hover {
 }
 
 .pw-earn-item--done .pw-earn-item__label {
-  color: #52525b;
+  color: #e4e4e7;
   text-decoration: line-through;
 }
 
 .pw-earn-item__tag {
   font-size: 11px;
-  color: #71717a;
+  color: #d4d4d8;
   background: rgba(255, 255, 255, 0.06);
   padding: 2px 8px;
   border-radius: 8px;
@@ -1360,7 +1400,7 @@ a:hover {
 
 .pw-earn-item__pts--done {
   background: rgba(255, 255, 255, 0.04);
-  color: #52525b;
+  color: #e4e4e7;
 }
 
 /* ══════════════════════════════════════════════
@@ -1402,7 +1442,7 @@ a:hover {
   position: absolute;
   top: 12px;
   right: 12px;
-  color: #52525b;
+  color: #e4e4e7;
 }
 
 .pw-tier-card__discount {
@@ -1413,12 +1453,12 @@ a:hover {
 }
 
 .pw-tier-card--locked .pw-tier-card__discount {
-  color: #52525b;
+  color: #e4e4e7;
 }
 
 .pw-tier-card__points {
   font-size: 13px;
-  color: #71717a;
+  color: #d4d4d8;
   margin-top: 6px;
   margin-bottom: 16px;
 }
@@ -1443,7 +1483,7 @@ a:hover {
 
 .pw-tier-card__btn:disabled {
   background: rgba(255, 255, 255, 0.06);
-  color: #52525b;
+  color: #e4e4e7;
   cursor: not-allowed;
 }
 
@@ -1473,7 +1513,7 @@ a:hover {
 .pw-btn--cancel {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #71717a;
+  color: #d4d4d8;
   font-size: 12px;
   font-weight: 500;
   padding: 5px 12px;
@@ -1525,7 +1565,7 @@ a:hover {
 
 .pw-ring__label {
   font-size: 10px;
-  color: #71717a;
+  color: #d4d4d8;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 600;
@@ -1607,7 +1647,7 @@ a:hover {
 
 .pw-lb-sub {
   font-size: 12px;
-  color: #71717a;
+  color: #d4d4d8;
   margin-top: 2px;
 }
 
@@ -1718,7 +1758,7 @@ a:hover {
 .pw-lb-col__name {
   font-size: 11px;
   font-weight: 600;
-  color: #a1a1aa;
+  color: #e4e4e7;
   margin-top: 6px;
   margin-bottom: 4px;
   max-width: 68px;
@@ -1770,7 +1810,7 @@ a:hover {
   justify-content: center;
   font-size: 10px;
   font-weight: 700;
-  color: #a1a1aa;
+  color: #e4e4e7;
   flex-shrink: 0;
 }
 
@@ -1788,7 +1828,7 @@ a:hover {
   justify-content: center;
   font-size: 11px;
   font-weight: 700;
-  color: #a1a1aa;
+  color: #e4e4e7;
   flex-shrink: 0;
 }
 
@@ -1869,30 +1909,48 @@ a:hover {
 .pw-login::before {
   content: '';
   position: absolute;
-  inset: -20%;
+  inset: -25%;
   background:
-    radial-gradient(ellipse 800px 600px at 20% 15%,
-      rgba(251, 191, 36, 0.16) 0%,
-      transparent 70%),
-    radial-gradient(ellipse 600px 600px at 75% 75%,
-      color-mix(in srgb, var(--pionts-primary, #3b82f6) 18%, transparent) 0%,
-      transparent 70%),
-    radial-gradient(ellipse 500px 400px at 65% 8%,
-      rgba(245, 158, 11, 0.1) 0%,
-      transparent 70%),
-    radial-gradient(ellipse 450px 450px at 8% 80%,
-      rgba(16, 185, 129, 0.08) 0%,
-      transparent 70%),
-    radial-gradient(ellipse 350px 350px at 50% 50%,
-      rgba(139, 92, 246, 0.06) 0%,
-      transparent 70%);
-  animation: loginMeshDrift 15s ease-in-out infinite alternate;
+    /* Gold glow — top-left corner, bold */
+    radial-gradient(ellipse 1500px 1300px at 0% 0%,
+      rgba(251, 191, 36, 0.9) 0%,
+      rgba(245, 158, 11, 0.55) 18%,
+      rgba(217, 119, 6, 0.25) 40%,
+      rgba(217, 119, 6, 0.06) 60%,
+      transparent 75%),
+    /* Blue glow — bottom-right corner, bold */
+    radial-gradient(ellipse 1600px 1400px at 100% 100%,
+      var(--pionts-primary, #3b82f6) 0%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 55%, transparent) 20%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 22%, transparent) 45%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 06%, transparent) 65%,
+      transparent 80%),
+    /* Secondary gold — top-right */
+    radial-gradient(ellipse 800px 700px at 90% 0%,
+      rgba(251, 191, 36, 0.4) 0%,
+      rgba(245, 158, 11, 0.12) 50%,
+      transparent 75%),
+    /* Secondary blue — bottom-left */
+    radial-gradient(ellipse 800px 700px at 0% 100%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 40%, transparent) 0%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 10%, transparent) 50%,
+      transparent 75%),
+    /* Gold center bleed */
+    radial-gradient(ellipse 900px 600px at 30% 35%,
+      rgba(251, 191, 36, 0.22) 0%,
+      transparent 60%),
+    /* Blue center bleed */
+    radial-gradient(ellipse 900px 600px at 70% 65%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 20%, transparent) 0%,
+      transparent 60%);
+  animation: loginMeshDrift 18s ease-in-out infinite alternate;
   z-index: 0;
 }
 
 @keyframes loginMeshDrift {
   0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(-30px, 20px) scale(1.05); }
+  50% { transform: translate(-20px, 15px) scale(1.03); }
+  100% { transform: translate(-35px, 25px) scale(1.06); }
 }
 
 /* ── Noise/grain texture overlay ── */
@@ -1963,7 +2021,7 @@ a:hover {
 .pw-login__subtitle {
   font-size: 15px;
   line-height: 1.7;
-  color: #a1a1aa;
+  color: #e4e4e7;
   margin: 0 0 32px;
   max-width: 380px;
 }
@@ -2020,7 +2078,7 @@ a:hover {
 .pw-login__back {
   background: transparent;
   border: none;
-  color: #71717a;
+  color: #d4d4d8;
   font-size: 13px;
   cursor: pointer;
   padding: 8px 0;
@@ -2092,7 +2150,7 @@ a:hover {
   z-index: 1;
 }
 
-/* ── Floating reward coins ── */
+/* ── Floating 3D currency coins (SVG-based) ── */
 .pw-login__coins {
   position: absolute;
   inset: 0;
@@ -2103,46 +2161,64 @@ a:hover {
 
 .pw-login__coin {
   position: absolute;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #fde68a 0%, #fbbf24 40%, #d97706 100%);
-  box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.4),
-    inset 0 -2px 4px rgba(146, 64, 14, 0.25),
-    0 4px 12px rgba(251, 191, 36, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 4px 12px rgba(251, 191, 36, 0.3))
+          drop-shadow(0 8px 24px rgba(0, 0, 0, 0.25));
 }
 
-.pw-login__coin::after {
-  content: '';
-  position: absolute;
-  top: 18%;
-  left: 22%;
-  width: 35%;
-  height: 35%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
+/* ── Coin positions ── */
+/* Large — hero coins, near the gradient glows */
+.pw-login__coin--1  { top: 4%;   left: 3%;   opacity: 0.8;  animation: coinFloat1 10s ease-in-out infinite; }
+.pw-login__coin--2  { bottom: 5%; right: 4%;  opacity: 0.75; animation: coinFloat2 12s ease-in-out 0.5s infinite; }
+
+/* Medium — mid-ground depth */
+.pw-login__coin--3  { top: 28%;  left: 1%;   opacity: 0.55; animation: coinFloat3 11s ease-in-out 1s infinite; }
+.pw-login__coin--4  { top: 12%;  right: 3%;  opacity: 0.5;  animation: coinFloat4 9s ease-in-out 2s infinite; }
+.pw-login__coin--5  { bottom: 20%; left: 5%; opacity: 0.55; animation: coinFloat1 13s ease-in-out 1.5s infinite; }
+.pw-login__coin--6  { top: 58%;  right: 2%;  opacity: 0.5;  animation: coinFloat3 10s ease-in-out 3s infinite; }
+
+/* Small — far-field atmosphere */
+.pw-login__coin--7  { top: 48%;  left: 11%;  opacity: 0.35; animation: coinFloat2 8s ease-in-out 4s infinite; }
+.pw-login__coin--8  { top: 6%;   right: 14%; opacity: 0.3;  animation: coinFloat4 7s ease-in-out 2.5s infinite; }
+.pw-login__coin--9  { bottom: 32%; right: 9%; opacity: 0.38; animation: coinFloat1 9s ease-in-out 3.5s infinite; }
+.pw-login__coin--10 { top: 74%;  left: 3%;   opacity: 0.25; animation: coinFloat3 11s ease-in-out 5s infinite; }
+.pw-login__coin--11 { top: 2%;   left: 22%;  opacity: 0.32; animation: coinFloat2 14s ease-in-out 1s infinite; }
+.pw-login__coin--12 { bottom: 10%; left: 18%; opacity: 0.3;  animation: coinFloat4 10s ease-in-out 4.5s infinite; }
+
+/* Center coins — clustered near/behind the card */
+.pw-login__coin--c1 { top: 18%;  left: 50%;  margin-left: -300px; opacity: 0.7;  animation: coinFloat2 11s ease-in-out 0.8s infinite; }
+.pw-login__coin--c2 { top: 14%;  left: 50%;  margin-left: 260px;  opacity: 0.65; animation: coinFloat3 10s ease-in-out 1.2s infinite; }
+.pw-login__coin--c3 { bottom: 22%; left: 50%; margin-left: -280px; opacity: 0.6;  animation: coinFloat1 12s ease-in-out 2s infinite; }
+.pw-login__coin--c4 { bottom: 18%; left: 50%; margin-left: 270px;  opacity: 0.6;  animation: coinFloat4 9s ease-in-out 0.3s infinite; }
+.pw-login__coin--c5 { top: 40%;  left: 50%;  margin-left: -310px; opacity: 0.5;  animation: coinFloat3 13s ease-in-out 3s infinite; }
+.pw-login__coin--c6 { top: 50%;  left: 50%;  margin-left: 290px;  opacity: 0.55; animation: coinFloat1 11s ease-in-out 1.8s infinite; }
+.pw-login__coin--c7 { top: 10%;  left: 50%;  margin-left: -50px;  opacity: 0.4;  animation: coinFloat4 14s ease-in-out 2.5s infinite; }
+.pw-login__coin--c8 { bottom: 10%; left: 50%; margin-left: 80px;   opacity: 0.45; animation: coinFloat2 12s ease-in-out 3.5s infinite; }
+
+/* ── Gentle float animations (no rotation) ── */
+@keyframes coinFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(4px, -30px) scale(1.04); }
 }
 
-.pw-login__coin--1 { width: 44px; height: 44px; top: 8%; left: 5%; opacity: 0.55; animation: coinDrift1 9s ease-in-out infinite; }
-.pw-login__coin--2 { width: 30px; height: 30px; top: 22%; right: 8%; opacity: 0.4; animation: coinDrift2 11s ease-in-out 1s infinite; }
-.pw-login__coin--3 { width: 38px; height: 38px; bottom: 25%; left: 10%; opacity: 0.45; animation: coinDrift3 10s ease-in-out 2s infinite; }
-.pw-login__coin--4 { width: 22px; height: 22px; top: 55%; right: 6%; opacity: 0.35; animation: coinDrift1 8s ease-in-out 3s infinite; }
-.pw-login__coin--5 { width: 52px; height: 52px; bottom: 10%; right: 12%; opacity: 0.3; animation: coinDrift2 13s ease-in-out 0.5s infinite; }
-
-@keyframes coinDrift1 {
-  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
-  50% { transform: translateY(-25px) rotate(12deg) scale(1.05); }
+@keyframes coinFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  30%  { transform: translate(8px, -20px) scale(1.03); }
+  70%  { transform: translate(-6px, -35px) scale(0.97); }
 }
 
-@keyframes coinDrift2 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  33% { transform: translate(12px, -18px) rotate(-8deg); }
-  66% { transform: translate(-8px, -8px) rotate(6deg); }
+@keyframes coinFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%  { transform: translate(-5px, -25px) scale(1.06); }
+  80%  { transform: translate(3px, -10px) scale(0.98); }
 }
 
-@keyframes coinDrift3 {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-12px) rotate(-6deg) scale(1.06); }
-  75% { transform: translateY(8px) rotate(10deg) scale(0.96); }
+@keyframes coinFloat4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  35%  { transform: translate(-10px, -18px) scale(1.05); }
+  65%  { transform: translate(6px, -28px) scale(0.96); }
 }
 
 /* ── Value propositions ── */
@@ -2208,7 +2284,7 @@ a:hover {
 }
 
 .pw-login .pw-input::placeholder {
-  color: #52525b;
+  color: #e4e4e7;
 }
 
 .pw-login .pw-input:focus {
@@ -2234,7 +2310,7 @@ a:hover {
 
 .pw-login .pw-login__field-hint {
   font-size: 12px;
-  color: #71717a;
+  color: #d4d4d8;
   margin-bottom: 8px;
 }
 
@@ -2325,6 +2401,21 @@ a:hover {
   .pw-login__vp { padding: 12px 6px 10px; }
   .pw-login__vp-icon { width: 32px; height: 32px; }
   .pw-login__vp-label { font-size: 11px; }
+
+  /* Hide small atmosphere + center coins on mobile */
+  .pw-login__coin--7,
+  .pw-login__coin--8,
+  .pw-login__coin--10,
+  .pw-login__coin--11,
+  .pw-login__coin--12,
+  .pw-login__coin--c1,
+  .pw-login__coin--c2,
+  .pw-login__coin--c3,
+  .pw-login__coin--c4,
+  .pw-login__coin--c5,
+  .pw-login__coin--c6,
+  .pw-login__coin--c7,
+  .pw-login__coin--c8 { display: none; }
 }
 
 @media (max-width: 420px) {
@@ -2755,7 +2846,7 @@ a:hover {
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
-  color: #71717a;
+  color: #d4d4d8;
   cursor: pointer;
   padding: 0;
   margin-bottom: 20px;
@@ -2786,7 +2877,7 @@ a:hover {
 
 .pw-apply-form__section-hint {
   font-size: 12px;
-  color: #71717a;
+  color: #d4d4d8;
   margin: 0 0 12px;
 }
 
@@ -2807,7 +2898,7 @@ a:hover {
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: #a1a1aa;
+  color: #e4e4e7;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -2861,7 +2952,7 @@ a:hover {
 /* ── Field hint (reusable) ── */
 .pw-apply-form__field-hint {
   font-size: 11px;
-  color: #52525b;
+  color: #e4e4e7;
   margin-top: 4px;
 }
 
@@ -2930,7 +3021,7 @@ a:hover {
 
 .pw-empty__desc {
   font-size: 14px;
-  color: #71717a;
+  color: #d4d4d8;
   max-width: 300px;
   margin: 0 auto;
   line-height: 1.6;
@@ -2942,7 +3033,7 @@ a:hover {
 
 .pw-partner-info {
   font-size: 13px;
-  color: #a1a1aa;
+  color: #e4e4e7;
   line-height: 1.7;
 }
 
@@ -3245,7 +3336,7 @@ a:hover {
 
 .pw-btn--countdown {
   background: rgba(255, 255, 255, 0.06) !important;
-  color: #71717a !important;
+  color: #d4d4d8 !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   font-variant-numeric: tabular-nums;
   min-width: 72px;

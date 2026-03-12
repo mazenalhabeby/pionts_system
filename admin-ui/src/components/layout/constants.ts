@@ -2,7 +2,7 @@ import type { IconProps } from '@pionts/shared';
 import {
   HomeIcon, UsersIcon, GiftIcon, SettingsIcon, ChartIcon,
   KeyIcon, BookIcon, CreditCardIcon, BuildingIcon,
-  DashboardIcon, StarIcon,
+  DashboardIcon, StarIcon, ShieldIcon,
 } from '@pionts/shared';
 
 export const PRIMARY_ICON_MAP: Record<string, React.ComponentType<IconProps>> = {
@@ -20,6 +20,12 @@ export const SECONDARY_ICON_MAP: Record<string, React.ComponentType<IconProps>> 
   book: BookIcon,
   creditcard: CreditCardIcon,
   building: BuildingIcon,
+};
+
+export const PLATFORM_ICON_MAP: Record<string, React.ComponentType<IconProps>> = {
+  dashboard: ShieldIcon,
+  building: BuildingIcon,
+  users: UsersIcon,
 };
 
 export const SIDEBAR_KEY = 'pionts-sidebar-open';
@@ -48,6 +54,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/org': 'Organization',
   '/projects': 'Projects',
   '/projects/new': 'New Project',
+  '/platform': 'Platform Admin',
+  '/platform/orgs': 'Organizations',
+  '/platform/users': 'Users',
 };
 
 export function getPageTitle(pathname: string, hasProject: boolean): string {
@@ -57,5 +66,6 @@ export function getPageTitle(pathname: string, hasProject: boolean): string {
   }
   if (pathname.startsWith('/customer/')) return 'Customer Detail';
   if (pathname.startsWith('/guides/')) return 'Guides';
+  if (pathname.startsWith('/platform/orgs/')) return 'Organization Detail';
   return '';
 }

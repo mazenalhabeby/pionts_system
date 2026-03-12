@@ -69,7 +69,7 @@ describe('EmailSenderService', () => {
       mockSendMail.mockResolvedValue({ messageId: '456' });
       await service.send('to@test.com', 'Hi', '<p>Body</p>', 'MyApp');
       expect(mockSendMail).toHaveBeenCalledWith(
-        expect.objectContaining({ from: 'MyApp <noreply@pionts.com>' }),
+        expect.objectContaining({ from: 'MyApp <noreply@example.com>' }),
       );
     });
 

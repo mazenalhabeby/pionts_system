@@ -25,6 +25,7 @@ import { HealthModule } from './health/health.module';
 import { EarnActionsModule } from './earn-actions/earn-actions.module';
 import { PartnersModule } from './partners/partners.module';
 import { InvitationsModule } from './invitations/invitations.module';
+import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { InvitationsModule } from './invitations/invitations.module';
     EarnActionsModule,
     PartnersModule,
     InvitationsModule,
+    PlatformAdminModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

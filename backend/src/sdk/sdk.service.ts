@@ -56,7 +56,8 @@ export class SdkService {
       this.earnActionsService.getPendingSocialClaims(projectId, customer.id),
     ]);
 
-    const settings = await this.getProjectPublicSettings(projectId);
+    // Pass already-fetched project and tiers to avoid redundant DB queries
+    const settings = await this.getProjectPublicSettings(projectId, project, redemptionTiers);
 
     // Map earn actions with completion status
     const actionsWithStatus = earnActions.map((a: any) => ({
@@ -115,14 +116,14 @@ export class SdkService {
     };
   }
 
-  async getProjectPublicSettings(projectId: number) {
+  async getProjectPublicSettings(projectId: number, existingProject?: any, existingTiers?: any[]) {
     const allSettings = await this.configService.getAll(projectId);
-    const tiers = await this.configService.getRedemptionTiers(projectId);
+    const tiers = existingTiers ?? await this.configService.getRedemptionTiers(projectId);
 
     // Fall back to project domain if referral_base_url not configured
     let referralBaseUrl = allSettings.referral_base_url || '';
     if (!referralBaseUrl) {
-      const project = await this.prisma.project.findUnique({
+      const project = existingProject ?? await this.prisma.project.findUnique({
         where: { id: projectId },
         select: { domain: true },
       });

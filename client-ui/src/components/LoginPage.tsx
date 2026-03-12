@@ -74,6 +74,67 @@ const INCENTIVE_PRIORITY: Record<string, number> = {
 
 const MAX_INCENTIVES = 4;
 
+function CoinSvg({ symbol, size }: { symbol: '€' | '$'; size: number }) {
+  const r = size / 2;
+  const ir = r * 0.82;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id={`cg-${symbol}-${size}`} cx="38%" cy="32%" r="68%">
+          <stop offset="0%" stopColor="#fef3c7" />
+          <stop offset="25%" stopColor="#fcd34d" />
+          <stop offset="55%" stopColor="#f59e0b" />
+          <stop offset="80%" stopColor="#b45309" />
+          <stop offset="100%" stopColor="#78350f" />
+        </radialGradient>
+        <radialGradient id={`cs-${symbol}-${size}`} cx="35%" cy="25%" r="50%">
+          <stop offset="0%" stopColor="white" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="white" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={`ce-${symbol}-${size}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fcd34d" />
+          <stop offset="50%" stopColor="#92400e" />
+          <stop offset="100%" stopColor="#fbbf24" />
+        </linearGradient>
+      </defs>
+      {/* Outer edge — ridged look */}
+      <circle cx={r} cy={r} r={r - 0.5} fill={`url(#ce-${symbol}-${size})`} />
+      {/* Main face */}
+      <circle cx={r} cy={r} r={r - 2} fill={`url(#cg-${symbol}-${size})`} />
+      {/* Inner ring groove */}
+      <circle cx={r} cy={r} r={ir} fill="none" stroke="#92400e" strokeWidth="1" opacity="0.4" />
+      <circle cx={r} cy={r} r={ir - 1} fill="none" stroke="#fde68a" strokeWidth="0.5" opacity="0.3" />
+      {/* Currency symbol — embossed */}
+      <text
+        x={r}
+        y={r + size * 0.12}
+        textAnchor="middle"
+        fontFamily="Georgia, 'Times New Roman', serif"
+        fontWeight="bold"
+        fontSize={size * 0.44}
+        fill="#92400e"
+        opacity="0.6"
+      >
+        {symbol}
+      </text>
+      <text
+        x={r - 0.5}
+        y={r + size * 0.12 - 0.8}
+        textAnchor="middle"
+        fontFamily="Georgia, 'Times New Roman', serif"
+        fontWeight="bold"
+        fontSize={size * 0.44}
+        fill="#fef3c7"
+        opacity="0.5"
+      >
+        {symbol}
+      </text>
+      {/* Specular highlight */}
+      <ellipse cx={r * 0.72} cy={r * 0.55} rx={r * 0.38} ry={r * 0.22} fill={`url(#cs-${symbol}-${size})`} transform={`rotate(-15 ${r * 0.72} ${r * 0.55})`} />
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const { login, api, settings, preAuthConfig } = useWidgetConfig();
   const { t } = useI18n();
@@ -141,11 +202,28 @@ export default function LoginPage() {
   return (
     <div className="pw-login">
       <div className="pw-login__coins" aria-hidden="true">
-        <div className="pw-login__coin pw-login__coin--1" />
-        <div className="pw-login__coin pw-login__coin--2" />
-        <div className="pw-login__coin pw-login__coin--3" />
-        <div className="pw-login__coin pw-login__coin--4" />
-        <div className="pw-login__coin pw-login__coin--5" />
+        {/* Outer coins — spread around edges */}
+        <div className="pw-login__coin pw-login__coin--1"><CoinSvg symbol="€" size={64} /></div>
+        <div className="pw-login__coin pw-login__coin--2"><CoinSvg symbol="$" size={56} /></div>
+        <div className="pw-login__coin pw-login__coin--3"><CoinSvg symbol="€" size={44} /></div>
+        <div className="pw-login__coin pw-login__coin--4"><CoinSvg symbol="$" size={42} /></div>
+        <div className="pw-login__coin pw-login__coin--5"><CoinSvg symbol="€" size={48} /></div>
+        <div className="pw-login__coin pw-login__coin--6"><CoinSvg symbol="$" size={46} /></div>
+        <div className="pw-login__coin pw-login__coin--7"><CoinSvg symbol="€" size={28} /></div>
+        <div className="pw-login__coin pw-login__coin--8"><CoinSvg symbol="$" size={24} /></div>
+        <div className="pw-login__coin pw-login__coin--9"><CoinSvg symbol="€" size={32} /></div>
+        <div className="pw-login__coin pw-login__coin--10"><CoinSvg symbol="$" size={20} /></div>
+        <div className="pw-login__coin pw-login__coin--11"><CoinSvg symbol="€" size={36} /></div>
+        <div className="pw-login__coin pw-login__coin--12"><CoinSvg symbol="$" size={26} /></div>
+        {/* Center coins — close to / behind the form card */}
+        <div className="pw-login__coin pw-login__coin--c1"><CoinSvg symbol="€" size={54} /></div>
+        <div className="pw-login__coin pw-login__coin--c2"><CoinSvg symbol="$" size={48} /></div>
+        <div className="pw-login__coin pw-login__coin--c3"><CoinSvg symbol="€" size={40} /></div>
+        <div className="pw-login__coin pw-login__coin--c4"><CoinSvg symbol="$" size={44} /></div>
+        <div className="pw-login__coin pw-login__coin--c5"><CoinSvg symbol="€" size={36} /></div>
+        <div className="pw-login__coin pw-login__coin--c6"><CoinSvg symbol="$" size={50} /></div>
+        <div className="pw-login__coin pw-login__coin--c7"><CoinSvg symbol="€" size={30} /></div>
+        <div className="pw-login__coin pw-login__coin--c8"><CoinSvg symbol="$" size={42} /></div>
       </div>
 
       <div className="pw-login__card">

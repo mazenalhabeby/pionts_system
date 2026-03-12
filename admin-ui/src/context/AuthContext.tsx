@@ -11,6 +11,7 @@ interface User {
   email: string;
   name?: string;
   role: string;
+  isSuperAdmin?: boolean;
   projectMemberships: ProjectMembership[];
 }
 
@@ -76,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const ok = await authApi.refresh();
         if (ok) {
           const me = await authApi.me();
-          setUser({ id: me.id, email: me.email, name: me.name, role: me.role, projectMemberships: me.projectMemberships || [] });
+          setUser({ id: me.id, email: me.email, name: me.name, role: me.role, isSuperAdmin: me.isSuperAdmin, projectMemberships: me.projectMemberships || [] });
           setOrg(me.org);
           setOrgs(me.orgs || []);
           startRefreshTimer();
@@ -106,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login(email, password);
     setAccessToken(res.accessToken);
-    setUser({ ...res.user, projectMemberships: res.user.projectMemberships || [] });
+    setUser({ ...res.user, isSuperAdmin: res.user.isSuperAdmin, projectMemberships: res.user.projectMemberships || [] });
     setOrg(res.org);
     setOrgs(res.orgs || []);
     startRefreshTimer();

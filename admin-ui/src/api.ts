@@ -299,6 +299,17 @@ export const analyticsApi = {
   },
 };
 
+// ─── Platform Admin API (super admin) ───
+export const platformApi = {
+  getStats: (): Promise<any> => request('/api/v1/platform/stats'),
+  getOrgs: (params: Record<string, string | number> = {}): Promise<any> =>
+    request(`/api/v1/platform/orgs?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))}`),
+  getOrg: (id: number): Promise<any> => request(`/api/v1/platform/orgs/${id}`),
+  getUsers: (params: Record<string, string | number> = {}): Promise<any> =>
+    request(`/api/v1/platform/users?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))}`),
+  getActivity: (): Promise<any> => request('/api/v1/platform/activity'),
+};
+
 // ─── Legacy Admin API (backward compat) ───
 const BASE = '/admin';
 async function legacyRequest(path: string, options: RequestInit = {}): Promise<any> {

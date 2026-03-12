@@ -158,9 +158,17 @@ export class DashboardController {
 
   @Get('referrals')
   @ProjectRoles('viewer')
-  async referrals(@Param('id') id: string) {
+  async referrals(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
     const projectId = parseInt(id, 10);
-    return this.referralsService.getFullTree(projectId);
+    return this.referralsService.getFullTree(
+      projectId,
+      limit ? parseInt(limit, 10) : 50,
+      offset ? parseInt(offset, 10) : 0,
+    );
   }
 
   // ── Redemption Tiers CRUD ─────────────────────────────────────────

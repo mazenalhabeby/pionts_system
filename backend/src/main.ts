@@ -37,14 +37,15 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
-      resave: false,
-      saveUninitialized: false,
-      cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
-    }),
-  );
+  // Only apply session middleware to legacy routes that use sessions
+  const sessionMiddleware = session({
+    secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
+  });
+  app.use('/admin', sessionMiddleware);
+  app.use('/rewards', sessionMiddleware);
 
   app.useGlobalPipes(
     new ValidationPipe({

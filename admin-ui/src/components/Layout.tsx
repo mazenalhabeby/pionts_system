@@ -2,7 +2,7 @@ import { type ReactNode, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
-import { NAV_ITEMS_NO_PROJECT, NAV_ITEMS_PROJECT, SECONDARY_NAV, type AppNavItem, type SecondaryNavItem } from '../constants';
+import { NAV_ITEMS_NO_PROJECT, NAV_ITEMS_PROJECT, SECONDARY_NAV, PLATFORM_NAV, type AppNavItem, type SecondaryNavItem } from '../constants';
 import { MenuIcon, SearchIcon, CheckIcon, ChevronsUpDownIcon, PlusIcon } from '@pionts/shared';
 import {
   DropdownMenu,
@@ -58,6 +58,7 @@ export default function Layout({ children }: LayoutProps) {
     if (item.ownerOnly && !isOwner) return false;
     return hasMinRole(currentProjectRole, item.minRole);
   });
+  const platformNav = user?.isSuperAdmin ? PLATFORM_NAV : [];
 
   return (
     <div className="flex h-screen bg-bg-page">
@@ -73,6 +74,7 @@ export default function Layout({ children }: LayoutProps) {
             setMobileOpen={setMobileOpen}
             visibleNavItems={visibleNavItems}
             visibleSecondaryNav={visibleSecondaryNav}
+            platformNav={platformNav}
           />
         </aside>
       </div>
@@ -104,6 +106,7 @@ export default function Layout({ children }: LayoutProps) {
           setMobileOpen={setMobileOpen}
           visibleNavItems={visibleNavItems}
           visibleSecondaryNav={visibleSecondaryNav}
+          platformNav={platformNav}
         />
       </aside>
 

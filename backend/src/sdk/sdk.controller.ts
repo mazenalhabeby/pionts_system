@@ -371,7 +371,8 @@ export class SdkController {
     const expiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     await this.customersService.saveVerificationCode(customer.id, code, expiry);
-    await this.emailService.sendVerificationCode(body.email, code);
+    const sent = await this.emailService.sendVerificationCode(body.email, code);
+    if (!sent) throw new BadRequestException('Failed to send verification email. Please try again.');
 
     return { success: true };
   }

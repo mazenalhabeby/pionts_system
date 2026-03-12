@@ -49,15 +49,15 @@ describe('CustomersService', () => {
   });
 
   describe('findByEmail', () => {
-    it('should find customer by project and email', async () => {
+    it('should find customer by project and email (case-insensitive)', async () => {
       const mockCustomer = { id: 1, projectId: 1, email: 'test@test.com' };
-      prisma.customer.findUnique.mockResolvedValue(mockCustomer);
+      prisma.customer.findFirst.mockResolvedValue(mockCustomer);
 
-      const result = await service.findByEmail(1, 'test@test.com');
+      const result = await service.findByEmail(1, 'Test@Test.com');
 
       expect(result).toEqual(mockCustomer);
-      expect(prisma.customer.findUnique).toHaveBeenCalledWith({
-        where: { projectId_email: { projectId: 1, email: 'test@test.com' } },
+      expect(prisma.customer.findFirst).toHaveBeenCalledWith({
+        where: { projectId: 1, email: { equals: 'test@test.com', mode: 'insensitive' } },
       });
     });
   });
@@ -89,14 +89,14 @@ describe('CustomersService', () => {
   describe('getOrCreate', () => {
     it('should return existing customer', async () => {
       const existing = { id: 1, projectId: 1, email: 'x@test.com', name: 'X', shopifyCustomerId: null };
-      prisma.customer.findUnique.mockResolvedValue(existing);
+      prisma.customer.findFirst.mockResolvedValue(existing);
 
       const result = await service.getOrCreate(1, 'x@test.com');
       expect(result).toEqual(existing);
     });
 
     it('should create new customer when not found', async () => {
-      prisma.customer.findUnique.mockResolvedValue(null);
+      prisma.customer.findFirst.mockResolvedValue(null);
       const newCustomer = { id: 2, projectId: 1, email: 'new@test.com', referralCode: 'ABC123' };
       prisma.customer.create.mockResolvedValue(newCustomer);
 
@@ -108,7 +108,7 @@ describe('CustomersService', () => {
 
     it('should update name if missing on existing customer', async () => {
       const existing = { id: 1, projectId: 1, email: 'x@test.com', name: '', shopifyCustomerId: null };
-      prisma.customer.findUnique.mockResolvedValue(existing);
+      prisma.customer.findFirst.mockResolvedValue(existing);
       prisma.customer.update.mockResolvedValue({ ...existing, name: 'Updated' });
 
       const result = await service.getOrCreate(1, 'x@test.com', 'Updated');
@@ -268,7 +268,7 @@ describe('CustomersService', () => {
     });
 
     it('should throw NotFoundException when customer not found', async () => {
-      prisma.customer.findUnique.mockResolvedValue(null);
+      prisma.customer.findFirst.mockResolvedValue(null);
       await expect(
         service.resolveFromSession(1, { customerEmail: 'gone@test.com' }),
       ).rejects.toThrow(NotFoundException);
@@ -276,7 +276,7 @@ describe('CustomersService', () => {
 
     it('should return customer when found', async () => {
       const customer = { id: 1, email: 'found@test.com' };
-      prisma.customer.findUnique.mockResolvedValue(customer);
+      prisma.customer.findFirst.mockResolvedValue(customer);
 
       const result = await service.resolveFromSession(1, { customerEmail: 'found@test.com' });
       expect(result).toEqual(customer);

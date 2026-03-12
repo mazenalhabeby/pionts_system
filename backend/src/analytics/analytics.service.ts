@@ -166,40 +166,51 @@ export class AnalyticsService {
   }
 
   async exportCustomersCsv(projectId: number): Promise<string> {
-    const customers = await this.prisma.customer.findMany({
-      where: { projectId },
-      orderBy: { id: 'asc' },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        referralCode: true,
-        referredBy: true,
-        pointsBalance: true,
-        pointsEarnedTotal: true,
-        orderCount: true,
-        createdAt: true,
-        lastActivity: true,
-      },
-    });
-
     const header = 'id,email,name,referral_code,referred_by,points_balance,points_earned_total,order_count,created_at,last_activity';
-    const rows = customers.map((c) =>
-      [
-        c.id,
-        `"${(c.email || '').replace(/"/g, '""')}"`,
-        `"${(c.name || '').replace(/"/g, '""')}"`,
-        c.referralCode,
-        c.referredBy || '',
-        c.pointsBalance,
-        c.pointsEarnedTotal,
-        c.orderCount,
-        c.createdAt.toISOString(),
-        c.lastActivity.toISOString(),
-      ].join(','),
-    );
+    const chunks: string[] = [header];
+    let cursor: number | undefined;
+    const BATCH_SIZE = 1000;
 
-    return [header, ...rows].join('\n');
+    while (true) {
+      const batch = await this.prisma.customer.findMany({
+        where: { projectId },
+        orderBy: { id: 'asc' },
+        take: BATCH_SIZE,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          referralCode: true,
+          referredBy: true,
+          pointsBalance: true,
+          pointsEarnedTotal: true,
+          orderCount: true,
+          createdAt: true,
+          lastActivity: true,
+        },
+      });
+      if (batch.length === 0) break;
+      cursor = batch[batch.length - 1].id;
+      for (const c of batch) {
+        chunks.push(
+          [
+            c.id,
+            `"${(c.email || '').replace(/"/g, '""')}"`,
+            `"${(c.name || '').replace(/"/g, '""')}"`,
+            c.referralCode,
+            c.referredBy || '',
+            c.pointsBalance,
+            c.pointsEarnedTotal,
+            c.orderCount,
+            c.createdAt.toISOString(),
+            c.lastActivity.toISOString(),
+          ].join(','),
+        );
+      }
+    }
+
+    return chunks.join('\n');
   }
 
   async exportPointsLogCsv(
@@ -214,35 +225,46 @@ export class AnalyticsService {
       if (to) where.createdAt.lte = new Date(to);
     }
 
-    const logs = await this.prisma.pointsLog.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        customerId: true,
-        points: true,
-        type: true,
-        description: true,
-        orderId: true,
-        createdAt: true,
-        customer: { select: { email: true } },
-      },
-    });
-
     const header = 'id,customer_id,customer_email,points,type,description,order_id,created_at';
-    const rows = logs.map((l) =>
-      [
-        l.id,
-        l.customerId,
-        `"${(l.customer.email || '').replace(/"/g, '""')}"`,
-        l.points,
-        l.type,
-        `"${(l.description || '').replace(/"/g, '""')}"`,
-        l.orderId || '',
-        l.createdAt.toISOString(),
-      ].join(','),
-    );
+    const chunks: string[] = [header];
+    let cursor: number | undefined;
+    const BATCH_SIZE = 1000;
 
-    return [header, ...rows].join('\n');
+    while (true) {
+      const batch = await this.prisma.pointsLog.findMany({
+        where,
+        orderBy: { id: 'asc' },
+        take: BATCH_SIZE,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        select: {
+          id: true,
+          customerId: true,
+          points: true,
+          type: true,
+          description: true,
+          orderId: true,
+          createdAt: true,
+          customer: { select: { email: true } },
+        },
+      });
+      if (batch.length === 0) break;
+      cursor = batch[batch.length - 1].id;
+      for (const l of batch) {
+        chunks.push(
+          [
+            l.id,
+            l.customerId,
+            `"${(l.customer.email || '').replace(/"/g, '""')}"`,
+            l.points,
+            l.type,
+            `"${(l.description || '').replace(/"/g, '""')}"`,
+            l.orderId || '',
+            l.createdAt.toISOString(),
+          ].join(','),
+        );
+      }
+    }
+
+    return chunks.join('\n');
   }
 }

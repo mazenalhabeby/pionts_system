@@ -53,8 +53,9 @@ export class CustomersService {
   }
 
   async findByEmail(projectId: number, email: string) {
-    return this.prisma.customer.findUnique({
-      where: { projectId_email: { projectId, email } },
+    const normalized = email.toLowerCase().trim();
+    return this.prisma.customer.findFirst({
+      where: { projectId, email: { equals: normalized, mode: 'insensitive' } },
     });
   }
 
@@ -71,12 +72,15 @@ export class CustomersService {
   }
 
   async getOrCreate(projectId: number, email: string, name?: string, shopifyId?: string) {
-    let customer = await this.findByEmail(projectId, email);
+    const normalized = email.toLowerCase().trim();
+    let customer = await this.findByEmail(projectId, normalized);
 
     if (customer) {
       const updates: any = {};
       if (shopifyId && !customer.shopifyCustomerId) updates.shopifyCustomerId = shopifyId;
       if (name && !customer.name) updates.name = name;
+      // Normalize stored email to lowercase if it differs
+      if (customer.email !== normalized) updates.email = normalized;
       if (Object.keys(updates).length > 0) {
         customer = await this.prisma.customer.update({
           where: { id: customer.id },
@@ -95,7 +99,7 @@ export class CustomersService {
     return this.prisma.customer.create({
       data: {
         projectId,
-        email,
+        email: normalized,
         name: name || '',
         shopifyCustomerId: shopifyId || null,
         referralCode: code,

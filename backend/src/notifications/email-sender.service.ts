@@ -10,7 +10,9 @@ export class EmailSenderService {
   private readonly logger = new Logger(EmailSenderService.name);
 
   constructor(private readonly configService: ConfigService) {
-    this.defaultFrom = this.configService.get<string>('FROM_EMAIL') || 'Pionts <noreply@pionts.com>';
+    this.defaultFrom = this.configService.get<string>('SMTP_FROM_EMAIL')
+      || this.configService.get<string>('FROM_EMAIL')
+      || 'Pionts <noreply@pionts.com>';
     const isDev = this.configService.get<string>('NODE_ENV') !== 'production';
     const host = this.configService.get<string>('SMTP_HOST');
     if (isDev) {
@@ -32,19 +34,23 @@ export class EmailSenderService {
   }
 
   async send(to: string, subject: string, html: string, fromName?: string): Promise<boolean> {
-    const from = fromName ? `${fromName} <noreply@pionts.com>` : this.defaultFrom;
+    const fromEmail = this.defaultFrom.match(/<(.+)>/)?.[1] || this.defaultFrom;
+    const from = fromName ? `${fromName} <${fromEmail}>` : this.defaultFrom;
     this.logger.log(`Email to ${to}: ${subject}`);
 
     if (!this.transporter) {
       return true;
     }
 
-    try {
-      await this.transporter.sendMail({ from, to, subject, html });
-      return true;
-    } catch (err) {
-      this.logger.error('Failed to send email', err);
-      return false;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        await this.transporter.sendMail({ from, to, subject, html });
+        return true;
+      } catch (err) {
+        this.logger.error(`Failed to send email (attempt ${attempt}/2)`, err);
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 1000));
+      }
     }
+    return false;
   }
 }
