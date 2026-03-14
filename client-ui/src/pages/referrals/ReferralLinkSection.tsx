@@ -1,7 +1,10 @@
 import CopyButton from '../../components/CopyButton';
+import QRCode from '../../components/QRCode';
+import ShareCardButton from '../../components/ShareCardButton';
 import type { ReferralNode } from '@pionts/shared';
 import { useI18n } from '../../i18n';
 import { useTimeAgo } from '../../i18n/timeAgoLocalized';
+import { useWidgetConfig } from '../../context/WidgetConfigContext';
 
 interface ReferralLinkSectionProps {
   refUrl: string;
@@ -14,6 +17,8 @@ interface ReferralLinkSectionProps {
 export default function ReferralLinkSection({ refUrl, directCount, directReferrals, discountPercent = '5', referrerPoints = '5' }: ReferralLinkSectionProps) {
   const { t } = useI18n();
   const timeAgo = useTimeAgo();
+  const { settings } = useWidgetConfig();
+  const brandName = String(settings?.widget_brand_name || 'Rewards');
 
   return (
     <>
@@ -30,9 +35,13 @@ export default function ReferralLinkSection({ refUrl, directCount, directReferra
           readOnly
           onClick={(e) => (e.target as HTMLInputElement).select()}
         />
-        <CopyButton text={refUrl} />
+        <div className="pw-share-actions">
+          <CopyButton text={refUrl} />
+          <ShareCardButton url={refUrl} brandName={brandName} discountPercent={discountPercent} />
+        </div>
       </div>
-      <div style={{ fontSize: 12, color: '#71717a' }}>{t('ref_link.share_hint', { discount: discountPercent, pts: referrerPoints })}</div>
+      <QRCode url={refUrl} size={280} />
+      <div style={{ fontSize: 12, color: '#71717a', marginTop: 10 }}>{t('ref_link.share_hint', { discount: discountPercent, pts: referrerPoints })}</div>
 
       {/* Direct Referrals Table */}
       <div className="pw-section__title" style={{ marginTop: 24, marginBottom: 12 }}>{t('ref_link.table_title')}</div>

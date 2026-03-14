@@ -169,6 +169,10 @@ const de: TranslationMap = {
   'ref_link.th_email': 'E-Mail',
   'ref_link.th_orders': 'Bestellungen',
   'ref_link.th_joined': 'Beigetreten',
+  'ref_link.qr_scan': 'Scannen, um deinen Link zu teilen',
+  'ref_link.share_image': 'Teilen',
+  'ref_link.share_card_cta': 'Scannen f\u00FCr {{discount}}% Rabatt!',
+  'ref_link.share_card_title': '\u00DCber meine Empfehlung beitreten',
 
   // ── NetworkTreeSection ──
   'network.members_one': '{{count}} Mitglied',

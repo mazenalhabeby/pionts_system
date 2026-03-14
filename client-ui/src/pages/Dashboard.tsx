@@ -3,6 +3,8 @@ import useProgress from '../hooks/useProgress';
 import useTier from '../hooks/useTier';
 import HistoryEntry from '../components/HistoryEntry';
 import CopyButton from '../components/CopyButton';
+import QRCode from '../components/QRCode';
+import ShareCardButton from '../components/ShareCardButton';
 import TierBadge from '../components/TierBadge';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useWidgetConfig } from '../context/WidgetConfigContext';
@@ -30,6 +32,8 @@ export default function Dashboard() {
   const storeUrl = settings?.referral_base_url || '';
   const refUrl = storeUrl ? `${storeUrl}${storeUrl.includes('?') ? '&' : '?'}ref=${data.referral_code}` : '';
   const partnerInfo = data.partner_info;
+  const brandName = String(settings?.widget_brand_name || 'Rewards');
+  const discountPercent = String(settings?.referral_discount_percent || '5');
 
   return (
     <div className="pw-dashboard">
@@ -141,9 +145,6 @@ export default function Dashboard() {
         {isPartner ? (
           <div className="pw-share">
             <div className="pw-share__top">
-              <div className="pw-share__icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-              </div>
               <h2 className="pw-share__title">{t('dashboard.partner_link')}</h2>
               <p className="pw-share__subtitle">{t('dashboard.share_earn_commission', { pct: partnerInfo?.commission_pct || 0 })}</p>
             </div>
@@ -155,8 +156,12 @@ export default function Dashboard() {
                   readOnly
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
-                <CopyButton text={refUrl} />
+                <div className="pw-share-actions">
+                  <CopyButton text={refUrl} />
+                  <ShareCardButton url={refUrl} brandName={brandName} discountPercent={discountPercent} />
+                </div>
               </div>
+              <QRCode url={refUrl} size={180} compact />
               <div className="pw-share__footer">
                 <span className="pw-share__stat">
                   <span className="pw-share__stat-num">{refStats.direct ?? 0}</span> {t('dashboard.referrals')}
@@ -170,11 +175,8 @@ export default function Dashboard() {
         ) : referralsEnabled ? (
           <div className="pw-share">
             <div className="pw-share__top">
-              <div className="pw-share__icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-              </div>
               <h2 className="pw-share__title">{t('dashboard.share_earn')}</h2>
-              <p className="pw-share__subtitle">{t('dashboard.share_subtitle', { discount: String(settings?.referral_discount_percent || '5') })}</p>
+              <p className="pw-share__subtitle">{t('dashboard.share_subtitle', { discount: discountPercent })}</p>
             </div>
             <div className="pw-share__body">
               <div className="pw-share__link">
@@ -184,8 +186,12 @@ export default function Dashboard() {
                   readOnly
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
-                <CopyButton text={refUrl} />
+                <div className="pw-share-actions">
+                  <CopyButton text={refUrl} />
+                  <ShareCardButton url={refUrl} brandName={brandName} discountPercent={discountPercent} />
+                </div>
               </div>
+              <QRCode url={refUrl} size={180} compact />
               <div className="pw-share__footer">
                 <span className="pw-share__stat">
                   <span className="pw-share__stat-num">{refStats.direct ?? 0}</span> {t('dashboard.referrals')}

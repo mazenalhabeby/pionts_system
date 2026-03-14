@@ -725,6 +725,105 @@ a:hover {
   box-shadow: 0 1px 3px rgba(5, 150, 105, 0.15);
 }
 
+/* ── Share actions row ── */
+.pw-share-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Share image button ── */
+.pw-share-img-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #e4e4e7;
+  cursor: pointer;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.pw-share-img-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.pw-share-img-btn:active {
+  transform: translateY(0);
+}
+
+/* ── QR code ── */
+.pw-qrcode {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0 8px;
+}
+
+.pw-qrcode__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.pw-qrcode__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120px 120px at 50% 40%,
+      color-mix(in srgb, var(--pionts-primary, #3b82f6) 12%, transparent) 0%,
+      transparent 70%);
+}
+
+.pw-qrcode__img {
+  position: relative;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 4px 24px rgba(0, 0, 0, 0.2),
+    0 0 40px color-mix(in srgb, var(--pionts-primary, #3b82f6) 8%, transparent);
+}
+
+.pw-qrcode__label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #71717a;
+  letter-spacing: 0.03em;
+}
+
+/* Compact variant for Dashboard share cards */
+.pw-qrcode--compact {
+  padding: 14px 0 4px;
+}
+
+.pw-qrcode--compact .pw-qrcode__card {
+  padding: 12px;
+  border-radius: 14px;
+}
+
 /* ── Two-column grid ── */
 .pw-grid-2col {
   display: grid;
