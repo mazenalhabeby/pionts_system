@@ -23,7 +23,6 @@ export default function FloatingWrapper({ children }: FloatingWrapperProps) {
     };
   }, []);
 
-  // Close on Escape key
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -35,23 +34,13 @@ export default function FloatingWrapper({ children }: FloatingWrapperProps) {
 
   return (
     <>
-      {/* Floating toggle button */}
       <button
         className="pw-float-btn"
         onClick={() => setOpen((prev) => !prev)}
         aria-label={open ? 'Close rewards panel' : 'Open rewards panel'}
         type="button"
       >
-        <svg
-          viewBox="0 0 24 24"
-          width="26"
-          height="26"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           {open ? (
             <>
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -65,24 +54,14 @@ export default function FloatingWrapper({ children }: FloatingWrapperProps) {
         </svg>
       </button>
 
-      {/* Backdrop overlay */}
       {open && (
-        <div
-          className="pw-float-backdrop"
-          onClick={() => setOpen(false)}
-        />
+        <div className="pw-float-backdrop" onClick={() => setOpen(false)} />
       )}
 
-      {/* Slide-out panel */}
       <div className={`pw-float-panel ${open ? 'pw-float-panel--open' : ''}`}>
         <div className="pw-float-panel__header">
           <span className="pw-float-panel__title">Rewards</span>
-          <button
-            className="pw-float-panel__close"
-            onClick={() => setOpen(false)}
-            aria-label="Close"
-            type="button"
-          >
+          <button className="pw-float-panel__close" onClick={() => setOpen(false)} aria-label="Close" type="button">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
