@@ -1,12 +1,18 @@
-name = "Pionts Loyalty & Referrals"
-client_id = "${SHOPIFY_API_KEY}"
-application_url = "${SHOPIFY_APP_URL}/shopify/auth"
+# Pionts Rewards — Shopify App Configuration
+# This app provides a customer account UI extension for the Pionts loyalty system.
 
-[auth]
-redirect_urls = ["${SHOPIFY_APP_URL}/shopify/auth/callback"]
+name = "Pionts Rewards"
+client_id = "eb126a1e294ef88782a4ce25a2977753"
+application_url = "https://hbc-solution.io/v2"
 
 [access_scopes]
-scopes = "read_customers,write_customers,read_orders,write_orders,read_products,write_price_rules,write_discounts,read_themes,write_themes"
+scopes = "read_customers"
+
+[auth]
+redirect_urls = ["https://hbc-solution.io/v2/api/v1/auth/shopify/callback"]
 
 [webhooks]
-api_version = "2024-01"
+api_version = "2025-10"
+
+[pos]
+embedded = false

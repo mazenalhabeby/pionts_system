@@ -1,0 +1,38 @@
+api_version = "2025-10"
+
+[[extensions]]
+name = "Rewards"
+handle = "rewards-page"
+type = "ui_extension"
+
+# Full-page extension renders as a standalone page in customer account
+# URL: https://shopify.com/<shop_id>/account/rewards-page
+[[extensions.targeting]]
+target = "customer-account.page.render"
+module = "./src/RewardsPage.jsx"
+
+# Allow the extension to call the Pionts API (external network)
+[extensions.capabilities]
+network_access = true
+api_access = true
+
+# Settings that merchants can configure from the Shopify admin
+[extensions.settings]
+
+  [[extensions.settings.fields]]
+  key = "project_key"
+  type = "single_line_text_field"
+  name = "Pionts Project Key"
+  description = "Your Pionts public API key (pk_live_...)"
+
+  [[extensions.settings.fields]]
+  key = "api_base"
+  type = "single_line_text_field"
+  name = "Pionts API URL"
+  description = "Your Pionts API base URL (e.g. https://hbc-solution.io/v2)"
+
+  [[extensions.settings.fields]]
+  key = "secret_key"
+  type = "single_line_text_field"
+  name = "Pionts Secret Key"
+  description = "Your Pionts secret key for HMAC signing (sk_live_...)"

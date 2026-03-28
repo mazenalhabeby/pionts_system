@@ -1,0 +1,16 @@
+{
+  "name": "pionts-shopify-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "shopify": "shopify",
+    "dev": "shopify app dev",
+    "build": "shopify app build",
+    "deploy": "shopify app deploy",
+    "generate": "shopify app generate"
+  },
+  "dependencies": {
+    "@shopify/cli": "^3.0.0",
+    "@shopify/app": "^3.0.0"
+  }
+}
