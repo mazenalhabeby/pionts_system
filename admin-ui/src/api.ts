@@ -8,6 +8,8 @@ import type {
 } from '@pionts/shared';
 import type { Customer } from '@pionts/shared';
 
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
 let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null): void {
@@ -34,14 +36,14 @@ async function request<T = unknown>(path: string, options: RequestOptions = {}):
 
   const isAuthEndpoint = path.startsWith('/auth/');
 
-  let res = await fetch(path, { ...options, headers, credentials: 'include' });
+  let res = await fetch(API_BASE + path, { ...options, headers, credentials: 'include' });
 
   // On 401, try silent refresh once (skip for auth endpoints like login/register)
   if (res.status === 401 && !options._retried && !isAuthEndpoint) {
     const refreshed = await silentRefresh();
     if (refreshed) {
       headers['Authorization'] = `Bearer ${accessToken}`;
-      res = await fetch(path, { ...options, headers, credentials: 'include', _retried: true } as RequestInit);
+      res = await fetch(API_BASE + path, { ...options, headers, credentials: 'include', _retried: true } as RequestInit);
     }
   }
 
@@ -63,7 +65,7 @@ async function silentRefresh(): Promise<boolean> {
 
   refreshPromise = (async () => {
     try {
-      const res = await fetch('/auth/refresh', {
+      const res = await fetch(API_BASE + '/auth/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -252,9 +254,9 @@ export const invitationsApi = {
   resend: (id: number): Promise<any> =>
     request(`/api/v1/orgs/me/invitations/${id}/resend`, { method: 'POST' }),
   getByToken: (token: string): Promise<any> =>
-    fetch(`/api/v1/invitations/${token}`).then((r) => r.json()),
+    fetch(`${API_BASE}/api/v1/invitations/${token}`).then((r) => r.json()),
   accept: (token: string, data?: { password?: string; name?: string }): Promise<any> =>
-    fetch(`/api/v1/invitations/${token}/accept`, {
+    fetch(`${API_BASE}/api/v1/invitations/${token}/accept`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data || {}),
@@ -299,13 +301,13 @@ export const analyticsApi = {
   getSegmentCustomers: (pid: number | string, segment: string, limit = 50, offset = 0): Promise<SegmentCustomersResponse> =>
     request(`/api/v1/projects/${pid}/analytics/segments/${segment}/customers?limit=${limit}&offset=${offset}`),
   exportCustomersUrl: (pid: number | string): string =>
-    `/api/v1/projects/${pid}/analytics/export/customers`,
+    `${API_BASE}/api/v1/projects/${pid}/analytics/export/customers`,
   exportPointsLogUrl: (pid: number | string, from?: string, to?: string): string => {
     const params = new URLSearchParams();
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     const qs = params.toString();
-    return `/api/v1/projects/${pid}/analytics/export/points-log${qs ? '?' + qs : ''}`;
+    return `${API_BASE}/api/v1/projects/${pid}/analytics/export/points-log${qs ? '?' + qs : ''}`;
   },
 };
 

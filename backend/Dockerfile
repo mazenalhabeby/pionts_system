@@ -1,10 +1,16 @@
 # ─── Stage 1: Build admin-ui ───
 FROM node:22-alpine AS admin-builder
 WORKDIR /app
+ARG VITE_BASE_PATH=/admin/
+ARG VITE_ROUTER_BASE=/admin
+ARG VITE_API_BASE=
 COPY shared ./shared
 COPY admin-ui/package.json admin-ui/package-lock.json* ./admin-ui/
 RUN cd admin-ui && npm ci
 COPY admin-ui ./admin-ui
+ENV VITE_BASE_PATH=$VITE_BASE_PATH
+ENV VITE_ROUTER_BASE=$VITE_ROUTER_BASE
+ENV VITE_API_BASE=$VITE_API_BASE
 RUN cd admin-ui && npm run build
 
 # ─── Stage 2: Build client-ui UMD widget ───

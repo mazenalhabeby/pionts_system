@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear project selection since we're changing org
     sessionStorage.removeItem('pionts-current-project');
     // Reload the page to reset project context
-    window.location.href = '/';
+    window.location.href = import.meta.env.VITE_ROUTER_BASE || '/admin';
   }, []);
 
   const authenticated = user !== null;

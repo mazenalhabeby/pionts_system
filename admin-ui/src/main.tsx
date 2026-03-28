@@ -10,7 +10,7 @@ import './styles/admin.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter basename="/admin">
+    <BrowserRouter basename={import.meta.env.VITE_ROUTER_BASE || '/admin'}>
       <ThemeProvider>
         <AuthProvider>
           <ProjectProvider>
