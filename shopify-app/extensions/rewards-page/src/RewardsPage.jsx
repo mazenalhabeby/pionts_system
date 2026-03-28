@@ -83,8 +83,8 @@ export default reactExtension('customer-account.page.render', () => (
 /*  Main component                                                    */
 /* ------------------------------------------------------------------ */
 function RewardsPage() {
-  const { query } = useApi('customer-account.page.render');
-  const settings = useSettings('customer-account.page.render');
+  const { query } = useApi();
+  const settings = useSettings();
 
   const projectKey = settings.project_key || '';
   const apiBase = (settings.api_base || '').replace(/\/+$/, '');
@@ -247,7 +247,7 @@ function RewardsPage() {
 
   if (!projectKey || !apiBase) {
     return (
-      <Card padding>
+      <Card padding="base">
         <BlockStack spacing="base">
           <Heading>Rewards</Heading>
           <Text>Rewards are not configured yet. Please contact the store owner.</Text>
@@ -260,7 +260,7 @@ function RewardsPage() {
 
   if (error) {
     return (
-      <Card padding>
+      <Card padding="base">
         <BlockStack spacing="base">
           <Heading>Rewards</Heading>
           <Text appearance="critical">{error}</Text>
@@ -274,7 +274,7 @@ function RewardsPage() {
 
   if (!customer) {
     return (
-      <Card padding>
+      <Card padding="base">
         <BlockStack spacing="base">
           <Heading>Rewards</Heading>
           <Text>Unable to load your rewards. Please try again later.</Text>
@@ -313,7 +313,7 @@ function RewardsPage() {
   return (
     <BlockStack spacing="loose">
       {/* -------- Points Balance Header -------- */}
-      <Card padding>
+      <Card padding="base">
         <BlockStack spacing="base">
           <InlineStack spacing="tight" blockAlignment="center">
             <Heading>Your Rewards</Heading>
@@ -323,7 +323,7 @@ function RewardsPage() {
           </InlineStack>
 
           <BlockStack spacing="extraTight">
-            <Text size="extraLarge" emphasis="bold">
+            <Text size="large" emphasis="bold">
               {points_balance.toLocaleString()} points
             </Text>
             <Text appearance="subdued" size="small">
@@ -358,7 +358,7 @@ function RewardsPage() {
       </Card>
 
       {/* -------- Referral Section -------- */}
-      <Card padding>
+      <Card padding="base">
         <BlockStack spacing="base">
           <Heading level={2}>Refer Friends</Heading>
           <Text size="small" appearance="subdued">
@@ -384,19 +384,19 @@ function RewardsPage() {
 
           <InlineStack spacing="loose">
             <BlockStack spacing="extraTight">
-              <Text size="extraLarge" emphasis="bold">
+              <Text size="large" emphasis="bold">
                 {referral_stats.direct || 0}
               </Text>
               <Text size="small" appearance="subdued">Direct referrals</Text>
             </BlockStack>
             <BlockStack spacing="extraTight">
-              <Text size="extraLarge" emphasis="bold">
+              <Text size="large" emphasis="bold">
                 {referral_stats.network || 0}
               </Text>
               <Text size="small" appearance="subdued">Network</Text>
             </BlockStack>
             <BlockStack spacing="extraTight">
-              <Text size="extraLarge" emphasis="bold">
+              <Text size="large" emphasis="bold">
                 {referral_earnings || 0}
               </Text>
               <Text size="small" appearance="subdued">Pts earned</Text>
@@ -407,7 +407,7 @@ function RewardsPage() {
 
       {/* -------- Redeem Points -------- */}
       {redemption_tiers.length > 0 && (
-        <Card padding>
+        <Card padding="base">
           <BlockStack spacing="base">
             <Heading level={2}>Redeem Points</Heading>
 
@@ -465,7 +465,7 @@ function RewardsPage() {
 
       {/* -------- Earn More Points -------- */}
       {earn_actions.length > 0 && (
-        <Card padding>
+        <Card padding="base">
           <BlockStack spacing="base">
             <Heading level={2}>Earn Points</Heading>
 
@@ -517,7 +517,7 @@ function RewardsPage() {
 
       {/* -------- Recent Activity -------- */}
       {history.length > 0 && (
-        <Card padding>
+        <Card padding="base">
           <BlockStack spacing="base">
             <Heading level={2}>Recent Activity</Heading>
 
@@ -556,22 +556,28 @@ function RewardsPage() {
 function LoadingSkeleton() {
   return (
     <BlockStack spacing="loose">
-      <Card padding>
+      <Card padding="base">
         <BlockStack spacing="base">
-          <SkeletonText lines={1} />
-          <SkeletonText lines={2} />
+          <SkeletonText />
+          <SkeletonText />
+          <SkeletonText />
         </BlockStack>
       </Card>
-      <Card padding>
+      <Card padding="base">
         <BlockStack spacing="base">
-          <SkeletonText lines={1} />
-          <SkeletonText lines={3} />
+          <SkeletonText />
+          <SkeletonText />
+          <SkeletonText />
+          <SkeletonText />
         </BlockStack>
       </Card>
-      <Card padding>
+      <Card padding="base">
         <BlockStack spacing="base">
-          <SkeletonText lines={1} />
-          <SkeletonText lines={4} />
+          <SkeletonText />
+          <SkeletonText />
+          <SkeletonText />
+          <SkeletonText />
+          <SkeletonText />
         </BlockStack>
       </Card>
     </BlockStack>
