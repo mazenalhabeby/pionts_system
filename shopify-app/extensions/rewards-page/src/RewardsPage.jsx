@@ -83,7 +83,7 @@ export default reactExtension('customer-account.page.render', () => (
 /*  Main component                                                    */
 /* ------------------------------------------------------------------ */
 function RewardsPage() {
-  const { query } = useApi();
+  const { query, sessionToken } = useApi();
   const settings = useSettings();
 
   const projectKey = settings.project_key || '';
@@ -99,27 +99,52 @@ function RewardsPage() {
   const [copiedRef, setCopiedRef] = useState(false);
   const [claimingAction, setClaimingAction] = useState(null);
 
-  /* ---- Fetch customer email from Shopify Customer Account API ---- */
+  /* ---- Fetch customer email (GraphQL → session token fallback) ---- */
   const fetchCustomerEmail = useCallback(async () => {
+    // Strategy 1: GraphQL Customer Account API (requires Protected Customer Data access)
     try {
-      console.log('[Pionts] Querying customer email via Customer Account API...');
       const result = await query(
         `query { customer { emailAddress { emailAddress } firstName lastName } }`,
       );
-      console.log('[Pionts] Query result:', JSON.stringify(result));
-      if (result?.errors) {
-        console.error('[Pionts] GraphQL errors:', JSON.stringify(result.errors));
-      }
       const c = result?.data?.customer;
-      return {
-        email: c?.emailAddress?.emailAddress || '',
-        name: c?.firstName || '',
-      };
-    } catch (err) {
-      console.error('[Pionts] fetchCustomerEmail error:', err?.message || err);
-      return { email: '', name: '' };
+      const email = c?.emailAddress?.emailAddress;
+      if (email) return { email, name: c?.firstName || '' };
+    } catch { /* GraphQL failed, try fallback */ }
+
+    // Strategy 2: Session token → decode JWT → extract Shopify customer ID → resolve via backend
+    if (sessionToken && apiBase && projectKey) {
+      try {
+        const token = await sessionToken.get();
+        if (token) {
+          const parts = token.split('.');
+          if (parts.length >= 2) {
+            // Decode JWT payload (base64url → JSON)
+            const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(atob(b64));
+            // sub claim: "gid://shopify/Customer/<id>" (present when logged in)
+            const sub = payload.sub || '';
+            const shopifyId = sub.split('/').pop();
+            if (shopifyId) {
+              const res = await fetch(`${apiBase}/api/v1/sdk/shopify/identify`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Project-Key': projectKey,
+                },
+                body: JSON.stringify({ shopify_customer_id: shopifyId }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.email) return { email: data.email, name: data.name || '' };
+              }
+            }
+          }
+        }
+      } catch { /* session token approach failed */ }
     }
-  }, [query]);
+
+    return { email: '', name: '' };
+  }, [query, sessionToken, apiBase, projectKey]);
 
   /* ---- Fetch Pionts data ---- */
   const fetchPiontsData = useCallback(
@@ -145,7 +170,7 @@ function RewardsPage() {
     (async () => {
       try {
         setLoading(true);
-        const { email, name } = await fetchCustomerEmail();
+        const { email } = await fetchCustomerEmail();
         if (!email) {
           setError('Could not retrieve your email. Please contact support.');
           setLoading(false);

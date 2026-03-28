@@ -53,6 +53,12 @@ export class CustomersService {
     return customer;
   }
 
+  async findByShopifyId(projectId: number, shopifyCustomerId: string) {
+    return this.prisma.customer.findUnique({
+      where: { projectId_shopifyCustomerId: { projectId, shopifyCustomerId } },
+    });
+  }
+
   async findByReferralCode(projectId: number, code: string) {
     return this.prisma.customer.findUnique({
       where: { projectId_referralCode: { projectId, referralCode: code } },

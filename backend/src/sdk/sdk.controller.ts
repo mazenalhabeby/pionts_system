@@ -20,6 +20,7 @@ import { SdkPartnerApplyDto } from './dto/sdk-partner-apply.dto';
 import { EmailService } from '../customer-auth/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
+import { ShopifyApiService } from '../shopify-app/shopify-api.service';
 import { Customer, Project } from '@prisma/client';
 import { parseBirthday, validateBirthdayAge, calculateAge } from '../utils/date-helpers';
 import { LIMITS } from '../common/constants';
@@ -39,6 +40,7 @@ export class SdkController {
     private readonly emailService: EmailService,
     private readonly prisma: PrismaService,
     private readonly partnersService: PartnersService,
+    private readonly shopifyApi: ShopifyApiService,
   ) {}
 
   private requireCustomer(customer: Customer | null): asserts customer is Customer {
@@ -432,6 +434,55 @@ export class SdkController {
     await this.partnersService.promoteToPartner(project.id, customer.id, defaultCommission);
 
     return { success: true, status: 'approved' };
+  }
+
+  /**
+   * Resolve a Shopify customer ID to a Pionts customer email.
+   * Used by the Shopify Customer Account Extension when the GraphQL query
+   * for email is blocked by Protected Customer Data requirements.
+   * Falls back to Shopify Admin API if the customer isn't in the DB yet.
+   */
+  @Post('shopify/identify')
+  async shopifyIdentify(
+    @SdkProject() project: Project,
+    @Body() body: { shopify_customer_id: string },
+  ) {
+    const shopifyId = body.shopify_customer_id;
+    if (!shopifyId) throw new BadRequestException('shopify_customer_id is required');
+
+    // 1. Check if we already have this customer in our DB
+    const existing = await this.customersService.findByShopifyId(project.id, shopifyId);
+    if (existing) {
+      return { email: existing.email, name: existing.name || '' };
+    }
+
+    // 2. Look up the Shopify installation for this project to get the Admin API token
+    const installation = await this.prisma.shopifyInstallation.findUnique({
+      where: { projectId: project.id },
+    });
+    if (!installation || !installation.accessToken || installation.uninstalledAt) {
+      throw new BadRequestException('Shopify installation not found for this project');
+    }
+
+    // 3. Call Shopify Admin API to get the customer's email
+    const shopifyCustomer = await this.shopifyApi.getCustomerById(
+      installation.shopDomain,
+      installation.accessToken,
+      shopifyId,
+    );
+    if (!shopifyCustomer?.email) {
+      throw new BadRequestException('Could not resolve Shopify customer');
+    }
+
+    // 4. Create or get the customer in Pionts (links the Shopify ID)
+    const customer = await this.customersService.getOrCreate(
+      project.id,
+      shopifyCustomer.email,
+      `${shopifyCustomer.firstName} ${shopifyCustomer.lastName}`.trim() || undefined,
+      shopifyId,
+    );
+
+    return { email: customer.email, name: customer.name || '' };
   }
 
   @Get('leaderboard')

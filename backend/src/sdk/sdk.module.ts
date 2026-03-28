@@ -8,6 +8,7 @@ import { CustomersModule } from '../customers/customers.module';
 import { ReferralsModule } from '../referrals/referrals.module';
 import { RedemptionsModule } from '../redemptions/redemptions.module';
 import { CustomerAuthModule } from '../customer-auth/customer-auth.module';
+import { ShopifyAppModule } from '../shopify-app/shopify-app.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CustomerAuthModule } from '../customer-auth/customer-auth.module';
     ReferralsModule,
     RedemptionsModule,
     CustomerAuthModule,
+    ShopifyAppModule,
   ],
   controllers: [SdkController],
   providers: [SdkService, SdkAuthGuard],

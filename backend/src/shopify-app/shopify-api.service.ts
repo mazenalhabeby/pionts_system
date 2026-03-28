@@ -207,6 +207,30 @@ export class ShopifyApiService {
     }
   }
 
+  async getCustomerById(
+    shop: string,
+    accessToken: string,
+    customerId: string,
+  ): Promise<{ email: string; firstName: string; lastName: string } | null> {
+    try {
+      const res = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/customers/${customerId}.json`,
+        { method: 'GET', headers: this.headers(accessToken) },
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.customer?.email) return null;
+      return {
+        email: data.customer.email,
+        firstName: data.customer.first_name || '',
+        lastName: data.customer.last_name || '',
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get customer ${customerId} for ${shop}:`, err);
+      return null;
+    }
+  }
+
   async getShopInfo(shop: string, accessToken: string): Promise<{ name: string } | null> {
     try {
       const res = await this.fetchWithRetry(
