@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { EarnAction, ReferralLevel, Customer } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomersService } from '../customers/customers.service';
 import { ReferralsService } from '../referrals/referrals.service';
@@ -23,7 +24,7 @@ export class SdkService {
     return this.prisma.project.findUnique({ where: { id: projectId } });
   }
 
-  async getCustomerData(projectId: number, customer: any) {
+  async getCustomerData(projectId: number, customer: Customer) {
     const project = await this.getProject(projectId);
 
     const [
@@ -60,7 +61,7 @@ export class SdkService {
     const settings = await this.getProjectPublicSettings(projectId, project, redemptionTiers);
 
     // Map earn actions with completion status
-    const actionsWithStatus = earnActions.map((a: any) => ({
+    const actionsWithStatus = earnActions.map((a: EarnAction) => ({
       id: a.id,
       slug: a.slug,
       label: a.label,
@@ -104,7 +105,7 @@ export class SdkService {
       },
       earn_actions: actionsWithStatus,
       completed_actions: Array.from(completedSlugs),
-      referral_levels: referralLevels.map((l: any) => ({
+      referral_levels: referralLevels.map((l: ReferralLevel) => ({
         level: l.level,
         points: l.points,
       })),
@@ -116,7 +117,7 @@ export class SdkService {
     };
   }
 
-  async getProjectPublicSettings(projectId: number, existingProject?: any, existingTiers?: any[]) {
+  async getProjectPublicSettings(projectId: number, existingProject?: { domain?: string | null } | null, existingTiers?: Array<{ points: number; discount: number }>) {
     const allSettings = await this.configService.getAll(projectId);
     const tiers = existingTiers ?? await this.configService.getRedemptionTiers(projectId);
 
@@ -170,7 +171,7 @@ export class SdkService {
 
     return {
       settings,
-      earn_actions: earnActions.map((a: any) => ({
+      earn_actions: earnActions.map((a: EarnAction) => ({
         slug: a.slug,
         label: a.label,
         points: a.points,
@@ -179,7 +180,7 @@ export class SdkService {
         frequency: a.frequency,
       })),
       redemption_tiers: redemptionTiers,
-      referral_levels: referralLevels.map((l: any) => ({
+      referral_levels: referralLevels.map((l: ReferralLevel) => ({
         level: l.level,
         points: l.points,
       })),

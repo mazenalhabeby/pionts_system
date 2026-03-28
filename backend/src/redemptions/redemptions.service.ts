@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppConfigService } from '../config/app-config.service';
 import { CustomersService } from '../customers/customers.service';
@@ -7,6 +7,8 @@ import { toSnakeCaseRedemption } from '../utils/transformers';
 
 @Injectable()
 export class RedemptionsService {
+  private readonly logger = new Logger(RedemptionsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: AppConfigService,
@@ -76,7 +78,9 @@ export class RedemptionsService {
     const tier = await this.validateTier(projectId, customer.pointsBalance, tierPoints);
     const prefix = await this.getCodePrefix(projectId);
     const code = `${prefix}-${customer.referralCode}-${Date.now().toString(36)}`;
-    const shopifyCreated = await this.shopifyService.createDiscount(code, tier.discount);
+
+    // Try per-store credentials first, fall back to env-configured single-tenant
+    const shopifyCreated = await this.createShopifyDiscount(projectId, code, tier.discount);
     const { newBalance } = await this.executeRedemption(projectId, customer.id, tier, code);
 
     return {
@@ -85,6 +89,34 @@ export class RedemptionsService {
       new_balance: newBalance,
       shopify_created: shopifyCreated,
     };
+  }
+
+  private async createShopifyDiscount(projectId: number, code: string, amount: number): Promise<boolean> {
+    const installation = await this.prisma.shopifyInstallation.findUnique({
+      where: { projectId },
+    });
+
+    if (installation && !installation.uninstalledAt) {
+      return this.shopifyService.createDiscountForShop(
+        installation.shopDomain, installation.accessToken, code, amount,
+      );
+    }
+
+    return this.shopifyService.createDiscount(code, amount);
+  }
+
+  private async deleteShopifyDiscount(projectId: number, code: string): Promise<boolean> {
+    const installation = await this.prisma.shopifyInstallation.findUnique({
+      where: { projectId },
+    });
+
+    if (installation && !installation.uninstalledAt) {
+      return this.shopifyService.deleteDiscountForShop(
+        installation.shopDomain, installation.accessToken, code,
+      );
+    }
+
+    return this.shopifyService.deleteDiscount(code);
   }
 
   async cancelRedemption(projectId: number, customerId: number, redemptionId: number) {
@@ -99,25 +131,11 @@ export class RedemptionsService {
     );
 
     // Delete the discount code from Shopify
-    await this.shopifyService.deleteDiscount(redemption.discountCode);
+    await this.deleteShopifyDiscount(projectId, redemption.discountCode);
 
     await this.prisma.redemption.delete({ where: { id: redemptionId } });
 
     return { points_returned: redemption.pointsSpent, new_balance: newBalance };
   }
 
-  async redeem(projectId: number, customer: { id: number; pointsBalance: number; referralCode: string }, tierPoints: number) {
-    const tier = await this.validateTier(projectId, customer.pointsBalance, tierPoints);
-    const prefix = await this.getCodePrefix(projectId);
-    const code = `${prefix}-${customer.referralCode}-${Date.now()}`;
-    const shopifyCreated = await this.shopifyService.createDiscount(code, tier.discount);
-    const { newBalance } = await this.executeRedemption(projectId, customer.id, tier, code);
-
-    return {
-      discount_code: code,
-      discount_amount: tier.discount,
-      new_balance: newBalance,
-      shopify_created: shopifyCreated,
-    };
-  }
 }

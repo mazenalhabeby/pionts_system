@@ -1,70 +1,30 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp, createTestAppWithThrottling } from '../helpers/test-app.helper';
-import { resetDatabase, disconnectTestPrisma } from '../helpers/prisma-test.helper';
-import { loginAdmin } from '../helpers/auth.helper';
-import { createOrg, createProject, createCustomer, createSetting, resetCounters } from '../helpers/factories';
+import { createTestAppWithThrottling } from '../helpers/test-app.helper';
+import { createOrg, createProject, createCustomer, seedProjectDefaults } from '../helpers/factories';
+import { setupE2E } from '../helpers/e2e-setup';
 
 describe('Security E2E', () => {
+  const { getApp } = setupE2E();
   let app: INestApplication;
-  let cookie: string;
 
   beforeAll(async () => {
-    await resetDatabase();
-    resetCounters();
-    app = await createTestApp();
+    app = getApp();
 
     const org = await createOrg();
     const project = await createProject(org.id);
 
-    const { DEFAULTS } = require('../../src/config/config.constants');
-    for (const [key, val] of Object.entries(DEFAULTS)) {
-      await createSetting(project.id, key, val as string);
-    }
+    await seedProjectDefaults(project.id);
 
     await createCustomer(project.id, {
       email: 'sectest@test.com',
       name: 'SecTest',
     });
-
-    cookie = await loginAdmin(app);
-  });
-
-  afterAll(async () => {
-    await app.close();
-    await disconnectTestPrisma();
   });
 
   // ── SQL INJECTION ─────────────────────────────────────────────────
 
   describe('SQL Injection', () => {
-    it('should handle SQL injection in customer search', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/admin/api/customers')
-        .query({ q: "'; DROP TABLE customers; --" })
-        .set('Cookie', cookie)
-        .expect(200);
-
-      // Should not crash and should return results (empty or valid)
-      expect(res.body.customers).toBeInstanceOf(Array);
-    });
-
-    it('should handle SQL injection in customer ID param', async () => {
-      const res = await request(app.getHttpServer())
-        .get("/admin/api/customer/0;DROP TABLE customers")
-        .set('Cookie', cookie);
-      // parseInt returns 0 → not found, or NaN → error; NOT data leak
-      expect([400, 404, 500]).toContain(res.status);
-    });
-
-    it('should handle SQL injection in referral code check', async () => {
-      const res = await request(app.getHttpServer())
-        .get("/api/check-ref/' OR '1'='1")
-        .expect(200);
-
-      expect(res.body.valid).toBe(false);
-    });
-
     it('should handle SQL injection in auth credentials', async () => {
       const res = await request(app.getHttpServer())
         .post('/auth/login')
@@ -115,53 +75,6 @@ describe('Security E2E', () => {
         .get('/auth/me')
         .set('Authorization', `Bearer ${noneToken}`);
       expect(res.status).toBe(401);
-    });
-
-    it('should reject admin API without session', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/admin/api/stats');
-      expect(res.status).toBe(401);
-    });
-
-    it('should reject customer API without session', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/customer/me');
-      expect(res.status).toBe(401);
-    });
-  });
-
-  // ── PARAMETER TAMPERING ───────────────────────────────────────────
-
-  describe('Parameter Tampering', () => {
-    it('should reject negative points in award', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/admin/api/customer/1/award')
-        .set('Cookie', cookie)
-        .send({ points: -100 });
-      expect(res.status).toBe(400);
-    });
-
-    it('should reject non-numeric points', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/admin/api/customer/1/award')
-        .set('Cookie', cookie)
-        .send({ points: 'abc' });
-      expect(res.status).toBe(400);
-    });
-
-    it('should handle non-existent customer IDs', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/admin/api/customer/999999')
-        .set('Cookie', cookie);
-      expect(res.status).toBe(404);
-    });
-
-    it('should handle zero points', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/admin/api/customer/1/award')
-        .set('Cookie', cookie)
-        .send({ points: 0 });
-      expect(res.status).toBe(400);
     });
   });
 
@@ -217,7 +130,7 @@ describe('Security E2E', () => {
 
         for (let i = 0; i < 65; i++) {
           const res = await request(throttledApp.getHttpServer())
-            .get('/admin/api/session');
+            .get('/auth/me');
           if (res.status === 429) {
             got429 = true;
             break;

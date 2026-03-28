@@ -262,24 +262,4 @@ describe('CustomersService', () => {
     });
   });
 
-  describe('resolveFromSession', () => {
-    it('should throw NotFoundException when session has no email', async () => {
-      await expect(service.resolveFromSession(1, {})).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw NotFoundException when customer not found', async () => {
-      prisma.customer.findFirst.mockResolvedValue(null);
-      await expect(
-        service.resolveFromSession(1, { customerEmail: 'gone@test.com' }),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should return customer when found', async () => {
-      const customer = { id: 1, email: 'found@test.com' };
-      prisma.customer.findFirst.mockResolvedValue(customer);
-
-      const result = await service.resolveFromSession(1, { customerEmail: 'found@test.com' });
-      expect(result).toEqual(customer);
-    });
-  });
 });

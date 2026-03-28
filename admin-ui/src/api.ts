@@ -1,3 +1,13 @@
+import type {
+  DashboardStatsResponse, CustomerListResponse, CustomerDetailResponse,
+  PointsEconomyResponse, ReferralFunnelResponse, ReferralTreeResponse,
+  SegmentCustomersResponse, CustomerSegments, AuthLoginResponse, AuthMeResponse,
+  ProjectResponse, ProjectCreateResponse, ApiKeyResponse,
+  BillingSubscriptionResponse, EarnAction, RedemptionTier,
+  ReferralLevelConfig, PartnerListItem, PartnerEarning, SettingsResponse,
+} from '@pionts/shared';
+import type { Customer } from '@pionts/shared';
+
 let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null): void {
@@ -77,21 +87,21 @@ async function silentRefresh(): Promise<boolean> {
 
 // ─── Auth API ───
 export const authApi = {
-  login: (email: string, password: string): Promise<any> =>
+  login: (email: string, password: string): Promise<AuthLoginResponse> =>
     request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
-  register: (data: Record<string, unknown>): Promise<any> =>
+  register: (data: Record<string, unknown>): Promise<AuthLoginResponse> =>
     request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   refresh: (): Promise<boolean> => silentRefresh(),
-  logout: (): Promise<any> =>
+  logout: (): Promise<{ success: boolean }> =>
     request('/auth/logout', { method: 'POST' }),
-  me: (): Promise<any> => request('/auth/me'),
-  switchOrg: (orgId: number): Promise<any> =>
+  me: (): Promise<AuthMeResponse> => request('/auth/me'),
+  switchOrg: (orgId: number): Promise<AuthLoginResponse> =>
     request('/auth/switch-org', {
       method: 'POST',
       body: JSON.stringify({ orgId }),
@@ -114,18 +124,18 @@ export const orgApi = {
 
 // ─── Project API ───
 export const projectApi = {
-  list: (): Promise<any> => request('/api/v1/projects'),
-  create: (data: Record<string, unknown>): Promise<any> =>
+  list: (): Promise<ProjectResponse[]> => request('/api/v1/projects'),
+  create: (data: Record<string, unknown>): Promise<ProjectCreateResponse> =>
     request('/api/v1/projects', { method: 'POST', body: JSON.stringify(data) }),
-  get: (id: number | string): Promise<any> => request(`/api/v1/projects/${id}`),
-  update: (id: number | string, data: Record<string, unknown>): Promise<any> =>
+  get: (id: number | string): Promise<ProjectResponse> => request(`/api/v1/projects/${id}`),
+  update: (id: number | string, data: Record<string, unknown>): Promise<ProjectResponse> =>
     request(`/api/v1/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  archive: (id: number | string): Promise<any> =>
+  archive: (id: number | string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${id}`, { method: 'DELETE' }),
-  getKeys: (id: number | string): Promise<any> => request(`/api/v1/projects/${id}/keys`),
-  generateKeys: (id: number | string): Promise<any> =>
+  getKeys: (id: number | string): Promise<ApiKeyResponse[]> => request(`/api/v1/projects/${id}/keys`),
+  generateKeys: (id: number | string): Promise<{ publicKey: string; secretKey: string }> =>
     request(`/api/v1/projects/${id}/keys`, { method: 'POST' }),
-  revokeKey: (id: number | string, keyId: number | string): Promise<any> =>
+  revokeKey: (id: number | string, keyId: number | string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${id}/keys/${keyId}`, { method: 'DELETE' }),
   getMembers: (id: number | string): Promise<any> =>
     request(`/api/v1/projects/${id}/members`),
@@ -150,85 +160,85 @@ export const projectApi = {
 
 // ─── Dashboard API (project-scoped) ───
 export const dashboardApi = {
-  getStats: (pid: number | string): Promise<any> => request(`/api/v1/projects/${pid}/stats`),
-  getCustomers: (pid: number | string, params: Record<string, string | number>): Promise<any> =>
+  getStats: (pid: number | string): Promise<DashboardStatsResponse> => request(`/api/v1/projects/${pid}/stats`),
+  getCustomers: (pid: number | string, params: Record<string, string | number>): Promise<CustomerListResponse> =>
     request(`/api/v1/projects/${pid}/customers?${new URLSearchParams(params as Record<string, string>)}`),
-  getCustomer: (pid: number | string, custId: number | string): Promise<any> =>
+  getCustomer: (pid: number | string, custId: number | string): Promise<CustomerDetailResponse> =>
     request(`/api/v1/projects/${pid}/customers/${custId}`),
-  awardPoints: (pid: number | string, custId: number | string, points: number, reason: string): Promise<any> =>
+  awardPoints: (pid: number | string, custId: number | string, points: number, reason: string): Promise<{ new_balance: number }> =>
     request(`/api/v1/projects/${pid}/customers/${custId}/award`, {
       method: 'POST',
       body: JSON.stringify({ points, reason }),
     }),
-  deductPoints: (pid: number | string, custId: number | string, points: number, reason: string): Promise<any> =>
+  deductPoints: (pid: number | string, custId: number | string, points: number, reason: string): Promise<{ new_balance: number }> =>
     request(`/api/v1/projects/${pid}/customers/${custId}/deduct`, {
       method: 'POST',
       body: JSON.stringify({ points, reason }),
     }),
   getSettings: (pid: number | string): Promise<any> => request(`/api/v1/projects/${pid}/settings`),
-  saveSettings: (pid: number | string, settings: Record<string, unknown>): Promise<any> =>
+  saveSettings: (pid: number | string, settings: Record<string, unknown>): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/settings`, {
       method: 'POST',
       body: JSON.stringify(settings),
     }),
-  getReferrals: (pid: number | string): Promise<any> => request(`/api/v1/projects/${pid}/referrals`),
-  createCustomer: (pid: number | string, data: { email: string; name?: string; birthday?: string }): Promise<any> =>
+  getReferrals: (pid: number | string): Promise<ReferralTreeResponse> => request(`/api/v1/projects/${pid}/referrals`),
+  createCustomer: (pid: number | string, data: { email: string; name?: string; birthday?: string }): Promise<Customer> =>
     request(`/api/v1/projects/${pid}/customers`, { method: 'POST', body: JSON.stringify(data) }),
-  updateCustomer: (pid: number | string, custId: number | string, data: { email?: string; name?: string; birthday?: string; referred_by?: string | null }): Promise<any> =>
+  updateCustomer: (pid: number | string, custId: number | string, data: { email?: string; name?: string; birthday?: string; referred_by?: string | null }): Promise<Customer> =>
     request(`/api/v1/projects/${pid}/customers/${custId}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteCustomer: (pid: number | string, custId: number | string): Promise<any> =>
+  deleteCustomer: (pid: number | string, custId: number | string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/customers/${custId}`, { method: 'DELETE' }),
 };
 
 // ─── Earn Actions API (project-scoped) ───
 export const earnActionsApi = {
-  list: (pid: number | string): Promise<any> => request(`/api/v1/projects/${pid}/earn-actions`),
-  create: (pid: number | string, data: Record<string, unknown>): Promise<any> =>
+  list: (pid: number | string): Promise<EarnAction[]> => request(`/api/v1/projects/${pid}/earn-actions`),
+  create: (pid: number | string, data: Record<string, unknown>): Promise<EarnAction> =>
     request(`/api/v1/projects/${pid}/earn-actions`, { method: 'POST', body: JSON.stringify(data) }),
-  update: (pid: number | string, actionId: number | string, data: Record<string, unknown>): Promise<any> =>
+  update: (pid: number | string, actionId: number | string, data: Record<string, unknown>): Promise<EarnAction> =>
     request(`/api/v1/projects/${pid}/earn-actions/${actionId}`, { method: 'PUT', body: JSON.stringify(data) }),
-  remove: (pid: number | string, actionId: number | string): Promise<any> =>
+  remove: (pid: number | string, actionId: number | string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/earn-actions/${actionId}`, { method: 'DELETE' }),
 };
 
 // ─── Redemption Tiers API (project-scoped) ───
 export const redemptionTiersApi = {
-  list: (pid: number | string): Promise<any> => request(`/api/v1/projects/${pid}/redemption-tiers`),
-  create: (pid: number | string, data: Record<string, unknown>): Promise<any> =>
+  list: (pid: number | string): Promise<any[]> => request(`/api/v1/projects/${pid}/redemption-tiers`),
+  create: (pid: number | string, data: Record<string, unknown>): Promise<RedemptionTier> =>
     request(`/api/v1/projects/${pid}/redemption-tiers`, { method: 'POST', body: JSON.stringify(data) }),
-  update: (pid: number | string, tierId: number | string, data: Record<string, unknown>): Promise<any> =>
+  update: (pid: number | string, tierId: number | string, data: Record<string, unknown>): Promise<RedemptionTier> =>
     request(`/api/v1/projects/${pid}/redemption-tiers/${tierId}`, { method: 'PUT', body: JSON.stringify(data) }),
-  remove: (pid: number | string, tierId: number | string): Promise<any> =>
+  remove: (pid: number | string, tierId: number | string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/redemption-tiers/${tierId}`, { method: 'DELETE' }),
 };
 
 // ─── Referral Levels API (project-scoped) ───
 export const referralLevelsApi = {
-  list: (pid: number | string): Promise<any> => request(`/api/v1/projects/${pid}/referral-levels`),
-  create: (pid: number | string, data: Record<string, unknown>): Promise<any> =>
+  list: (pid: number | string): Promise<any[]> => request(`/api/v1/projects/${pid}/referral-levels`),
+  create: (pid: number | string, data: Record<string, unknown>): Promise<ReferralLevelConfig> =>
     request(`/api/v1/projects/${pid}/referral-levels`, { method: 'POST', body: JSON.stringify(data) }),
-  update: (pid: number | string, levelId: number | string, data: Record<string, unknown>): Promise<any> =>
+  update: (pid: number | string, levelId: number | string, data: Record<string, unknown>): Promise<ReferralLevelConfig> =>
     request(`/api/v1/projects/${pid}/referral-levels/${levelId}`, { method: 'PUT', body: JSON.stringify(data) }),
-  remove: (pid: number | string, levelId: number | string): Promise<any> =>
+  remove: (pid: number | string, levelId: number | string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/referral-levels/${levelId}`, { method: 'DELETE' }),
 };
 
 // ─── Partners API (project-scoped) ───
 export const partnersApi = {
-  list: (pid: number | string): Promise<any> => request(`/api/v1/projects/${pid}/partners`),
-  promote: (pid: number | string, customerId: number, commissionPct: number): Promise<any> =>
+  list: (pid: number | string): Promise<PartnerListItem[]> => request(`/api/v1/projects/${pid}/partners`),
+  promote: (pid: number | string, customerId: number, commissionPct: number): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/partners`, {
       method: 'POST',
       body: JSON.stringify({ customerId, commissionPct }),
     }),
-  updateCommission: (pid: number | string, partnerId: number | string, commissionPct: number): Promise<any> =>
+  updateCommission: (pid: number | string, partnerId: number | string, commissionPct: number): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/partners/${partnerId}`, {
       method: 'PUT',
       body: JSON.stringify({ commissionPct }),
     }),
-  demote: (pid: number | string, partnerId: number | string): Promise<any> =>
+  demote: (pid: number | string, partnerId: number | string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/partners/${partnerId}`, { method: 'DELETE' }),
-  getEarnings: (pid: number | string, partnerId: number | string): Promise<any> =>
+  getEarnings: (pid: number | string, partnerId: number | string): Promise<any[]> =>
     request(`/api/v1/projects/${pid}/partners/${partnerId}/earnings`),
 };
 
@@ -257,12 +267,12 @@ export const invitationsApi = {
 // ─── Billing API ───
 export const billingApi = {
   getSubscription: (): Promise<any> => request('/api/v1/billing/subscription'),
-  checkout: (successUrl: string, cancelUrl: string): Promise<any> =>
+  checkout: (successUrl: string, cancelUrl: string): Promise<{ url: string }> =>
     request('/api/v1/billing/checkout', {
       method: 'POST',
       body: JSON.stringify({ successUrl, cancelUrl }),
     }),
-  portal: (returnUrl: string): Promise<any> =>
+  portal: (returnUrl: string): Promise<{ url: string }> =>
     request('/api/v1/billing/portal', {
       method: 'POST',
       body: JSON.stringify({ returnUrl }),
@@ -271,22 +281,22 @@ export const billingApi = {
 
 // ─── Analytics API (project-scoped) ───
 export const analyticsApi = {
-  getPointsEconomy: (pid: number | string, period = 'day', from?: string, to?: string): Promise<any> => {
+  getPointsEconomy: (pid: number | string, period = 'day', from?: string, to?: string): Promise<PointsEconomyResponse> => {
     const params = new URLSearchParams({ period });
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     return request(`/api/v1/projects/${pid}/analytics/points-economy?${params}`);
   },
-  getReferralFunnel: (pid: number | string, from?: string, to?: string): Promise<any> => {
+  getReferralFunnel: (pid: number | string, from?: string, to?: string): Promise<ReferralFunnelResponse> => {
     const params = new URLSearchParams();
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     const qs = params.toString();
     return request(`/api/v1/projects/${pid}/analytics/referral-funnel${qs ? '?' + qs : ''}`);
   },
-  getSegments: (pid: number | string): Promise<any> =>
+  getSegments: (pid: number | string): Promise<CustomerSegments> =>
     request(`/api/v1/projects/${pid}/analytics/segments`),
-  getSegmentCustomers: (pid: number | string, segment: string, limit = 50, offset = 0): Promise<any> =>
+  getSegmentCustomers: (pid: number | string, segment: string, limit = 50, offset = 0): Promise<SegmentCustomersResponse> =>
     request(`/api/v1/projects/${pid}/analytics/segments/${segment}/customers?limit=${limit}&offset=${offset}`),
   exportCustomersUrl: (pid: number | string): string =>
     `/api/v1/projects/${pid}/analytics/export/customers`,
@@ -310,43 +320,3 @@ export const platformApi = {
   getActivity: (): Promise<any> => request('/api/v1/platform/activity'),
 };
 
-// ─── Legacy Admin API (backward compat) ───
-const BASE = '/admin';
-async function legacyRequest(path: string, options: RequestInit = {}): Promise<any> {
-  const res = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (res.status === 401) {
-    window.dispatchEvent(new Event('auth:unauthorized'));
-    throw new Error('Unauthorized');
-  }
-  return res.json();
-}
-
-export const adminApi = {
-  checkSession: (): Promise<any> => legacyRequest('/api/session'),
-  login: (password: string): Promise<any> =>
-    legacyRequest('/login', { method: 'POST', body: JSON.stringify({ password }) }),
-  logout: (): Promise<any> => legacyRequest('/logout', { method: 'POST' }),
-  getStats: (): Promise<any> => legacyRequest('/api/stats'),
-  getCustomers: (params: Record<string, string>): Promise<any> => {
-    const qs = new URLSearchParams(params).toString();
-    return legacyRequest('/api/customers?' + qs);
-  },
-  getCustomer: (id: number | string): Promise<any> => legacyRequest('/api/customer/' + id),
-  awardPoints: (id: number | string, points: number, reason: string): Promise<any> =>
-    legacyRequest(`/api/customer/${id}/award`, {
-      method: 'POST',
-      body: JSON.stringify({ points, reason }),
-    }),
-  deductPoints: (id: number | string, points: number, reason: string): Promise<any> =>
-    legacyRequest(`/api/customer/${id}/deduct`, {
-      method: 'POST',
-      body: JSON.stringify({ points, reason }),
-    }),
-  getSettings: (): Promise<any> => legacyRequest('/api/settings'),
-  saveSettings: (settings: Record<string, unknown>): Promise<any> =>
-    legacyRequest('/api/settings', { method: 'POST', body: JSON.stringify(settings) }),
-  getReferrals: (): Promise<any> => legacyRequest('/api/referrals'),
-};

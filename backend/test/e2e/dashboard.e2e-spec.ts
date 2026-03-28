@@ -1,14 +1,14 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../helpers/test-app.helper';
-import { resetDatabase, disconnectTestPrisma, testPrisma } from '../helpers/prisma-test.helper';
 import { registerUser, loginUser, authGet, authPost } from '../helpers/auth.helper';
 import {
-  resetCounters, createCustomer, createPointsLog,
+  createCustomer, createPointsLog,
   createReferralTree, createSetting,
 } from '../helpers/factories';
+import { setupE2E } from '../helpers/e2e-setup';
 
 describe('Dashboard E2E', () => {
+  const { getApp } = setupE2E();
   let app: INestApplication;
   let token: string;
   let projectId: number;
@@ -21,9 +21,7 @@ describe('Dashboard E2E', () => {
   let otherProjectId: number;
 
   beforeAll(async () => {
-    await resetDatabase();
-    resetCounters();
-    app = await createTestApp();
+    app = getApp();
 
     // Register primary user
     const { body } = await registerUser(app, {
@@ -82,11 +80,6 @@ describe('Dashboard E2E', () => {
     // Settings (use keys that still exist in DEFAULTS)
     await createSetting(projectId, 'widget_primary_color', '#ff0000');
     await createSetting(projectId, 'min_order_referral', '15');
-  });
-
-  afterAll(async () => {
-    await app.close();
-    await disconnectTestPrisma();
   });
 
   // ── STATS ─────────────────────────────────────────────────────────

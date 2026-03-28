@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AppConfigService } from '../config/app-config.service';
 import { CustomersService } from '../customers/customers.service';
 import { NotificationService } from '../notifications/notification.service';
+import { LIMITS } from '../common/constants';
 
 @Injectable()
 export class ReferralsService {
@@ -52,6 +53,7 @@ export class ReferralsService {
 
   async getNetworkCount(projectId: number, customerId: number): Promise<number> {
     // Recursive CTE with depth limit to prevent infinite loops from circular refs
+    const maxDepth = LIMITS.REFERRAL_TREE_MAX_DEPTH;
     const result = await this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
       WITH RECURSIVE chain AS (
         SELECT customer_id, 1 AS depth FROM referral_tree
@@ -59,7 +61,7 @@ export class ReferralsService {
         UNION ALL
         SELECT rt.customer_id, c.depth + 1 FROM referral_tree rt
         INNER JOIN chain c ON rt.parent_id = c.customer_id
-        WHERE rt.project_id = ${projectId} AND c.depth < 20
+        WHERE rt.project_id = ${projectId} AND c.depth < ${maxDepth}
       )
       SELECT COUNT(*) as count FROM chain
     `);
@@ -72,6 +74,26 @@ export class ReferralsService {
       this.getNetworkCount(projectId, customerId),
     ]);
     return { direct, network };
+  }
+
+  /**
+   * Safe wrapper: links a referral only if the customer isn't already referred
+   * and the code doesn't match their own. Silently returns false on invalid codes.
+   */
+  async linkReferralIfNeeded(
+    projectId: number,
+    customerId: number,
+    referralCode: string,
+    customerReferralCode?: string,
+    customerReferredBy?: string | null,
+  ): Promise<boolean> {
+    if (customerReferredBy) return false;
+    if (customerReferralCode && referralCode === customerReferralCode) return false;
+    try {
+      return await this.linkReferral(projectId, customerId, referralCode);
+    } catch {
+      return false;
+    }
   }
 
   async linkReferral(projectId: number, customerId: number, referrerCode: string): Promise<boolean> {
@@ -90,6 +112,7 @@ export class ReferralsService {
     // Cycle detection: ensure referrer is not a descendant of customer
     const descendantCount = await this.getNetworkCount(projectId, customerId);
     if (descendantCount > 0) {
+      const maxDepth = LIMITS.REFERRAL_TREE_MAX_DEPTH;
       const isDescendant = await this.prisma.$queryRaw<Array<{ found: boolean }>>(Prisma.sql`
         WITH RECURSIVE chain AS (
           SELECT customer_id, 1 AS depth FROM referral_tree
@@ -97,7 +120,7 @@ export class ReferralsService {
           UNION ALL
           SELECT rt.customer_id, c.depth + 1 FROM referral_tree rt
           INNER JOIN chain c ON rt.parent_id = c.customer_id
-          WHERE rt.project_id = ${projectId} AND c.depth < 20
+          WHERE rt.project_id = ${projectId} AND c.depth < ${maxDepth}
         )
         SELECT EXISTS(SELECT 1 FROM chain WHERE customer_id = ${referrer.id}) as found
       `);

@@ -9,5 +9,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [CustomersModule, ReferralsModule, AuthModule],
   controllers: [WebhooksController],
   providers: [WebhooksService],
+  exports: [WebhooksService],
 })
 export class WebhooksModule {}

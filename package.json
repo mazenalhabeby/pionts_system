@@ -1,7 +1,7 @@
 {
-  "name": "8bc-rewards",
+  "name": "pionts",
   "version": "2.0.0",
-  "description": "8BC Crew Rewards — Loyalty + Referral system for 8bc.store",
+  "description": "Pionts — Multi-tenant loyalty & referral SaaS platform",
   "private": true,
   "scripts": {
     "start": "cd backend && node dist/main.js",

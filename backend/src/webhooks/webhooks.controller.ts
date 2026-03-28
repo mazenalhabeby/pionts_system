@@ -5,6 +5,7 @@ import { Throttle } from '@nestjs/throttler';
 import { SecretKeyGuard } from '../common/guards/secret-key.guard';
 import { SecretKeyProject } from '../common/decorators/secret-key-project.decorator';
 import { WebhooksService } from './webhooks.service';
+import { OrderWebhookDto, RefundWebhookDto, CustomerWebhookDto } from './dto/webhook.dto';
 
 @Controller('api/v1/webhooks')
 @UseGuards(SecretKeyGuard)
@@ -17,7 +18,7 @@ export class WebhooksController {
   @Post('order')
   async orderCreated(
     @SecretKeyProject() project: { id: number },
-    @Body() body: any,
+    @Body() body: OrderWebhookDto,
   ) {
     try {
       return await this.webhooksService.processOrder(project.id, body);
@@ -30,7 +31,7 @@ export class WebhooksController {
   @Post('customer')
   async customerCreated(
     @SecretKeyProject() project: { id: number },
-    @Body() body: any,
+    @Body() body: CustomerWebhookDto,
   ) {
     try {
       return await this.webhooksService.processCustomer(project.id, body);
@@ -43,7 +44,7 @@ export class WebhooksController {
   @Post('refund')
   async refundCreated(
     @SecretKeyProject() project: { id: number },
-    @Body() body: any,
+    @Body() body: RefundWebhookDto,
   ) {
     try {
       return await this.webhooksService.processRefund(project.id, body);

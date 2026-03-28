@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import {
-  ResponsiveContainer, AreaChart as RechartsArea, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
 import { Link } from 'react-router-dom';
@@ -9,13 +8,12 @@ import { dashboardApi, analyticsApi, partnersApi } from '../api';
 import { useProject } from '../context/ProjectContext';
 import { useFetch } from '@pionts/shared';
 import ActivityFeed from '../components/ActivityFeed';
+import PointsEconomyChart from '../components/charts/PointsEconomyChart';
+import CardSection from '../components/ui/CardSection';
+import PageHero from '../components/ui/PageHero';
 import type { PointsLogEntry, PointsEconomyBucket, CustomerSegments } from '@pionts/shared';
 import { Alert } from '../components/ui/alert';
 import { NoProject } from '../components/ui/empty-state';
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const fmtK = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v));
-const fmtDate = (d: string) => { const dt = new Date(d); return `${MONTHS[dt.getMonth()]} ${dt.getDate()}`; };
 
 /* ── Rank Badge ── */
 const RANK_COLORS = ['#ff3c00', '#0ea5e9', '#6366f1', '#a855f7', '#64748b'];
@@ -26,95 +24,6 @@ function RankBadge({ rank }: { rank: number }) {
     <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-[11px] font-bold shrink-0" style={{ background: bg }}>
       {rank}
     </span>
-  );
-}
-
-/* ── Custom tooltip ── */
-function ChartTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-bg-surface border border-border-default rounded-lg px-3 py-2 shadow-lg text-[12px]">
-      <div className="text-text-faint mb-1.5 font-medium">{fmtDate(label)}</div>
-      {payload.map((p: any) => (
-        <div key={p.dataKey} className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-          <span className="text-text-muted">{p.dataKey === 'issued' ? 'Issued' : 'Redeemed'}</span>
-          <span className="font-bold text-text-primary ml-auto">{p.value.toLocaleString()}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ── Points Economy Chart (Recharts) ── */
-function PointsChart({ buckets }: { buckets: PointsEconomyBucket[] }) {
-  if (buckets.length < 2) {
-    return <div className="text-center text-text-muted py-10 text-[13px]">Not enough data yet</div>;
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-5 px-1">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#ff3c00' }} />
-          <span className="text-[12px] text-text-muted font-medium">Issued</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#6366f1' }} />
-          <span className="text-[12px] text-text-muted font-medium">Redeemed</span>
-        </div>
-      </div>
-      <ResponsiveContainer width="100%" height={260}>
-        <RechartsArea data={buckets} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
-          <defs>
-            <linearGradient id="grad-issued" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ff3c00" stopOpacity={0.2} />
-              <stop offset="100%" stopColor="#ff3c00" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="grad-redeemed" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.2} />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" vertical={false} />
-          <XAxis
-            dataKey="bucket"
-            tickFormatter={fmtDate}
-            tick={{ fontSize: 11, fill: '#888' }}
-            axisLine={false}
-            tickLine={false}
-            interval="preserveStartEnd"
-            minTickGap={40}
-          />
-          <YAxis
-            tickFormatter={fmtK}
-            tick={{ fontSize: 11, fill: '#888' }}
-            axisLine={false}
-            tickLine={false}
-            width={48}
-          />
-          <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgba(128,128,128,0.2)' }} />
-          <Area
-            type="monotone"
-            dataKey="issued"
-            stroke="#ff3c00"
-            strokeWidth={2.5}
-            fill="url(#grad-issued)"
-            dot={false}
-            activeDot={{ r: 5, strokeWidth: 2, fill: 'var(--color-bg-card, #111)' }}
-          />
-          <Area
-            type="monotone"
-            dataKey="redeemed"
-            stroke="#6366f1"
-            strokeWidth={2.5}
-            fill="url(#grad-redeemed)"
-            dot={false}
-            activeDot={{ r: 5, strokeWidth: 2, fill: 'var(--color-bg-card, #111)' }}
-          />
-        </RechartsArea>
-      </ResponsiveContainer>
-    </div>
   );
 }
 
@@ -339,54 +248,32 @@ export default function Overview() {
   return (
     <div className="flex flex-col gap-5">
       {/* ── Hero with stats ── */}
-      <div className="ov-hero bg-bg-card border border-border-default rounded-2xl relative overflow-hidden">
-        <div className="px-8 pt-8 pb-4 max-md:px-5 max-md:pt-6">
-          <div className="text-[11px] text-primary uppercase tracking-[2px] font-bold">Dashboard</div>
-          <div className="text-[26px] font-extrabold text-text-primary leading-tight mt-1 max-md:text-[20px]">{currentProject.name}</div>
-          {currentProject.domain && (
-            <div className="text-[13px] text-text-muted mt-1">{currentProject.domain}</div>
-          )}
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-4 border-t border-border-default max-md:grid-cols-2">
-          {[
-            { label: 'Total Members', value: (stats.totalCustomers || 0).toLocaleString() },
-            { label: 'Total Orders', value: (stats.totalOrders || 0).toLocaleString() },
-            { label: 'Points Issued', value: (stats.totalPoints || 0).toLocaleString() },
-            { label: 'Redeemed', value: `\u20AC${stats.totalRedeemed || 0}`, accent: true },
-          ].map((s, i) => (
-            <div key={s.label} className={`px-8 py-5 max-md:px-5 max-md:py-4 ${i > 0 ? 'border-l border-border-default max-md:border-l-0' : ''} ${i >= 2 ? 'max-md:border-t max-md:border-border-default' : ''} ${i % 2 !== 0 ? 'max-md:border-l max-md:border-border-default' : ''}`}>
-              <div className="text-[10px] uppercase tracking-wider font-semibold text-text-faint mb-1">{s.label}</div>
-              <div className={`text-[22px] font-bold leading-none ${s.accent ? 'text-success' : 'text-text-primary'}`}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <PageHero
+        label="Dashboard"
+        title={currentProject.name}
+        subtitle={currentProject.domain || undefined}
+        className="ov-hero relative overflow-hidden"
+        stats={[
+          { label: 'Total Members', value: (stats.totalCustomers || 0).toLocaleString() },
+          { label: 'Total Orders', value: (stats.totalOrders || 0).toLocaleString() },
+          { label: 'Points Issued', value: (stats.totalPoints || 0).toLocaleString() },
+          { label: 'Redeemed', value: `\u20AC${stats.totalRedeemed || 0}`, accent: true },
+        ]}
+      />
 
       {/* ── Charts row ── */}
       <div className="grid grid-cols-[1fr_340px] gap-5 items-stretch max-[900px]:grid-cols-1">
-        {/* Points Economy Chart */}
-        <div className="bg-bg-card border border-border-default rounded-xl overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-border-default flex items-center justify-between">
-            <div className="text-[14px] font-semibold text-text-primary">Points Economy</div>
-            <span className="text-[11px] text-text-faint">Last 30 days</span>
-          </div>
+        <CardSection title="Points Economy" action={<span className="text-[11px] text-text-faint">Last 30 days</span>} className="flex flex-col">
           <div className="p-4 flex-1">
-            <PointsChart buckets={buckets} />
+            <PointsEconomyChart buckets={buckets} gradientId="ov" />
           </div>
-        </div>
+        </CardSection>
 
-        {/* Customer Segments */}
-        <div className="bg-bg-card border border-border-default rounded-xl overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-border-default flex items-center justify-between">
-            <div className="text-[14px] font-semibold text-text-primary">Customer Health</div>
-            <Link to="/analytics" className="text-[12px] font-medium text-primary no-underline hover:underline">Details</Link>
-          </div>
+        <CardSection title="Customer Health" action={<Link to="/analytics" className="text-[12px] font-medium text-primary no-underline hover:underline">Details</Link>} className="flex flex-col">
           <div className="p-4 flex-1 flex items-center justify-center">
             <SegmentsDonut segments={segments} />
           </div>
-        </div>
+        </CardSection>
       </div>
 
       {/* ── Tabbed: Activity / Referrers / Partners ── */}

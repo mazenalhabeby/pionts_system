@@ -1,0 +1,12 @@
+name = "Pionts Loyalty & Referrals"
+client_id = "${SHOPIFY_API_KEY}"
+application_url = "${SHOPIFY_APP_URL}/shopify/auth"
+
+[auth]
+redirect_urls = ["${SHOPIFY_APP_URL}/shopify/auth/callback"]
+
+[access_scopes]
+scopes = "read_customers,write_customers,read_orders,write_orders,read_products,write_price_rules,write_discounts,read_themes,write_themes"
+
+[webhooks]
+api_version = "2024-01"

@@ -1,0 +1,17 @@
+name = "Pionts Loyalty Widget"
+type = "theme"
+
+[[blocks]]
+name = "Loyalty Popup"
+handle = "loyalty-popup"
+template = "blocks/loyalty-popup.liquid"
+target = "head"
+
+  [blocks.default]
+  enabled = true
+
+[[blocks]]
+name = "Loyalty Profile Widget"
+handle = "loyalty-profile"
+template = "blocks/loyalty-profile.liquid"
+target = "section"

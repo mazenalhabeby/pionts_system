@@ -1,13 +1,14 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../helpers/test-app.helper';
-import { resetDatabase, disconnectTestPrisma, testPrisma } from '../helpers/prisma-test.helper';
+import { testPrisma } from '../helpers/prisma-test.helper';
 import {
   createOrg, createProject, createCustomer, createApiKeyPair,
-  createRedemption, resetCounters,
+  createRedemption,
 } from '../helpers/factories';
+import { setupE2E } from '../helpers/e2e-setup';
 
 describe('Discount E2E', () => {
+  const { getApp } = setupE2E();
   let app: INestApplication;
   let projectId: number;
   let secretKey: string;
@@ -22,9 +23,7 @@ describe('Discount E2E', () => {
   let otherRedemption: any;
 
   beforeAll(async () => {
-    await resetDatabase();
-    resetCounters();
-    app = await createTestApp();
+    app = getApp();
 
     // Project 1
     const org = await createOrg();
@@ -70,11 +69,6 @@ describe('Discount E2E', () => {
     otherRedemption = await createRedemption(otherProjectId, otherCustomer.id, {
       discountCode: 'PIONTS-OTHER-001',
     });
-  });
-
-  afterAll(async () => {
-    await app.close();
-    await disconnectTestPrisma();
   });
 
   // ── AUTH ──────────────────────────────────────────────────────────

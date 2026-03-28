@@ -9,7 +9,7 @@ import { ProjectRoles } from '../common/decorators/project-roles.decorator';
 import { CustomersService } from '../customers/customers.service';
 import { ReferralsService } from '../referrals/referrals.service';
 import { AppConfigService } from '../config/app-config.service';
-import { AwardDeductDto } from '../admin/dto/award-deduct.dto';
+import { AwardDeductDto } from './dto/award-deduct.dto';
 import { toSnakeCaseCustomer } from '../utils/transformers';
 import { PrismaService } from '../prisma/prisma.service';
 

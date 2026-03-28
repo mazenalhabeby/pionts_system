@@ -1,14 +1,15 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../helpers/test-app.helper';
-import { resetDatabase, disconnectTestPrisma, testPrisma } from '../helpers/prisma-test.helper';
+import { testPrisma } from '../helpers/prisma-test.helper';
 import {
-  createOrg, createProject, createCustomer, createSetting,
-  createReferralTree, createApiKeyPair, resetCounters,
-  createReferralLevel, seedDefaultEarnActions,
+  createOrg, createProject, createCustomer,
+  createReferralTree, createApiKeyPair,
+  createReferralLevel, seedDefaultEarnActions, seedProjectDefaults,
 } from '../helpers/factories';
+import { setupE2E } from '../helpers/e2e-setup';
 
 describe('Webhook E2E', () => {
+  const { getApp } = setupE2E();
   let app: INestApplication;
   let projectId: number;
   let secretKey: string;
@@ -18,9 +19,7 @@ describe('Webhook E2E', () => {
   let buyer: any;
 
   beforeAll(async () => {
-    await resetDatabase();
-    resetCounters();
-    app = await createTestApp();
+    app = getApp();
 
     const org = await createOrg();
     const project = await createProject(org.id);
@@ -30,10 +29,7 @@ describe('Webhook E2E', () => {
     secretKey = keys.secretKey;
     publicKey = keys.publicKey;
 
-    const { DEFAULTS } = require('../../src/config/config.constants');
-    for (const [key, val] of Object.entries(DEFAULTS)) {
-      await createSetting(projectId, key, val as string);
-    }
+    await seedProjectDefaults(projectId);
 
     // Seed earn actions (webhook service uses earnActionsService.getAction)
     await seedDefaultEarnActions(projectId);
@@ -70,11 +66,6 @@ describe('Webhook E2E', () => {
       pointsEarnedTotal: 0,
     });
     await createReferralTree(projectId, buyer.id, parent.id);
-  });
-
-  afterAll(async () => {
-    await app.close();
-    await disconnectTestPrisma();
   });
 
   // ── AUTH TESTS ──────────────────────────────────────────────────────

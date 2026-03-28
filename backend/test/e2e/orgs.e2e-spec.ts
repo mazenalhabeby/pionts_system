@@ -1,18 +1,15 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../helpers/test-app.helper';
-import { resetDatabase, disconnectTestPrisma } from '../helpers/prisma-test.helper';
 import { registerUser, authGet, authPut, authPost, authDelete } from '../helpers/auth.helper';
-import { resetCounters } from '../helpers/factories';
+import { setupE2E } from '../helpers/e2e-setup';
 
 describe('Orgs E2E', () => {
+  const { getApp } = setupE2E();
   let app: INestApplication;
   let ownerToken: string;
 
   beforeAll(async () => {
-    await resetDatabase();
-    resetCounters();
-    app = await createTestApp();
+    app = getApp();
 
     const { body } = await registerUser(app, {
       email: 'owner@test.com',
@@ -21,11 +18,6 @@ describe('Orgs E2E', () => {
       orgName: 'Test Org',
     });
     ownerToken = body.accessToken;
-  });
-
-  afterAll(async () => {
-    await app.close();
-    await disconnectTestPrisma();
   });
 
   // ── GET /api/v1/orgs/me ──────────────────────────────────────────

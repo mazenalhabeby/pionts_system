@@ -16,10 +16,11 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  memberships  OrgMembership[]
-  projects     Project[]
-  subscription Subscription?
-  invitations  Invitation[]
+  memberships          OrgMembership[]
+  projects             Project[]
+  subscription         Subscription?
+  invitations          Invitation[]
+  shopifyInstallations ShopifyInstallation[]
 
   @@map("organizations")
 }
@@ -77,13 +78,14 @@ model Project {
   redemptions     Redemption[]
   processedOrders ProcessedOrder[]
   settings        Setting[]
-  members         ProjectMember[]
-  invitations     Invitation[]
-  earnActions     EarnAction[]
-  redemptionTiers RedemptionTier[]
-  referralLevels  ReferralLevel[]
+  members              ProjectMember[]
+  invitations          Invitation[]
+  earnActions          EarnAction[]
+  redemptionTiers      RedemptionTier[]
+  referralLevels       ReferralLevel[]
   partnerEarnings      PartnerEarning[]
   partnerApplications  PartnerApplication[]
+  shopifyInstallation  ShopifyInstallation?
 
   @@index([orgId])
   @@map("projects")
@@ -414,4 +416,24 @@ model Invitation {
   @@index([orgId, status])
   @@index([email, status])
   @@map("invitations")
+}
+
+model ShopifyInstallation {
+  id            Int       @id @default(autoincrement())
+  shopDomain    String    @unique @map("shop_domain")
+  accessToken   String    @map("access_token")
+  scopes        String
+  projectId     Int       @unique @map("project_id")
+  orgId         Int       @map("org_id")
+  publicKey     String?   @map("public_key")
+  hmacSecret    String?   @map("hmac_secret")
+  webhookIds    String?   @map("webhook_ids")
+  installedAt   DateTime  @default(now()) @map("installed_at")
+  uninstalledAt DateTime? @map("uninstalled_at")
+
+  project Project      @relation(fields: [projectId], references: [id])
+  org     Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+  @@map("shopify_installations")
 }

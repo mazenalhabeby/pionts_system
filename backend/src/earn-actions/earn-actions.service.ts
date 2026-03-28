@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import type { CustomersService } from '../customers/customers.service';
 
 /** Default earn actions seeded on project creation (social follows added by admin with URL) */
 const DEFAULT_ACTIONS = [
@@ -173,6 +174,31 @@ export class EarnActionsService {
       where: { projectId, customerId, claimedAt: null },
       select: { actionSlug: true, initiatedAt: true },
     });
+  }
+
+  /**
+   * Check-and-award pattern: fetches action, checks completion, awards points, marks done.
+   * Returns the new balance if awarded, or null if skipped (already done / disabled).
+   * Accepts CustomersService as a parameter to avoid circular dependency.
+   */
+  async awardActionIfNeeded(
+    projectId: number,
+    customerId: number,
+    slug: string,
+    customersService: CustomersService,
+    description?: string,
+    orderId?: string,
+    year?: number,
+  ): Promise<number | null> {
+    const action = await this.getAction(projectId, slug);
+    if (!action?.enabled) return null;
+    const done = await this.hasCompleted(projectId, customerId, slug, year);
+    if (done) return null;
+    const newBalance = await customersService.awardPoints(
+      projectId, customerId, action.points, slug, description || action.label, orderId,
+    );
+    await this.markCompleted(projectId, customerId, slug, year);
+    return newBalance;
   }
 
   async getCompletedSlugs(projectId: number, customerId: number, currentYear?: number): Promise<Set<string>> {

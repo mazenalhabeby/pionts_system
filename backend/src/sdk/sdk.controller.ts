@@ -20,6 +20,9 @@ import { SdkPartnerApplyDto } from './dto/sdk-partner-apply.dto';
 import { EmailService } from '../customer-auth/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PartnersService } from '../partners/partners.service';
+import { Customer, Project } from '@prisma/client';
+import { parseBirthday, validateBirthdayAge, calculateAge } from '../utils/date-helpers';
+import { LIMITS } from '../common/constants';
 
 @ApiTags('SDK')
 @Controller('api/v1/sdk')
@@ -38,33 +41,32 @@ export class SdkController {
     private readonly partnersService: PartnersService,
   ) {}
 
-  private requireCustomer(customer: any): void {
+  private requireCustomer(customer: Customer | null): asserts customer is Customer {
     if (!customer) throw new UnauthorizedException('Customer authentication required');
   }
 
   @Get('config')
-  async getConfig(@SdkProject() project: any) {
+  async getConfig(@SdkProject() project: Project) {
     return this.sdkService.getProjectConfig(project.id);
   }
 
   @Get('customer')
-  async getCustomer(@SdkCustomer() customer: any, @SdkProject() project: any, @Req() req: any) {
+  async getCustomer(@SdkCustomer() customer: Customer | null, @SdkProject() project: Project, @Req() req: any) {
     this.requireCustomer(customer);
 
     // Link referral code from SDK cookie (sent via X-Referral-Code header)
     const refCode = req.headers['x-referral-code'];
-    if (refCode && !customer.referredBy) {
+    if (refCode) {
       const fullProject = await this.sdkService.getProject(project.id);
-      if (fullProject?.referralsEnabled && refCode !== customer.referralCode) {
-        try {
-          await this.referralsService.linkReferral(project.id, customer.id, refCode);
-          // Re-fetch customer with updated referral data
+      if (fullProject?.referralsEnabled) {
+        const linked = await this.referralsService.linkReferralIfNeeded(
+          project.id, customer.id, refCode as string, customer.referralCode, customer.referredBy,
+        );
+        if (linked) {
           const updated = await this.customersService.findById(project.id, customer.id);
           if (updated) {
             return this.sdkService.getCustomerData(project.id, updated);
           }
-        } catch {
-          // Invalid referral code — proceed without linking
         }
       }
     }
@@ -73,16 +75,9 @@ export class SdkController {
     if (!customer.signupRewarded) {
       const fullProject = await this.sdkService.getProject(project.id);
       if (fullProject?.pointsEnabled) {
-        const signupAction = await this.earnActionsService.getAction(project.id, 'signup');
-        if (signupAction?.enabled) {
-          const done = await this.earnActionsService.hasCompleted(project.id, customer.id, 'signup');
-          if (!done) {
-            await this.customersService.awardPoints(
-              project.id, customer.id, signupAction.points, 'signup', 'Welcome bonus!',
-            );
-            await this.earnActionsService.markCompleted(project.id, customer.id, 'signup');
-          }
-        }
+        await this.earnActionsService.awardActionIfNeeded(
+          project.id, customer.id, 'signup', this.customersService, 'Welcome bonus!',
+        );
       }
       const updated = await this.customersService.findById(project.id, customer.id);
       if (updated) {
@@ -94,29 +89,22 @@ export class SdkController {
   }
 
   @Post('signup')
-  async signup(@SdkProject() project: any, @Body() dto: SdkSignupDto, @Req() req: any) {
+  async signup(@SdkProject() project: Project, @Body() dto: SdkSignupDto, @Req() req: any) {
     const fullProject = await this.sdkService.getProject(project.id);
     const customer = await this.customersService.getOrCreate(project.id, dto.email, dto.name);
 
     // Award signup points if not already (and points enabled)
     if (fullProject?.pointsEnabled) {
-      const signupAction = await this.earnActionsService.getAction(project.id, 'signup');
-      if (signupAction?.enabled) {
-        const done = await this.earnActionsService.hasCompleted(project.id, customer.id, 'signup');
-        if (!done) {
-          await this.customersService.awardPoints(
-            project.id, customer.id, signupAction.points, 'signup', 'Welcome bonus!',
-          );
-          await this.earnActionsService.markCompleted(project.id, customer.id, 'signup');
-        }
-      }
+      await this.earnActionsService.awardActionIfNeeded(
+        project.id, customer.id, 'signup', this.customersService, 'Welcome bonus!',
+      );
     }
 
     // Link referral if code provided (and referrals enabled)
-    if (dto.referral_code && !customer.referredBy && fullProject?.referralsEnabled) {
-      if (dto.referral_code !== customer.referralCode) {
-        await this.referralsService.linkReferral(project.id, customer.id, dto.referral_code);
-      }
+    if (dto.referral_code && fullProject?.referralsEnabled) {
+      await this.referralsService.linkReferralIfNeeded(
+        project.id, customer.id, dto.referral_code, customer.referralCode, customer.referredBy,
+      );
     }
 
     const updated = await this.customersService.findByEmail(project.id, dto.email);
@@ -128,15 +116,15 @@ export class SdkController {
   }
 
   @Post('redeem')
-  async redeem(@SdkCustomer() customer: any, @SdkProject() project: any, @Body() dto: SdkRedeemDto) {
+  async redeem(@SdkCustomer() customer: Customer | null, @SdkProject() project: Project, @Body() dto: SdkRedeemDto) {
     this.requireCustomer(customer);
     return this.redemptionsService.redeemGeneric(project.id, customer, dto.tier_points);
   }
 
   @Post('social/initiate')
   async initiateSocialFollow(
-    @SdkCustomer() customer: any,
-    @SdkProject() project: any,
+    @SdkCustomer() customer: Customer | null,
+    @SdkProject() project: Project,
     @Body() body: { type: string },
   ) {
     this.requireCustomer(customer);
@@ -163,7 +151,7 @@ export class SdkController {
   }
 
   @Post('award')
-  async award(@SdkCustomer() customer: any, @SdkProject() project: any, @Body() dto: SdkAwardDto) {
+  async award(@SdkCustomer() customer: Customer | null, @SdkProject() project: Project, @Body() dto: SdkAwardDto) {
     this.requireCustomer(customer);
 
     const slug = dto.type;
@@ -229,82 +217,39 @@ export class SdkController {
   }
 
   @Put('customer/profile')
-  async updateProfile(@SdkCustomer() customer: any, @Body() body: { name?: string; birthday?: string }) {
+  async updateProfile(@SdkCustomer() customer: Customer | null, @Body() body: { name?: string; birthday?: string }) {
     this.requireCustomer(customer);
     if (!body.name && !body.birthday) {
       throw new BadRequestException('At least name or birthday is required');
     }
     if (body.name !== undefined) {
       const trimmed = body.name.trim();
-      if (!trimmed || trimmed.length < 2) {
-        throw new BadRequestException('Name must be at least 2 characters');
+      if (!trimmed || trimmed.length < LIMITS.MIN_NAME_LENGTH) {
+        throw new BadRequestException(`Name must be at least ${LIMITS.MIN_NAME_LENGTH} characters`);
       }
       await this.customersService.updateName(customer.id, trimmed);
     }
     if (body.birthday !== undefined) {
-      // Support both YYYY-MM-DD (new) and MM-DD (legacy) formats
-      const isFullDate = /^\d{4}-\d{2}-\d{2}$/.test(body.birthday);
-      const isLegacyDate = /^\d{2}-\d{2}$/.test(body.birthday);
-
-      if (!isFullDate && !isLegacyDate) {
-        throw new BadRequestException('Birthday must be in YYYY-MM-DD or MM-DD format');
+      const parsed = parseBirthday(body.birthday);
+      if (parsed.year) {
+        validateBirthdayAge(parsed.year, parsed.month, parsed.day);
       }
-
-      const parts = body.birthday.split('-');
-      let year: number | null = null;
-      let month: number;
-      let day: number;
-
-      if (isFullDate) {
-        // YYYY-MM-DD format
-        year = parseInt(parts[0], 10);
-        month = parseInt(parts[1], 10);
-        day = parseInt(parts[2], 10);
-
-        // Validate age (13-120 years)
-        const birthDate = new Date(year, month - 1, day);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
-        if (age < 13 || age > 120) {
-          throw new BadRequestException('Invalid birth date');
-        }
-      } else {
-        // MM-DD format (legacy)
-        month = parseInt(parts[0], 10);
-        day = parseInt(parts[1], 10);
-      }
-
-      if (month < 1 || month > 12 || day < 1 || day > 31) {
-        throw new BadRequestException('Invalid birthday date');
-      }
-
       await this.customersService.setBirthday(customer.id, body.birthday);
     }
     return { success: true };
   }
 
   @Put('customer/birthday')
-  async setBirthday(@SdkCustomer() customer: any, @Body() body: { birthday: string }) {
+  async setBirthday(@SdkCustomer() customer: Customer | null, @Body() body: { birthday: string }) {
     this.requireCustomer(customer);
-    if (!body.birthday || !/^\d{2}-\d{2}$/.test(body.birthday)) {
-      throw new BadRequestException('Birthday must be in MM-DD format');
-    }
-    const [monthStr, dayStr] = body.birthday.split('-');
-    const month = parseInt(monthStr, 10);
-    const day = parseInt(dayStr, 10);
-    if (month < 1 || month > 12 || day < 1 || day > 31) {
-      throw new BadRequestException('Invalid birthday date');
-    }
+    if (!body.birthday) throw new BadRequestException('Birthday is required');
+    parseBirthday(body.birthday);
     await this.customersService.setBirthday(customer.id, body.birthday);
     return { success: true, birthday: body.birthday };
   }
 
   @Get('check-ref/:code')
-  async checkReferralCode(@SdkProject() project: any, @Param('code') code: string) {
+  async checkReferralCode(@SdkProject() project: Project, @Param('code') code: string) {
     const referrer = await this.customersService.findByReferralCode(project.id, code);
     if (!referrer) return { valid: false };
 
@@ -317,7 +262,7 @@ export class SdkController {
   }
 
   @Get('customer/referrals')
-  async getCustomerReferrals(@SdkCustomer() customer: any, @SdkProject() project: any) {
+  async getCustomerReferrals(@SdkCustomer() customer: Customer | null, @SdkProject() project: Project) {
     this.requireCustomer(customer);
 
     const [stats, directReferrals, downlineTree, totalReferralEarnings] = await Promise.all([
@@ -351,24 +296,24 @@ export class SdkController {
   }
 
   @Get('customer/redemptions')
-  async getCustomerRedemptions(@SdkCustomer() customer: any, @SdkProject() project: any) {
+  async getCustomerRedemptions(@SdkCustomer() customer: Customer | null, @SdkProject() project: Project) {
     this.requireCustomer(customer);
     return this.redemptionsService.getCustomerRedemptions(project.id, customer.id);
   }
 
   @Delete('customer/redemptions/:id')
-  async cancelRedemption(@SdkCustomer() customer: any, @SdkProject() project: any, @Param('id') id: string) {
+  async cancelRedemption(@SdkCustomer() customer: Customer | null, @SdkProject() project: Project, @Param('id') id: string) {
     this.requireCustomer(customer);
     return this.redemptionsService.cancelRedemption(project.id, customer.id, Number(id));
   }
 
   @Post('auth/send-code')
-  async sendCode(@SdkProject() project: any, @Body() body: { email: string }) {
+  async sendCode(@SdkProject() project: Project, @Body() body: { email: string }) {
     if (!body.email) throw new BadRequestException('Email is required');
 
     const customer = await this.customersService.getOrCreate(project.id, body.email);
     const code = crypto.randomInt(100000, 1000000).toString();
-    const expiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const expiry = new Date(Date.now() + LIMITS.VERIFICATION_CODE_EXPIRY_MS).toISOString();
 
     await this.customersService.saveVerificationCode(customer.id, code, expiry);
 
@@ -383,7 +328,7 @@ export class SdkController {
   }
 
   @Post('auth/verify-code')
-  async verifyCode(@SdkProject() project: any, @Body() body: { email: string; code: string }) {
+  async verifyCode(@SdkProject() project: Project, @Body() body: { email: string; code: string }) {
     if (!body.email || !body.code) throw new BadRequestException('Email and code are required');
 
     const customer = await this.customersService.findByEmail(project.id, body.email);
@@ -406,7 +351,7 @@ export class SdkController {
   }
 
   @Post('auth/refresh')
-  async refreshToken(@SdkProject() project: any, @Body() body: { refreshToken: string }) {
+  async refreshToken(@SdkProject() project: Project, @Body() body: { refreshToken: string }) {
     if (!body.refreshToken) throw new BadRequestException('Refresh token is required');
 
     const tokens = await this.sdkService.refreshCustomerTokens(body.refreshToken);
@@ -423,8 +368,8 @@ export class SdkController {
 
   @Post('partner/apply')
   async applyPartner(
-    @SdkCustomer() customer: any,
-    @SdkProject() project: any,
+    @SdkCustomer() customer: Customer | null,
+    @SdkProject() project: Project,
     @Body() body: SdkPartnerApplyDto,
   ) {
     this.requireCustomer(customer);
@@ -446,15 +391,9 @@ export class SdkController {
     }
 
     // Validate age >= 18
-    const dob = new Date(body.dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const monthDiff = today.getMonth() - dob.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-      age--;
-    }
+    const age = calculateAge(body.dateOfBirth);
 
-    if (age < 18) {
+    if (age < LIMITS.MIN_AGE_PARTNER) {
       await this.prisma.partnerApplication.create({
         data: {
           projectId: project.id,
@@ -496,7 +435,7 @@ export class SdkController {
   }
 
   @Get('leaderboard')
-  async getLeaderboard(@SdkProject() project: any) {
+  async getLeaderboard(@SdkProject() project: Project) {
     return this.sdkService.getLeaderboard(project.id);
   }
 }

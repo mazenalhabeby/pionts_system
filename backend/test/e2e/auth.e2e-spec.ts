@@ -1,23 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../helpers/test-app.helper';
-import { resetDatabase, disconnectTestPrisma, testPrisma } from '../helpers/prisma-test.helper';
+import { testPrisma } from '../helpers/prisma-test.helper';
 import { registerUser, loginUser } from '../helpers/auth.helper';
-import { resetCounters } from '../helpers/factories';
+import { setupE2E } from '../helpers/e2e-setup';
 
 describe('Auth E2E', () => {
+  const { getApp } = setupE2E();
   let app: INestApplication;
-
-  beforeAll(async () => {
-    await resetDatabase();
-    resetCounters();
-    app = await createTestApp();
-  });
-
-  afterAll(async () => {
-    await app.close();
-    await disconnectTestPrisma();
-  });
+  beforeAll(() => { app = getApp(); });
 
   // ── REGISTER ─────────────────────────────────────────────────────────
 

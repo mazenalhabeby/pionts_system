@@ -252,6 +252,15 @@ export async function seedDefaultRedemptionTiers(projectId: number) {
   });
 }
 
+/** Seeds all default project settings from config.constants.ts DEFAULTS */
+export async function seedProjectDefaults(projectId: number) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { DEFAULTS } = require('../../src/config/config.constants');
+  for (const [key, val] of Object.entries(DEFAULTS)) {
+    await createSetting(projectId, key, val as string);
+  }
+}
+
 export async function createProcessedOrder(projectId: number, orderId: string) {
   return testPrisma.processedOrder.create({
     data: { projectId, orderId },

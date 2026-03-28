@@ -350,7 +350,7 @@ export default function CustomerDetail() {
   if (error) return <Alert>{error}</Alert>;
   if (!data) return <div className="text-center p-5 text-text-muted">Customer not found.</div>;
 
-  const customer = data.customer || {};
+  const customer = data.customer || {} as any;
   const history = data.history || [];
   const directReferrals = data.directReferrals || [];
   const referredByCustomer = data.referredByCustomer;

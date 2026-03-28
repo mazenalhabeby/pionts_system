@@ -1,11 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../helpers/test-app.helper';
-import { resetDatabase, disconnectTestPrisma, testPrisma } from '../helpers/prisma-test.helper';
+import { testPrisma } from '../helpers/prisma-test.helper';
 import { registerUser, loginUser, authGet, authPost, authPut, authDelete } from '../helpers/auth.helper';
-import { resetCounters } from '../helpers/factories';
+import { setupE2E } from '../helpers/e2e-setup';
 
 describe('Projects E2E', () => {
+  const { getApp } = setupE2E();
   let app: INestApplication;
   let userAToken: string;
   let userBToken: string;
@@ -13,9 +13,7 @@ describe('Projects E2E', () => {
   let userBProjectId: number;
 
   beforeAll(async () => {
-    await resetDatabase();
-    resetCounters();
-    app = await createTestApp();
+    app = getApp();
 
     // Register user A
     const { body: bodyA } = await registerUser(app, {
@@ -36,11 +34,6 @@ describe('Projects E2E', () => {
     });
     userBToken = bodyB.accessToken;
     userBProjectId = bodyB.project.id;
-  });
-
-  afterAll(async () => {
-    await app.close();
-    await disconnectTestPrisma();
   });
 
   // ── CREATE ────────────────────────────────────────────────────────

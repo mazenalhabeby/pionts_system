@@ -11,7 +11,6 @@ import { CustomersModule } from './customers/customers.module';
 import { ReferralsModule } from './referrals/referrals.module';
 import { RedemptionsModule } from './redemptions/redemptions.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
-import { AdminModule } from './admin/admin.module';
 import { CustomerAuthModule } from './customer-auth/customer-auth.module';
 import { AuthModule } from './auth/auth.module';
 import { OrgsModule } from './orgs/orgs.module';
@@ -26,6 +25,7 @@ import { EarnActionsModule } from './earn-actions/earn-actions.module';
 import { PartnersModule } from './partners/partners.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { PlatformAdminModule } from './platform-admin/platform-admin.module';
+import { ShopifyAppModule } from './shopify-app/shopify-app.module';
 
 @Module({
   imports: [
@@ -67,7 +67,6 @@ import { PlatformAdminModule } from './platform-admin/platform-admin.module';
     ReferralsModule,
     RedemptionsModule,
     WebhooksModule,
-    AdminModule,
     CustomerAuthModule,
     AuthModule,
     OrgsModule,
@@ -82,6 +81,7 @@ import { PlatformAdminModule } from './platform-admin/platform-admin.module';
     PartnersModule,
     InvitationsModule,
     PlatformAdminModule,
+    ShopifyAppModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

@@ -1,5 +1,10 @@
 import type { NavItem } from '@pionts/shared';
 
+/* ── Chart helpers ── */
+export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+export const fmtK = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v));
+export const fmtDate = (d: string) => { const dt = new Date(d); return `${MONTHS[dt.getMonth()]} ${dt.getDate()}`; };
+
 // minRole: minimum project role required to see the nav item
 // undefined = visible to all authenticated users
 export interface AppNavItem extends NavItem {
@@ -71,66 +76,3 @@ export interface SettingGroup {
   fields: SettingField[];
 }
 
-// Settings groups — only contains settings that remain in the Settings table.
-// Earn actions, redemption tiers, and referral levels are now managed via
-// their own CRUD endpoints and displayed in the tabbed Settings page.
-export const SETTING_GROUPS: SettingGroup[] = [
-  {
-    title: 'Anti-Abuse',
-    fields: [
-      { key: 'min_order_referral', label: 'Min order for referral (EUR)' },
-      { key: 'max_direct_referrals', label: 'Max direct referrals' },
-      { key: 'points_expiry_months', label: 'Points expiry (months)' },
-      { key: 'referral_discount_percent', label: 'New customer discount (%)' },
-      { key: 'discount_code_prefix', label: 'Discount code prefix' },
-    ],
-  },
-  {
-    title: 'Partner Program',
-    fields: [
-      {
-        key: 'partner_reward_type',
-        label: 'Partner reward type',
-        type: 'select',
-        options: [
-          { value: 'points', label: 'Points' },
-          { value: 'credit', label: 'Store Credit' },
-        ],
-      },
-    ],
-  },
-  {
-    title: 'Gamification',
-    fields: [
-      { key: 'gamification_enabled', label: 'Enable tiers', type: 'toggle' },
-      { key: 'tier_bronze_label', label: 'Bronze tier name', type: 'text' },
-      { key: 'tier_bronze_threshold', label: 'Bronze threshold (pts)' },
-      { key: 'tier_bronze_multiplier', label: 'Bronze multiplier', type: 'text' },
-      { key: 'tier_silver_label', label: 'Silver tier name', type: 'text' },
-      { key: 'tier_silver_threshold', label: 'Silver threshold (pts)' },
-      { key: 'tier_silver_multiplier', label: 'Silver multiplier', type: 'text' },
-      { key: 'tier_gold_label', label: 'Gold tier name', type: 'text' },
-      { key: 'tier_gold_threshold', label: 'Gold threshold (pts)' },
-      { key: 'tier_gold_multiplier', label: 'Gold multiplier', type: 'text' },
-      { key: 'leaderboard_enabled', label: 'Show leaderboard', type: 'toggle' },
-    ],
-  },
-  {
-    title: 'Email Notifications',
-    fields: [
-      {
-        key: 'email_notification_mode',
-        label: 'Points earned emails',
-        type: 'select',
-        options: [
-          { value: 'off', label: 'Off' },
-          { value: 'instant', label: 'Instant' },
-          { value: 'digest', label: 'Daily Digest' },
-        ],
-      },
-      { key: 'email_welcome_enabled', label: 'Welcome email', type: 'toggle' },
-      { key: 'email_referral_enabled', label: 'Referral notifications', type: 'toggle' },
-      { key: 'email_from_name', label: 'Sender name', type: 'text' },
-    ],
-  },
-];

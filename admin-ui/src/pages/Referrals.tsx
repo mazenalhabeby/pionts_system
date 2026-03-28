@@ -79,7 +79,7 @@ export default function Referrals() {
               )}
             </div>
           ))}
-          <span className="ml-auto text-[11px] text-text-faint">Deepest: <span className="font-bold text-text-secondary">{Math.min(data?.deepest || 0, maxLevels)}</span></span>
+          <span className="ml-auto text-[11px] text-text-faint">Deepest: <span className="font-bold text-text-secondary">{Math.min((data as any)?.deepest || 0, maxLevels)}</span></span>
         </div>
       </div>
 

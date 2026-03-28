@@ -49,17 +49,33 @@ export class ShopifyService {
     throw new Error('Shopify API request failed after retries');
   }
 
+  /** Create discount using env-configured single-tenant credentials (backward compat). */
   async createDiscount(code: string, amount: number): Promise<boolean> {
     if (!this.token || !this.store) return false;
+    return this.createDiscountForShop(this.store, this.token, code, amount);
+  }
 
+  /** Delete discount using env-configured single-tenant credentials (backward compat). */
+  async deleteDiscount(code: string): Promise<boolean> {
+    if (!this.token || !this.store) return false;
+    return this.deleteDiscountForShop(this.store, this.token, code);
+  }
+
+  /** Create discount for a specific shop (multi-tenant). */
+  async createDiscountForShop(
+    shop: string,
+    accessToken: string,
+    code: string,
+    amount: number,
+  ): Promise<boolean> {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': this.token,
+        'X-Shopify-Access-Token': accessToken,
       };
 
       const priceRuleRes = await this.fetchWithRetry(
-        `https://${this.store}/admin/api/2024-01/price_rules.json`,
+        `https://${shop}/admin/api/2024-01/price_rules.json`,
         {
           method: 'POST',
           headers,
@@ -84,7 +100,7 @@ export class ShopifyService {
       if (!data.price_rule) return false;
 
       await this.fetchWithRetry(
-        `https://${this.store}/admin/api/2024-01/price_rules/${data.price_rule.id}/discount_codes.json`,
+        `https://${shop}/admin/api/2024-01/price_rules/${data.price_rule.id}/discount_codes.json`,
         {
           method: 'POST',
           headers,
@@ -94,23 +110,25 @@ export class ShopifyService {
 
       return true;
     } catch (err) {
-      this.logger.error('Shopify discount creation failed:', err);
+      this.logger.error(`Shopify discount creation failed for ${shop}:`, err);
       return false;
     }
   }
 
-  async deleteDiscount(code: string): Promise<boolean> {
-    if (!this.token || !this.store) return false;
-
+  /** Delete discount for a specific shop (multi-tenant). */
+  async deleteDiscountForShop(
+    shop: string,
+    accessToken: string,
+    code: string,
+  ): Promise<boolean> {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': this.token,
+        'X-Shopify-Access-Token': accessToken,
       };
 
-      // Look up discount code to get its price_rule_id
       const lookupRes = await this.fetchWithRetry(
-        `https://${this.store}/admin/api/2024-01/discount_codes/lookup.json?code=${encodeURIComponent(code)}`,
+        `https://${shop}/admin/api/2024-01/discount_codes/lookup.json?code=${encodeURIComponent(code)}`,
         { method: 'GET', headers },
       );
 
@@ -119,15 +137,14 @@ export class ShopifyService {
       const priceRuleId = lookupData?.discount_code?.price_rule_id;
       if (!priceRuleId) return false;
 
-      // Delete the price rule (cascades to discount code)
       const deleteRes = await this.fetchWithRetry(
-        `https://${this.store}/admin/api/2024-01/price_rules/${priceRuleId}.json`,
+        `https://${shop}/admin/api/2024-01/price_rules/${priceRuleId}.json`,
         { method: 'DELETE', headers },
       );
 
       return deleteRes.ok;
     } catch (err) {
-      this.logger.error('Shopify discount deletion failed:', err);
+      this.logger.error(`Shopify discount deletion failed for ${shop}:`, err);
       return false;
     }
   }

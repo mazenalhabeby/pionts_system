@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { analyticsApi, dashboardApi } from '../api';
 import type { PointsEconomyBucket, ReferralFunnelData, CustomerSegments as SegmentsType } from '@pionts/shared';
-import PointsEconomyChart from './analytics/PointsEconomyChart';
+import PointsEconomyChart from '../components/charts/PointsEconomyChart';
 import ReferralFunnel from './analytics/ReferralFunnel';
 import CustomerSegments from './analytics/CustomerSegments';
 import ExportButtons from './analytics/ExportButtons';
@@ -210,7 +210,7 @@ export default function Analytics() {
           </span>
         </div>
         <div className="p-5">
-          <PointsEconomyChart buckets={economy} />
+          <PointsEconomyChart buckets={economy} issuedColor="#50e3c2" gradientId="an" />
         </div>
       </div>
 

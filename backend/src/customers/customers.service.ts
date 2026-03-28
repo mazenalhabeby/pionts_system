@@ -40,18 +40,6 @@ export class CustomersService {
     return 1;
   }
 
-  /**
-   * Resolves a customer from an express session.
-   * Eliminates repeated email-lookup-or-throw pattern in controllers.
-   */
-  async resolveFromSession(projectId: number, session: any) {
-    const email = session?.customerEmail;
-    if (!email) throw new NotFoundException('Customer not found');
-    const customer = await this.findByEmail(projectId, email);
-    if (!customer) throw new NotFoundException('Customer not found');
-    return customer;
-  }
-
   async findByEmail(projectId: number, email: string) {
     const normalized = email.toLowerCase().trim();
     return this.prisma.customer.findFirst({
@@ -178,26 +166,6 @@ export class CustomersService {
   isFlagSet(customer: any, flag: string): boolean {
     const prismaField = FLAG_MAP[flag];
     return prismaField ? !!(customer as any)[prismaField] : false;
-  }
-
-  async ensureSignupRewarded(projectId: number, customerId: number, signupPoints: number) {
-    await this.awardPoints(projectId, customerId, signupPoints, 'signup', 'Welcome to 8BC Crew!');
-    await this.setFlag(customerId, 'signup_rewarded');
-
-    // Send welcome email
-    if (this.notificationService) {
-      const customer = await this.prisma.customer.findUnique({ where: { id: customerId } });
-      if (customer) {
-        this.notificationService.onCustomerSignup(projectId, customer, signupPoints).catch((err) => this.logger.error('Notification failed', err?.message));
-      }
-    }
-  }
-
-  async setBirthdayYear(customerId: number, year: number) {
-    await this.prisma.customer.update({
-      where: { id: customerId },
-      data: { birthdayRewardedYear: year },
-    });
   }
 
   async updateName(customerId: number, name: string) {

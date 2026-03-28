@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (ok) {
           const me = await authApi.me();
           setUser({ id: me.id, email: me.email, name: me.name, role: me.role, isSuperAdmin: me.isSuperAdmin, projectMemberships: me.projectMemberships || [] });
-          setOrg(me.org);
+          setOrg(me.org || null);
           setOrgs(me.orgs || []);
           startRefreshTimer();
         }
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await authApi.login(email, password);
     setAccessToken(res.accessToken);
     setUser({ ...res.user, isSuperAdmin: res.user.isSuperAdmin, projectMemberships: res.user.projectMemberships || [] });
-    setOrg(res.org);
+    setOrg(res.org || null);
     setOrgs(res.orgs || []);
     startRefreshTimer();
     return res;
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await authApi.register(data);
     setAccessToken(res.accessToken);
     setUser({ ...res.user, projectMemberships: [] });
-    setOrg(res.org);
+    setOrg(res.org || null);
     setOrgs(res.orgs || []);
     startRefreshTimer();
     return res;
@@ -140,9 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const switchOrg = useCallback(async (orgId: number) => {
     const res = await authApi.switchOrg(orgId);
     setAccessToken(res.accessToken);
-    setOrg(res.org);
+    setOrg(res.org || null);
     // Update user role to the role in the new org
-    setUser((prev) => prev ? { ...prev, role: res.role, projectMemberships: [] } : null);
+    setUser((prev) => prev ? { ...prev, role: res.role || prev.role, projectMemberships: [] } : null);
     // Clear project selection since we're changing org
     sessionStorage.removeItem('pionts-current-project');
     // Reload the page to reset project context

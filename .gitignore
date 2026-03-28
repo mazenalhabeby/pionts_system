@@ -1,6 +1,7 @@
 node_modules/
 .env
 *.db
+.DS_Store
 admin-ui/dist/
 backend/dist/
 client-ui/dist/

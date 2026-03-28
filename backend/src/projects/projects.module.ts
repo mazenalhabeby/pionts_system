@@ -9,6 +9,6 @@ import { BillingModule } from '../billing/billing.module';
   imports: [AuthModule, BillingModule],
   controllers: [ProjectsController],
   providers: [ProjectsService, ProjectMembersService],
-  exports: [ProjectMembersService],
+  exports: [ProjectsService, ProjectMembersService],
 })
 export class ProjectsModule {}

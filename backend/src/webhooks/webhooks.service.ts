@@ -6,6 +6,7 @@ import { ReferralsService } from '../referrals/referrals.service';
 import { EarnActionsService } from '../earn-actions/earn-actions.service';
 import { PartnersService } from '../partners/partners.service';
 import { extractName } from '../utils/transformers';
+import { OrderWebhookDto, RefundWebhookDto, CustomerWebhookDto } from './dto/webhook.dto';
 
 @Injectable()
 export class WebhooksService {
@@ -20,7 +21,7 @@ export class WebhooksService {
     private readonly partnersService: PartnersService,
   ) {}
 
-  async processOrder(projectId: number, body: any) {
+  async processOrder(projectId: number, body: OrderWebhookDto) {
     const email = body.customer_email || body.customer?.email || body.email;
     if (!email) throw new BadRequestException('No customer email in order payload');
 
@@ -44,8 +45,10 @@ export class WebhooksService {
     const customer = await this.customersService.getOrCreate(projectId, email, name, externalCustomerId);
 
     // Link referral if code provided and referrals are enabled
-    if (referralCode && !customer.referredBy && project.referralsEnabled) {
-      await this.referralsService.linkReferral(projectId, customer.id, referralCode);
+    if (referralCode && project.referralsEnabled) {
+      await this.referralsService.linkReferralIfNeeded(
+        projectId, customer.id, referralCode, customer.referralCode, customer.referredBy,
+      );
     }
 
     await this.customersService.incrementOrderCount(customer.id);
@@ -68,28 +71,12 @@ export class WebhooksService {
         }
       }
 
-      const firstOrderAction = await this.earnActionsService.getAction(projectId, 'first_order');
-      if (firstOrderAction?.enabled) {
-        const done = await this.earnActionsService.hasCompleted(projectId, customer.id, 'first_order');
-        if (!done) {
-          await this.customersService.awardPoints(
-            projectId, customer.id, firstOrderAction.points, 'first_order',
-            'First order bonus!', orderId,
-          );
-          await this.earnActionsService.markCompleted(projectId, customer.id, 'first_order');
-        }
-      }
-
-      const signupAction = await this.earnActionsService.getAction(projectId, 'signup');
-      if (signupAction?.enabled) {
-        const done = await this.earnActionsService.hasCompleted(projectId, customer.id, 'signup');
-        if (!done) {
-          await this.customersService.awardPoints(
-            projectId, customer.id, signupAction.points, 'signup', 'Welcome bonus!',
-          );
-          await this.earnActionsService.markCompleted(projectId, customer.id, 'signup');
-        }
-      }
+      await this.earnActionsService.awardActionIfNeeded(
+        projectId, customer.id, 'first_order', this.customersService, 'First order bonus!', orderId,
+      );
+      await this.earnActionsService.awardActionIfNeeded(
+        projectId, customer.id, 'signup', this.customersService, 'Welcome bonus!',
+      );
     }
 
     // Referral rewards (only if referrals module enabled)
@@ -129,7 +116,7 @@ export class WebhooksService {
     return { status: 'processed' };
   }
 
-  async processCustomer(projectId: number, body: any) {
+  async processCustomer(projectId: number, body: CustomerWebhookDto) {
     const email = body.customer_email || body.email;
     if (!email) throw new BadRequestException('No email');
 
@@ -140,22 +127,15 @@ export class WebhooksService {
     const customer = await this.customersService.getOrCreate(projectId, email, name, externalCustomerId);
 
     if (project?.pointsEnabled) {
-      const signupAction = await this.earnActionsService.getAction(projectId, 'signup');
-      if (signupAction?.enabled) {
-        const done = await this.earnActionsService.hasCompleted(projectId, customer.id, 'signup');
-        if (!done) {
-          await this.customersService.awardPoints(
-            projectId, customer.id, signupAction.points, 'signup', 'Welcome bonus!',
-          );
-          await this.earnActionsService.markCompleted(projectId, customer.id, 'signup');
-        }
-      }
+      await this.earnActionsService.awardActionIfNeeded(
+        projectId, customer.id, 'signup', this.customersService, 'Welcome bonus!',
+      );
     }
 
     return { status: 'processed' };
   }
 
-  async processRefund(projectId: number, body: any) {
+  async processRefund(projectId: number, body: RefundWebhookDto) {
     const orderId = body.order_id || String(body.order_id || body.id);
 
     const entries = await this.prisma.pointsLog.findMany({

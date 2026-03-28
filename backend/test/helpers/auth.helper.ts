@@ -52,23 +52,6 @@ export async function loginUser(
   return { body: res.body, refreshCookie: extractRefreshCookie(res.headers) };
 }
 
-/**
- * Logs in as admin via /admin/login and returns session cookie.
- */
-export async function loginAdmin(
-  app: INestApplication,
-  password?: string,
-): Promise<string> {
-  const res = await request(app.getHttpServer())
-    .post('/admin/login')
-    .send({ password: password ?? process.env.ADMIN_PASSWORD ?? 'test-admin-pass' })
-    .expect(201);
-
-  const cookies = res.headers['set-cookie'];
-  if (Array.isArray(cookies)) return cookies[0];
-  return cookies as string;
-}
-
 /** Makes an authenticated GET request with Bearer token. */
 export function authGet(app: INestApplication, token: string, path: string) {
   return request(app.getHttpServer())
@@ -99,49 +82,3 @@ export function authDelete(app: INestApplication, token: string, path: string) {
     .set('Authorization', `Bearer ${token}`);
 }
 
-/** Makes an authenticated GET request to the admin API. */
-export function adminGet(app: INestApplication, cookie: string, path: string) {
-  return request(app.getHttpServer())
-    .get(path)
-    .set('Cookie', cookie);
-}
-
-/** Makes an authenticated POST request to the admin API. */
-export function adminPost(app: INestApplication, cookie: string, path: string, body?: any) {
-  return request(app.getHttpServer())
-    .post(path)
-    .set('Cookie', cookie)
-    .send(body);
-}
-
-/**
- * Logs in as a customer via send-code + verify-code and returns session cookie.
- * Reads the code directly from DB.
- */
-export async function loginCustomer(
-  app: INestApplication,
-  prisma: any,
-  email: string,
-  projectId = 1,
-): Promise<string> {
-  // Send code
-  await request(app.getHttpServer())
-    .post('/api/auth/send-code')
-    .send({ email })
-    .expect(201);
-
-  // Read code from DB
-  const customer = await prisma.customer.findUnique({
-    where: { projectId_email: { projectId, email } },
-  });
-
-  // Verify code
-  const res = await request(app.getHttpServer())
-    .post('/api/auth/verify-code')
-    .send({ email, code: customer.verificationCode })
-    .expect(201);
-
-  const cookies = res.headers['set-cookie'];
-  if (Array.isArray(cookies)) return cookies[0];
-  return cookies as string;
-}
