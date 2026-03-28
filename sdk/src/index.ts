@@ -102,6 +102,7 @@ const Loyalty = {
     // Set global config for the widget UMD bundle to read
     const internalConfig: InternalConfig = {
       ...config,
+      mode,
       referralCode,
       containerEl: el,
     };
@@ -109,7 +110,7 @@ const Loyalty = {
 
     // Load widget CSS + UMD bundle (cache-bust with version)
     const widgetBase = config.widgetUrl || config.apiBase || '';
-    const v = 'v=3';
+    const v = 'v=4';
 
     const link = document.createElement('link');
     link.rel = 'stylesheet';

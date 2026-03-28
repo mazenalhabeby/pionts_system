@@ -5,6 +5,7 @@ import { WidgetConfigProvider } from './context/WidgetConfigContext';
 import { I18nProvider } from './i18n/I18nContext';
 import { resolveLocale } from './i18n';
 import WidgetApp from './WidgetApp';
+import FloatingWrapper from './components/FloatingWrapper';
 import './styles/widget.css';
 import type { SdkConfig } from '@pionts/shared';
 import type { CurrencyConfig } from './i18n';
@@ -20,15 +21,20 @@ const config = window.__PIONTS_CONFIG__;
 if (config && config.containerEl) {
   const locale = resolveLocale(config);
   const currencyOverride = config.currency as Partial<CurrencyConfig> | undefined;
+  const isFloating = config.mode === 'floating';
+
+  const widget = (
+    <WidgetProvider config={config}>
+      <WidgetConfigProvider>
+        <WidgetApp />
+      </WidgetConfigProvider>
+    </WidgetProvider>
+  );
 
   ReactDOM.createRoot(config.containerEl).render(
     <React.StrictMode>
       <I18nProvider locale={locale} currencyOverride={currencyOverride}>
-        <WidgetProvider config={config}>
-          <WidgetConfigProvider>
-            <WidgetApp />
-          </WidgetConfigProvider>
-        </WidgetProvider>
+        {isFloating ? <FloatingWrapper>{widget}</FloatingWrapper> : widget}
       </I18nProvider>
     </React.StrictMode>,
   );

@@ -3463,3 +3463,140 @@ a:hover {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--pionts-primary, #3b82f6) 40%, transparent); }
   50% { box-shadow: 0 0 0 6px transparent; }
 }
+
+/* ══════════════════════════════════════════════
+   FLOATING WIDGET — slide-out panel
+   ══════════════════════════════════════════════ */
+
+.pw-float-btn {
+  all: unset;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999998;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--pionts-primary, #3b82f6), color-mix(in srgb, var(--pionts-primary, #3b82f6) 70%, #000));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 0 0 color-mix(in srgb, var(--pionts-primary, #3b82f6) 40%, transparent);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: pw-float-pulse 2.5s ease-in-out infinite;
+}
+
+.pw-float-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  animation: none;
+}
+
+@keyframes pw-float-pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 0 color-mix(in srgb, var(--pionts-primary, #3b82f6) 30%, transparent); }
+  50% { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 8px transparent; }
+}
+
+.pw-float-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999998;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: pw-fade-in 0.2s ease;
+}
+
+@keyframes pw-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pw-float-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999999;
+  width: 420px;
+  max-width: 100vw;
+  background: #09090b;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pw-float-panel--open {
+  transform: translateX(0);
+}
+
+.pw-float-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+
+.pw-float-panel__title {
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e4e4e7;
+  letter-spacing: 0.01em;
+}
+
+.pw-float-panel__close {
+  all: unset;
+  cursor: pointer;
+  color: #71717a;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.pw-float-panel__close:hover {
+  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pw-float-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Override widget page styles inside the floating panel */
+.pw-float-panel__body .pw-page {
+  min-height: auto;
+  max-width: none;
+}
+
+.pw-float-panel__body .pw-main {
+  padding: 24px 16px 16px;
+}
+
+/* Responsive: full-width on small screens */
+@media (max-width: 480px) {
+  .pw-float-panel {
+    width: 100vw;
+  }
+  .pw-float-btn {
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+  }
+}
