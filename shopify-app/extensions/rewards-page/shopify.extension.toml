@@ -3,6 +3,7 @@ api_version = "2025-04"
 [[extensions]]
 name = "Rewards"
 handle = "rewards-page"
+uid = "22d03945-8da0-d324-0b76-e176009f2c102db93966"
 type = "ui_extension"
 
 # Full-page extension renders as a standalone page in customer account

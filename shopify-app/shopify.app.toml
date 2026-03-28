@@ -4,6 +4,7 @@
 name = "Pionts Rewards"
 client_id = "eb126a1e294ef88782a4ce25a2977753"
 application_url = "https://hbc-solution.io/v2"
+embedded = false
 
 [access_scopes]
 scopes = "read_customers"
