@@ -102,15 +102,21 @@ function RewardsPage() {
   /* ---- Fetch customer email from Shopify Customer Account API ---- */
   const fetchCustomerEmail = useCallback(async () => {
     try {
+      console.log('[Pionts] Querying customer email via Customer Account API...');
       const result = await query(
         `query { customer { emailAddress { emailAddress } firstName lastName } }`,
       );
+      console.log('[Pionts] Query result:', JSON.stringify(result));
+      if (result?.errors) {
+        console.error('[Pionts] GraphQL errors:', JSON.stringify(result.errors));
+      }
       const c = result?.data?.customer;
       return {
         email: c?.emailAddress?.emailAddress || '',
         name: c?.firstName || '',
       };
-    } catch {
+    } catch (err) {
+      console.error('[Pionts] fetchCustomerEmail error:', err?.message || err);
       return { email: '', name: '' };
     }
   }, [query]);

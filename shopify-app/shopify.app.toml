@@ -7,7 +7,7 @@ application_url = "https://hbc-solution.io/v2"
 embedded = false
 
 [access_scopes]
-scopes = "read_customers"
+scopes = "read_customers,customer_read_customers"
 
 [auth]
 redirect_urls = ["https://hbc-solution.io/v2/api/v1/auth/shopify/callback"]
