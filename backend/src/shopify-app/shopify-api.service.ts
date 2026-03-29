@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 const SHOPIFY_TIMEOUT_MS = 10000;
 const MAX_RETRIES = 2;
-const API_VERSION = '2024-01';
+const API_VERSION = '2025-01';
 
 @Injectable()
 export class ShopifyApiService {
