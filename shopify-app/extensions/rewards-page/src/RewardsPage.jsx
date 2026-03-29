@@ -301,12 +301,12 @@ function RewardsPage() {
       if (!customer) return;
       setRedeemingTier(tierPoints);
       try {
-        const hmac = await hmacSha256(secretKey, customer.email);
-        const res = await fetch(`${apiBase}/api/v1/sdk/redeem`, {
+        const hmac = await hmacSha256(config.secretKey, customer.email);
+        const res = await fetch(`${config.apiBase}/api/v1/sdk/redeem`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Project-Key': projectKey,
+            'X-Project-Key': config.projectKey,
             'X-Customer-Email': customer.email,
             'X-Customer-HMAC': hmac,
           },
@@ -322,7 +322,7 @@ function RewardsPage() {
         setRedeemingTier(null);
       }
     },
-    [customer, apiBase, projectKey, secretKey, refresh],
+    [customer, config.apiBase, config.projectKey, config.secretKey, refresh],
   );
 
   /* ---- Claim action handler ---- */
@@ -331,21 +331,21 @@ function RewardsPage() {
       if (!customer) return;
       setClaimingAction(slug);
       try {
-        const hmac = await hmacSha256(secretKey, customer.email);
+        const hmac = await hmacSha256(config.secretKey, customer.email);
         const headers = {
           'Content-Type': 'application/json',
-          'X-Project-Key': projectKey,
+          'X-Project-Key': config.projectKey,
           'X-Customer-Email': customer.email,
           'X-Customer-HMAC': hmac,
         };
         if (slug.startsWith('follow_')) {
-          await fetch(`${apiBase}/api/v1/sdk/social/initiate`, {
+          await fetch(`${config.apiBase}/api/v1/sdk/social/initiate`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ type: slug }),
           });
         }
-        const res = await fetch(`${apiBase}/api/v1/sdk/award`, {
+        const res = await fetch(`${config.apiBase}/api/v1/sdk/award`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ type: slug }),
@@ -356,14 +356,14 @@ function RewardsPage() {
         setClaimingAction(null);
       }
     },
-    [customer, apiBase, projectKey, secretKey, refresh],
+    [customer, config.apiBase, config.projectKey, config.secretKey, refresh],
   );
 
   /* ================================================================ */
   /*  RENDER                                                          */
   /* ================================================================ */
 
-  if (!projectKey || !apiBase) {
+  if (!config.projectKey || !config.apiBase) {
     return (
       <Card padding="base">
         <BlockStack spacing="base">
