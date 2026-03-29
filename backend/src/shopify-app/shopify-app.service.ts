@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
 import { ShopifyApiService } from './shopify-api.service';
@@ -17,7 +19,7 @@ export class ShopifyAppService {
     shopDomain: string,
     accessToken: string,
     scopes: string,
-  ): Promise<{ projectId: number; orgId: number }> {
+  ): Promise<{ projectId: number; orgId: number; userId?: number }> {
     // Check for existing installation (reinstall → reactivate)
     const existing = await this.prisma.shopifyInstallation.findUnique({
       where: { shopDomain },
@@ -45,9 +47,10 @@ export class ShopifyAppService {
       return { projectId: existing.projectId, orgId: existing.orgId };
     }
 
-    // Get shop name for org/project naming
+    // Get shop name + email for org/project naming and user creation
     const shopInfo = await this.shopifyApi.getShopInfo(shopDomain, accessToken);
     const shopName = shopInfo?.name || shopDomain.replace('.myshopify.com', '');
+    const shopEmail = shopInfo?.email || '';
 
     // Create Organization
     const slug = shopDomain.replace('.myshopify.com', '').replace(/[^a-z0-9-]/g, '-');
@@ -76,6 +79,50 @@ export class ShopifyAppService {
       'shopify',
     );
 
+    // Auto-create a dashboard user from the Shopify store owner email
+    let userId: number | undefined;
+    if (shopEmail) {
+      try {
+        const existingUser = await this.prisma.user.findUnique({ where: { email: shopEmail } });
+        if (existingUser) {
+          // User already exists — link them to this org
+          const existingMembership = await this.prisma.orgMembership.findUnique({
+            where: { userId_orgId: { userId: existingUser.id, orgId: org.id } },
+          });
+          if (!existingMembership) {
+            await this.prisma.orgMembership.create({
+              data: { userId: existingUser.id, orgId: org.id, role: 'owner' },
+            });
+            await this.prisma.projectMember.create({
+              data: { projectId: project.id, userId: existingUser.id, role: 'owner' },
+            });
+          }
+          userId = existingUser.id;
+        } else {
+          // Create new user with a random password (they can reset via dashboard)
+          const tempPassword = crypto.randomBytes(16).toString('hex');
+          const passwordHash = await bcrypt.hash(tempPassword, 10);
+          const user = await this.prisma.user.create({
+            data: {
+              email: shopEmail,
+              passwordHash,
+              name: shopName,
+            },
+          });
+          await this.prisma.orgMembership.create({
+            data: { userId: user.id, orgId: org.id, role: 'owner' },
+          });
+          await this.prisma.projectMember.create({
+            data: { projectId: project.id, userId: user.id, role: 'owner' },
+          });
+          userId = user.id;
+          this.logger.log(`Auto-created dashboard user ${shopEmail} for ${shopDomain}`);
+        }
+      } catch (err: any) {
+        this.logger.error(`Failed to auto-create user for ${shopDomain}:`, err.message);
+      }
+    }
+
     // Save installation with raw keys for Liquid templates
     const installation = await this.prisma.shopifyInstallation.create({
       data: {
@@ -96,7 +143,7 @@ export class ShopifyAppService {
     await this.setShopMetafields(shopDomain, accessToken, keys.publicKey, project.hmacSecret);
 
     this.logger.log(`Provisioned Shopify store ${shopDomain} → org ${org.id}, project ${project.id}`);
-    return { projectId: project.id, orgId: org.id };
+    return { projectId: project.id, orgId: org.id, userId };
   }
 
   private async registerWebhooks(

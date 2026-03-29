@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { ShopifyApiService } from './shopify-api.service';
 import { ShopifyAppService } from './shopify-app.service';
 import { ShopifyAppController } from './shopify-app.controller';
@@ -10,7 +11,7 @@ import { ProjectsModule } from '../projects/projects.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 
 @Module({
-  imports: [ProjectsModule, WebhooksModule],
+  imports: [ProjectsModule, WebhooksModule, JwtModule.register({})],
   controllers: [ShopifyAppController, ShopifyOAuthRedirectController, ShopifyWebhookController],
   providers: [
     ShopifyApiService,

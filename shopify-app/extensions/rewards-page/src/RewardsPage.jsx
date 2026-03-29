@@ -22,7 +22,6 @@ import {
   Tag,
   List,
   ListItem,
-  ClipboardItem,
   SkeletonText,
   SkeletonTextBlock,
 } from '@shopify/ui-extensions-react/customer-account';
@@ -114,16 +113,44 @@ export default reactExtension('customer-account.page.render', () => (
 function RewardsPage() {
   const settings = useSettings();
 
-  const projectKey = settings.project_key || '';
-  const apiBase = (settings.api_base || '').replace(/\/+$/, '');
-  const secretKey = settings.secret_key || '';
+  // Manual settings (entered by merchant in Shopify admin) — take priority
+  const manualProjectKey = settings.project_key || '';
+  const manualApiBase = (settings.api_base || '').replace(/\/+$/, '');
+  const manualSecretKey = settings.secret_key || '';
 
+  const [config, setConfig] = useState({
+    projectKey: manualProjectKey,
+    apiBase: manualApiBase,
+    secretKey: manualSecretKey,
+    resolved: !!(manualProjectKey && manualApiBase && manualSecretKey),
+  });
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [redeemingTier, setRedeemingTier] = useState(null);
   const [lastCode, setLastCode] = useState(null);
   const [claimingAction, setClaimingAction] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  /* ---- Resolve shop domain from Shopify Customer Account API ---- */
+  const fetchShopDomain = useCallback(async () => {
+    try {
+      const res = await fetch('shopify://customer-account/api/2025-04/graphql.json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `query { shop { id name } }`,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        // Shop ID format: gid://shopify/Shop/12345 — not directly the domain
+        // Fallback: extract from the page URL or use extension host
+        return json?.data?.shop?.name || '';
+      }
+    } catch { /* silent */ }
+    return '';
+  }, []);
 
   /* ---- Fetch customer email via Customer Account API ---- */
   const fetchCustomerEmail = useCallback(async () => {
@@ -145,14 +172,79 @@ function RewardsPage() {
     return { email: '', name: '' };
   }, []);
 
+  /* ---- Auto-resolve config from backend if manual settings are empty ---- */
+  useEffect(() => {
+    if (config.resolved) return; // Manual settings present, skip auto-resolve
+
+    let cancelled = false;
+    (async () => {
+      try {
+        // Try well-known API bases to find the extension config
+        // The app's own API base is embedded in metafields during install
+        const shopDomain = window.location.hostname?.includes('shopify.com')
+          ? '' : '';
+
+        // Use the Customer Account API to get the shop's myshopify domain
+        const shopRes = await fetch('shopify://customer-account/api/2025-04/graphql.json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `query { shop { primaryDomain { host } myshopifyDomain } }`,
+          }),
+        });
+
+        let myshopifyDomain = '';
+        if (shopRes.ok) {
+          const shopJson = await shopRes.json();
+          myshopifyDomain = shopJson?.data?.shop?.myshopifyDomain || '';
+        }
+
+        if (!myshopifyDomain) {
+          // Fallback: try extracting from the page URL for dev stores
+          const match = document.referrer?.match(/([a-z0-9-]+\.myshopify\.com)/i);
+          if (match) myshopifyDomain = match[1];
+        }
+
+        if (!myshopifyDomain || cancelled) return;
+
+        // Fetch extension config from Pionts backend
+        // Try multiple known API bases (the app URL set during install)
+        const apiCandidates = [
+          manualApiBase,
+          'https://hbc-solution.io/v2',
+          'https://app.pionts.com',
+        ].filter(Boolean);
+
+        for (const base of apiCandidates) {
+          try {
+            const cfgRes = await fetch(`${base}/shopify/extension-config?shop=${encodeURIComponent(myshopifyDomain)}`);
+            if (cfgRes.ok) {
+              const cfg = await cfgRes.json();
+              if (cfg.configured && cfg.projectKey && !cancelled) {
+                setConfig({
+                  projectKey: cfg.projectKey,
+                  apiBase: cfg.apiBase.replace(/\/+$/, ''),
+                  secretKey: cfg.hmacSecret,
+                  resolved: true,
+                });
+                return;
+              }
+            }
+          } catch { /* try next candidate */ }
+        }
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [config.resolved, manualApiBase]);
+
   /* ---- Fetch Pionts data ---- */
   const fetchPiontsData = useCallback(
     async (email) => {
-      if (!apiBase || !projectKey || !email) return null;
-      const hmac = await hmacSha256(secretKey, email);
-      const res = await fetch(`${apiBase}/api/v1/sdk/customer`, {
+      if (!config.apiBase || !config.projectKey || !email) return null;
+      const hmac = await hmacSha256(config.secretKey, email);
+      const res = await fetch(`${config.apiBase}/api/v1/sdk/customer`, {
         headers: {
-          'X-Project-Key': projectKey,
+          'X-Project-Key': config.projectKey,
           'X-Customer-Email': email,
           'X-Customer-HMAC': hmac,
         },
@@ -160,11 +252,13 @@ function RewardsPage() {
       if (!res.ok) throw new Error(`API ${res.status}`);
       return res.json();
     },
-    [apiBase, projectKey, secretKey],
+    [config.apiBase, config.projectKey, config.secretKey],
   );
 
-  /* ---- Load data on mount ---- */
+  /* ---- Load data on mount (waits for config to resolve) ---- */
   useEffect(() => {
+    if (!config.resolved) return;
+
     let cancelled = false;
     (async () => {
       try {
@@ -188,7 +282,7 @@ function RewardsPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [fetchCustomerEmail, fetchPiontsData]);
+  }, [config.resolved, fetchCustomerEmail, fetchPiontsData]);
 
   /* ---- Refresh helper ---- */
   const refresh = useCallback(async () => {
@@ -479,9 +573,16 @@ function RewardsPage() {
           <Card padding="base">
             <BlockStack spacing="tight">
               <Text size="extraSmall" appearance="subdued">Your referral link</Text>
-              <ClipboardItem value={referralLink}>
+              <InlineStack spacing="tight" blockAlignment="center">
                 <Text emphasis="bold" size="small">{referralLink}</Text>
-              </ClipboardItem>
+                <Button kind="secondary" onPress={async () => {
+                  try { await navigator.clipboard.writeText(referralLink); } catch {}
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }} accessibilityLabel="Copy referral link">
+                  {copiedLink ? 'Copied!' : 'Copy'}
+                </Button>
+              </InlineStack>
             </BlockStack>
           </Card>
 

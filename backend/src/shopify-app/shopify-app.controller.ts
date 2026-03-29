@@ -1,9 +1,11 @@
 import {
   Controller, Get, Query, Req, Res, Logger, BadRequestException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { SkipThrottle } from '@nestjs/throttler';
 import * as crypto from 'crypto';
 import { Request, Response } from 'express';
+import { PrismaService } from '../prisma/prisma.service';
 import { ShopifyAppService } from './shopify-app.service';
 import { ShopifyApiService } from './shopify-api.service';
 
@@ -18,6 +20,8 @@ export class ShopifyAppController {
   constructor(
     private readonly shopifyAppService: ShopifyAppService,
     private readonly shopifyApiService: ShopifyApiService,
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get('auth')
@@ -83,13 +87,76 @@ export class ShopifyAppController {
     // Exchange code for access token
     const { accessToken, scope } = await this.shopifyApiService.exchangeCodeForToken(shop, code);
 
-    // Provision store (create org, project, keys, webhooks, metafields)
+    // Provision store (create org, project, keys, webhooks, metafields, user)
     const result = await this.shopifyAppService.provisionStore(shop, accessToken, scope);
 
     this.logger.log(`Shopify OAuth complete for ${shop} — project ${result.projectId}`);
 
     const appUrl = process.env.SHOPIFY_APP_URL || process.env.APP_URL || 'https://app.pionts.com';
+
+    // Auto-login: if a user was created/linked, generate JWT tokens
+    if (result.userId) {
+      const user = await this.prisma.user.findUnique({ where: { id: result.userId } });
+      if (user) {
+        const payload = { sub: user.id, currentOrgId: result.orgId, email: user.email, isSuperAdmin: false };
+        const accessJwt = this.jwtService.sign(payload, {
+          secret: process.env.JWT_SECRET || 'dev-jwt-secret',
+          expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
+        });
+        const refreshJwt = this.jwtService.sign(payload, {
+          secret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
+          expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any,
+        });
+
+        // Set refresh token as HTTP-only cookie (same as normal login)
+        res.cookie('refresh_token', refreshJwt, {
+          httpOnly: true,
+          path: '/auth',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          secure: process.env.NODE_ENV === 'production',
+        });
+
+        // Pass access token via URL fragment (not sent to server, read by SPA)
+        res.redirect(`${appUrl}/admin/overview?shopify=installed#access_token=${accessJwt}`);
+        return;
+      }
+    }
+
+    // Fallback: no user created, redirect to login
     res.redirect(`${appUrl}/admin/login?shopify=installed&shop=${encodeURIComponent(shop)}`);
+  }
+
+  /**
+   * Returns extension config for a given Shopify shop domain.
+   * Called by the Customer Account UI extension to auto-configure itself
+   * without requiring manual settings entry.
+   */
+  @Get('extension-config')
+  async getExtensionConfig(
+    @Query('shop') shop: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (!shop || !this.isValidShopDomain(shop)) {
+      throw new BadRequestException('Invalid shop parameter');
+    }
+
+    const installation = await this.prisma.shopifyInstallation.findUnique({
+      where: { shopDomain: shop },
+    });
+
+    if (!installation || installation.uninstalledAt) {
+      return { configured: false };
+    }
+
+    const appUrl = process.env.SHOPIFY_APP_URL || process.env.APP_URL || 'https://app.pionts.com';
+
+    return {
+      configured: true,
+      projectKey: installation.publicKey,
+      apiBase: appUrl,
+      hmacSecret: installation.hmacSecret,
+    };
   }
 
   private isValidShopDomain(shop: string): boolean {

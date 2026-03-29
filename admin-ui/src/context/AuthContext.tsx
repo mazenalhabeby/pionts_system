@@ -70,10 +70,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // On mount: try silent refresh
+  // On mount: check for Shopify auto-login token in URL fragment, then try silent refresh
   useEffect(() => {
     (async () => {
       try {
+        // Check for auto-login token from Shopify OAuth flow (passed via URL fragment)
+        const hash = window.location.hash;
+        if (hash.includes('access_token=')) {
+          const params = new URLSearchParams(hash.substring(1));
+          const token = params.get('access_token');
+          if (token) {
+            setAccessToken(token);
+            // Clean the URL fragment
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            // Fetch user info with the token
+            const me = await authApi.me();
+            setUser({ id: me.id, email: me.email, name: me.name, role: me.role, isSuperAdmin: me.isSuperAdmin, projectMemberships: me.projectMemberships || [] });
+            setOrg(me.org || null);
+            setOrgs(me.orgs || []);
+            startRefreshTimer();
+            setLoading(false);
+            return;
+          }
+        }
+
         const ok = await authApi.refresh();
         if (ok) {
           const me = await authApi.me();

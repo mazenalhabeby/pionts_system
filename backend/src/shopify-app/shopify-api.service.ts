@@ -270,14 +270,14 @@ export class ShopifyApiService {
     }
   }
 
-  async getShopInfo(shop: string, accessToken: string): Promise<{ name: string } | null> {
+  async getShopInfo(shop: string, accessToken: string): Promise<{ name: string; email: string } | null> {
     try {
       const res = await this.fetchWithRetry(
         `https://${shop}/admin/api/${API_VERSION}/shop.json`,
         { method: 'GET', headers: this.headers(accessToken) },
       );
       const data = await res.json();
-      return data.shop ? { name: data.shop.name } : null;
+      return data.shop ? { name: data.shop.name, email: data.shop.email || '' } : null;
     } catch (err) {
       this.logger.error(`Failed to get shop info for ${shop}:`, err);
       return null;
