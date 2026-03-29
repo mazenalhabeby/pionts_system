@@ -43,8 +43,48 @@ export class ShopifyAppService {
         await this.setShopMetafields(shopDomain, accessToken, existing.publicKey, existing.hmacSecret);
       }
 
+      // Auto-create/link user on reinstall too
+      let userId: number | undefined;
+      const shopInfo = await this.shopifyApi.getShopInfo(shopDomain, accessToken);
+      const reinstallEmail = shopInfo?.email || '';
+      if (reinstallEmail) {
+        try {
+          const existingUser = await this.prisma.user.findUnique({ where: { email: reinstallEmail } });
+          if (existingUser) {
+            const existingMembership = await this.prisma.orgMembership.findUnique({
+              where: { userId_orgId: { userId: existingUser.id, orgId: existing.orgId } },
+            });
+            if (!existingMembership) {
+              await this.prisma.orgMembership.create({
+                data: { userId: existingUser.id, orgId: existing.orgId, role: 'owner' },
+              });
+              await this.prisma.projectMember.create({
+                data: { projectId: existing.projectId, userId: existingUser.id, role: 'owner' },
+              });
+            }
+            userId = existingUser.id;
+          } else {
+            const tempPassword = crypto.randomBytes(16).toString('hex');
+            const passwordHash = await bcrypt.hash(tempPassword, 10);
+            const user = await this.prisma.user.create({
+              data: { email: reinstallEmail, passwordHash, name: shopInfo?.name || shopDomain },
+            });
+            await this.prisma.orgMembership.create({
+              data: { userId: user.id, orgId: existing.orgId, role: 'owner' },
+            });
+            await this.prisma.projectMember.create({
+              data: { projectId: existing.projectId, userId: user.id, role: 'owner' },
+            });
+            userId = user.id;
+            this.logger.log(`Auto-created dashboard user ${reinstallEmail} for ${shopDomain} (reinstall)`);
+          }
+        } catch (err: any) {
+          this.logger.error(`Failed to auto-create user on reinstall for ${shopDomain}:`, err.message);
+        }
+      }
+
       this.logger.log(`Reinstalled Shopify app for ${shopDomain} (project ${existing.projectId})`);
-      return { projectId: existing.projectId, orgId: existing.orgId };
+      return { projectId: existing.projectId, orgId: existing.orgId, userId };
     }
 
     // Get shop name + email for org/project naming and user creation
