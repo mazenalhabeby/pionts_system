@@ -267,23 +267,15 @@ export class ShopifyAppService {
   }
 
   /**
-   * Auto-enable the floating widget theme app embed in the store's active theme.
+   * Log that the merchant needs to manually enable the theme app embed.
+   * Shopify requires a special exemption to modify theme files via API,
+   * so we can't auto-enable — the merchant must toggle it in their theme editor.
    */
-  private async enableThemeEmbed(shopDomain: string, accessToken: string): Promise<void> {
-    const appUuid = process.env.SHOPIFY_APP_UUID || '';
-    if (!appUuid) {
-      this.logger.warn('SHOPIFY_APP_UUID not set — skipping theme app embed activation');
-      return;
-    }
-
-    try {
-      const success = await this.shopifyApi.enableThemeAppEmbed(shopDomain, accessToken, appUuid);
-      if (success) {
-        this.logger.log(`Floating widget auto-enabled for ${shopDomain}`);
-      }
-    } catch (err: any) {
-      this.logger.error(`Failed to auto-enable theme embed for ${shopDomain}:`, err.message);
-    }
+  private async enableThemeEmbed(shopDomain: string, _accessToken: string): Promise<void> {
+    this.logger.log(
+      `Theme app embed for ${shopDomain}: merchant must enable via Theme Editor > App embeds. ` +
+      `Shopify does not allow API theme file modifications without an exemption.`,
+    );
   }
 
   /**

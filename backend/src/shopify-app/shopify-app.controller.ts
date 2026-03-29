@@ -273,13 +273,15 @@ export class ShopifyAppController {
   }
 
   /**
-   * Debug endpoint: check theme embed status and optionally re-activate it.
-   * GET /shopify/debug-embed?shop=xxx.myshopify.com&fix=true
+   * Debug endpoint: check theme embed status.
+   * GET /shopify/debug-embed?shop=xxx.myshopify.com
+   *
+   * Note: Shopify requires a special exemption to modify theme files via API.
+   * The response includes a deepLink for the merchant to enable the widget manually.
    */
   @Get('debug-embed')
   async debugEmbed(
     @Query('shop') shop: string,
-    @Query('fix') fix: string,
   ) {
     if (!shop) return { error: 'Missing shop param' };
 
@@ -289,26 +291,34 @@ export class ShopifyAppController {
     if (!installation) return { error: 'No installation found', shop };
 
     const accessToken = installation.accessToken;
-    const appUuid = process.env.SHOPIFY_APP_UUID || '';
 
-    // 1. Read current theme settings
+    // Read current theme settings
     const themesRes = await this.shopifyApiService.getThemeBlocks(shop, accessToken);
 
-    // 2. Optionally re-enable embed
-    let fixResult: any = null;
-    if (fix === 'true' && appUuid) {
-      fixResult = await this.shopifyApiService.enableThemeAppEmbed(shop, accessToken, appUuid);
-    }
+    // Build deep link for merchant to enable widget in theme editor
+    const themeId = themesRes?.themeId;
+    const deepLink = themeId
+      ? `https://${shop}/admin/themes/${themeId}/editor?context=apps`
+      : null;
+
+    // Check if the loyalty-popup block exists and its status
+    const loyaltyBlock = themesRes?.appBlocks?.find(
+      (b: any) => typeof b.type === 'string' && b.type.includes('/blocks/loyalty-popup/'),
+    );
 
     return {
       shop,
-      appUuid,
       installationExists: true,
       publicKey: installation.publicKey ? `${installation.publicKey.substring(0, 12)}...` : null,
       hmacSecret: installation.hmacSecret ? `${installation.hmacSecret.substring(0, 8)}...` : null,
       themeBlocks: themesRes,
-      fixAttempted: fix === 'true',
-      fixResult,
+      widgetStatus: loyaltyBlock
+        ? (loyaltyBlock.disabled ? 'disabled' : 'enabled')
+        : 'not_found',
+      deepLink,
+      instructions: loyaltyBlock?.disabled
+        ? 'Visit the deepLink URL to enable the Pionts widget in your theme editor.'
+        : undefined,
     };
   }
 
