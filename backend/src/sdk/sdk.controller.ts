@@ -440,12 +440,18 @@ export class SdkController {
    * Resolve a Shopify customer ID to a Pionts customer email.
    * Used by the Shopify Customer Account Extension when the GraphQL query
    * for email is blocked by Protected Customer Data requirements.
-   * Falls back to Shopify Admin API if the customer isn't in the DB yet.
+   *
+   * Flow:
+   * 1. If customer already in DB by shopifyId → return immediately
+   * 2. Look up ShopifyInstallation for stored access token
+   * 3. If no installation, use Token Exchange (session_token → access_token)
+   * 4. Call Shopify Admin API to resolve customer email
+   * 5. Create/get customer in Pionts
    */
   @Post('shopify/identify')
   async shopifyIdentify(
     @SdkProject() project: Project,
-    @Body() body: { shopify_customer_id: string },
+    @Body() body: { shopify_customer_id: string; session_token?: string; shop?: string },
   ) {
     const shopifyId = body.shopify_customer_id;
     if (!shopifyId) throw new BadRequestException('shopify_customer_id is required');
@@ -456,15 +462,47 @@ export class SdkController {
       return { email: existing.email, name: existing.name || '' };
     }
 
-    // 2. Look up the Shopify installation for this project to get the Admin API token
-    const installation = await this.prisma.shopifyInstallation.findUnique({
+    // 2. Look up existing ShopifyInstallation
+    let installation = await this.prisma.shopifyInstallation.findUnique({
       where: { projectId: project.id },
     });
+
+    // 3. If no installation (or no access token), try Token Exchange with session token
+    if ((!installation || !installation.accessToken || installation.uninstalledAt) && body.session_token && body.shop) {
+      const shopDomain = body.shop.replace(/^https?:\/\//, '');
+      const exchange = await this.shopifyApi.exchangeSessionToken(shopDomain, body.session_token);
+      if (exchange) {
+        if (installation) {
+          // Reactivate existing installation with new token
+          installation = await this.prisma.shopifyInstallation.update({
+            where: { id: installation.id },
+            data: {
+              accessToken: exchange.accessToken,
+              scopes: exchange.scope,
+              shopDomain,
+              uninstalledAt: null,
+            },
+          });
+        } else {
+          // Create new installation
+          installation = await this.prisma.shopifyInstallation.create({
+            data: {
+              shopDomain,
+              accessToken: exchange.accessToken,
+              scopes: exchange.scope,
+              projectId: project.id,
+              orgId: project.orgId,
+            },
+          });
+        }
+      }
+    }
+
     if (!installation || !installation.accessToken || installation.uninstalledAt) {
       throw new BadRequestException('Shopify installation not found for this project');
     }
 
-    // 3. Call Shopify Admin API to get the customer's email
+    // 4. Call Shopify Admin API to get the customer's email
     const shopifyCustomer = await this.shopifyApi.getCustomerById(
       installation.shopDomain,
       installation.accessToken,
@@ -474,7 +512,7 @@ export class SdkController {
       throw new BadRequestException('Could not resolve Shopify customer');
     }
 
-    // 4. Create or get the customer in Pionts (links the Shopify ID)
+    // 5. Create or get the customer in Pionts (links the Shopify ID)
     const customer = await this.customersService.getOrCreate(
       project.id,
       shopifyCustomer.email,

@@ -231,6 +231,45 @@ export class ShopifyApiService {
     }
   }
 
+  /**
+   * Exchange a Shopify session token for an offline access token using Token Exchange.
+   * https://shopify.dev/docs/apps/auth/get-access-tokens/token-exchange
+   */
+  async exchangeSessionToken(
+    shop: string,
+    sessionToken: string,
+  ): Promise<{ accessToken: string; scope: string } | null> {
+    try {
+      const res = await this.fetchWithRetry(
+        `https://${shop}/admin/oauth/access_token`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: process.env.SHOPIFY_API_KEY,
+            client_secret: process.env.SHOPIFY_API_SECRET,
+            grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+            subject_token: sessionToken,
+            subject_token_type: 'urn:ietf:params:oauth:token-type:id-token',
+            requested_token_type: 'urn:shopify:params:oauth:token-type:offline-access-token',
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+        this.logger.error(`Token exchange failed for ${shop}: ${res.status} ${text}`);
+        return null;
+      }
+
+      const data = await res.json();
+      return { accessToken: data.access_token, scope: data.scope || '' };
+    } catch (err) {
+      this.logger.error(`Token exchange error for ${shop}:`, err);
+      return null;
+    }
+  }
+
   async getShopInfo(shop: string, accessToken: string): Promise<{ name: string } | null> {
     try {
       const res = await this.fetchWithRetry(

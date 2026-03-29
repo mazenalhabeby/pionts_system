@@ -99,39 +99,44 @@ function RewardsPage() {
   const [copiedRef, setCopiedRef] = useState(false);
   const [claimingAction, setClaimingAction] = useState(null);
 
-  /* ---- Fetch customer email (GraphQL → session token fallback) ---- */
+  /* ---- Fetch customer email (GraphQL → session token + token exchange fallback) ---- */
   const fetchCustomerEmail = useCallback(async () => {
-    // Strategy 1: GraphQL Customer Account API (requires Protected Customer Data access)
+    // Strategy 1: GraphQL Customer Account API (works when app has Protected Customer Data access)
     try {
       const result = await query(
-        `query { customer { emailAddress { emailAddress } firstName lastName } }`,
+        `query { customer { id emailAddress { emailAddress } firstName lastName } }`,
       );
       const c = result?.data?.customer;
       const email = c?.emailAddress?.emailAddress;
       if (email) return { email, name: c?.firstName || '' };
-    } catch { /* GraphQL failed, try fallback */ }
+    } catch { /* GraphQL may not work without Protected Customer Data approval */ }
 
-    // Strategy 2: Session token → decode JWT → extract Shopify customer ID → resolve via backend
+    // Strategy 2: Session token → decode JWT → send to backend for Token Exchange + Admin API lookup
     if (sessionToken && apiBase && projectKey) {
       try {
         const token = await sessionToken.get();
         if (token) {
           const parts = token.split('.');
           if (parts.length >= 2) {
-            // Decode JWT payload (base64url → JSON)
             const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
             const payload = JSON.parse(atob(b64));
-            // sub claim: "gid://shopify/Customer/<id>" (present when logged in)
             const sub = payload.sub || '';
             const shopifyId = sub.split('/').pop();
-            if (shopifyId) {
+            // Extract shop domain from dest (e.g. "https://store.myshopify.com" → "store.myshopify.com")
+            const shop = (payload.dest || '').replace(/^https?:\/\//, '');
+
+            if (shopifyId && shop) {
               const res = await fetch(`${apiBase}/api/v1/sdk/shopify/identify`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'X-Project-Key': projectKey,
                 },
-                body: JSON.stringify({ shopify_customer_id: shopifyId }),
+                body: JSON.stringify({
+                  shopify_customer_id: shopifyId,
+                  session_token: token,
+                  shop,
+                }),
               });
               if (res.ok) {
                 const data = await res.json();
@@ -140,7 +145,7 @@ function RewardsPage() {
             }
           }
         }
-      } catch { /* session token approach failed */ }
+      } catch { /* silent */ }
     }
 
     return { email: '', name: '' };
@@ -172,7 +177,7 @@ function RewardsPage() {
         setLoading(true);
         const { email } = await fetchCustomerEmail();
         if (!email) {
-          setError('Could not retrieve your email. Please contact support.');
+          setError('Could not retrieve your email. Please make sure you are logged in.');
           setLoading(false);
           return;
         }
