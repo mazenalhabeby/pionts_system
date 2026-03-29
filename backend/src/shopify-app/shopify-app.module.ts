@@ -15,6 +15,7 @@ import { WebhooksModule } from '../webhooks/webhooks.module';
   providers: [
     ShopifyApiService,
     ShopifyAppService,
+    ShopifyAppController,
     ShopifyWebhookService,
     ShopifyWebhookHmacGuard,
   ],
