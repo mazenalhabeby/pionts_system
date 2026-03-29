@@ -42,9 +42,11 @@ export class ShopifyAppController {
       secure: true,
       sameSite: 'lax',
       maxAge: 600000, // 10 minutes
+      path: '/', // Available across all paths (callback may be on different route)
     });
 
-    const redirectUri = `${appUrl}/shopify/auth/callback`;
+    // Use the redirect URI that matches Shopify's whitelisted URL
+    const redirectUri = `${appUrl}/api/v1/auth/shopify/callback`;
     const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${apiKey}&scope=${SHOPIFY_SCOPES}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${nonce}`;
 
     res.redirect(authUrl);
