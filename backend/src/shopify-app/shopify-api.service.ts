@@ -295,6 +295,52 @@ export class ShopifyApiService {
   }
 
   /**
+   * Debug: read current theme blocks from settings_data.json
+   */
+  async getThemeBlocks(shop: string, accessToken: string): Promise<any> {
+    try {
+      const themesRes = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/themes.json`,
+        { method: 'GET', headers: this.headers(accessToken) },
+      );
+      const themesData = await themesRes.json();
+      const mainTheme = themesData.themes?.find((t: any) => t.role === 'main');
+      if (!mainTheme) return { error: 'No main theme found' };
+
+      const assetRes = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/themes/${mainTheme.id}/assets.json?asset[key]=config/settings_data.json`,
+        { method: 'GET', headers: this.headers(accessToken) },
+      );
+      const assetData = await assetRes.json();
+      if (!assetData.asset?.value) return { error: 'Could not read settings_data.json' };
+
+      const settings = JSON.parse(assetData.asset.value);
+      const current = settings.current || {};
+      const blocks = current.blocks || {};
+
+      // Filter to show only app-related blocks
+      const appBlocks = Object.entries(blocks)
+        .filter(([_, v]: [string, any]) => typeof v.type === 'string' && v.type.includes('shopify://apps'))
+        .map(([key, v]: [string, any]) => ({
+          blockId: key,
+          type: v.type,
+          disabled: v.disabled,
+          settings: v.settings,
+        }));
+
+      return {
+        themeId: mainTheme.id,
+        themeName: mainTheme.name,
+        totalBlocks: Object.keys(blocks).length,
+        appBlocks,
+        allBlockTypes: Object.values(blocks).map((v: any) => v.type).filter(Boolean).slice(0, 20),
+      };
+    } catch (err: any) {
+      return { error: err.message };
+    }
+  }
+
+  /**
    * Auto-enable the theme app extension embed block in the active theme.
    * This makes the floating widget appear on the storefront immediately.
    */
@@ -304,6 +350,16 @@ export class ShopifyApiService {
     appUuid: string,
   ): Promise<boolean> {
     try {
+      // Extension metadata from shopify.extension.toml
+      const extensionHandle = process.env.SHOPIFY_EXTENSION_HANDLE || 'pionts-widget';
+      const extensionUid = process.env.SHOPIFY_EXTENSION_UID || 'b012d026-422f-524a-cc7c-7579799ce0b30d2fe761';
+      const blockFileName = 'loyalty-popup';
+
+      // Shopify's block type format: shopify://apps/{extension_handle}/blocks/{block_file}/{extension_uid}
+      const blockType = `shopify://apps/${extensionHandle}/blocks/${blockFileName}/${extensionUid}`;
+
+      this.logger.log(`Enabling theme app embed for ${shop} with type: ${blockType}`);
+
       // 1. Get the main/active theme
       const themesRes = await this.fetchWithRetry(
         `https://${shop}/admin/api/${API_VERSION}/themes.json`,
@@ -333,13 +389,11 @@ export class ShopifyApiService {
       // 3. Find or create the blocks section and add the app embed
       if (!current.blocks) current.blocks = {};
 
-      // The block key is the app UUID + extension handle
-      const blockHandle = 'loyalty-popup';
-      const blockKey = `${appUuid}/${blockHandle}`;
-
-      // Check if already enabled
+      // Check if already enabled (match on blockType OR any block containing the extension handle)
       const existingBlock = Object.entries(current.blocks).find(
-        ([_, v]: [string, any]) => v.type === `shopify://apps/${appUuid}/${blockHandle}`,
+        ([_, v]: [string, any]) =>
+          v.type === blockType ||
+          (typeof v.type === 'string' && v.type.includes(extensionHandle) && v.type.includes(blockFileName)),
       );
 
       if (existingBlock) {
@@ -351,11 +405,11 @@ export class ShopifyApiService {
         // Add new block entry
         const newBlockId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         current.blocks[newBlockId] = {
-          type: `shopify://apps/${appUuid}/${blockHandle}`,
+          type: blockType,
           disabled: false,
           settings: {},
         };
-        this.logger.log(`Added theme app embed block for ${shop}`);
+        this.logger.log(`Added theme app embed block for ${shop}: ${blockType}`);
       }
 
       settings.current = current;

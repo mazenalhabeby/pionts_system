@@ -272,6 +272,46 @@ export class ShopifyAppController {
 </html>`;
   }
 
+  /**
+   * Debug endpoint: check theme embed status and optionally re-activate it.
+   * GET /shopify/debug-embed?shop=xxx.myshopify.com&fix=true
+   */
+  @Get('debug-embed')
+  async debugEmbed(
+    @Query('shop') shop: string,
+    @Query('fix') fix: string,
+  ) {
+    if (!shop) return { error: 'Missing shop param' };
+
+    const installation = await this.prisma.shopifyInstallation.findUnique({
+      where: { shopDomain: shop },
+    });
+    if (!installation) return { error: 'No installation found', shop };
+
+    const accessToken = installation.accessToken;
+    const appUuid = process.env.SHOPIFY_APP_UUID || '';
+
+    // 1. Read current theme settings
+    const themesRes = await this.shopifyApiService.getThemeBlocks(shop, accessToken);
+
+    // 2. Optionally re-enable embed
+    let fixResult: any = null;
+    if (fix === 'true' && appUuid) {
+      fixResult = await this.shopifyApiService.enableThemeAppEmbed(shop, accessToken, appUuid);
+    }
+
+    return {
+      shop,
+      appUuid,
+      installationExists: true,
+      publicKey: installation.publicKey ? `${installation.publicKey.substring(0, 12)}...` : null,
+      hmacSecret: installation.hmacSecret ? `${installation.hmacSecret.substring(0, 8)}...` : null,
+      themeBlocks: themesRes,
+      fixAttempted: fix === 'true',
+      fixResult,
+    };
+  }
+
   private verifyQueryHmac(query: Record<string, string>): boolean {
     const secret = process.env.SHOPIFY_API_SECRET;
     if (!secret) return false;
