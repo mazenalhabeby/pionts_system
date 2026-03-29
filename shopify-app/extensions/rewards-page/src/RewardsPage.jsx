@@ -24,6 +24,7 @@ import {
   ListItem,
   SkeletonText,
   SkeletonTextBlock,
+  ClipboardItem,
 } from '@shopify/ui-extensions-react/customer-account';
 
 /* ------------------------------------------------------------------ */
@@ -575,13 +576,14 @@ function RewardsPage() {
               <Text size="extraSmall" appearance="subdued">Your referral link</Text>
               <InlineStack spacing="tight" blockAlignment="center">
                 <Text emphasis="bold" size="small">{referralLink}</Text>
-                <Button kind="secondary" onPress={async () => {
-                  try { await navigator.clipboard.writeText(referralLink); } catch {}
-                  setCopiedLink(true);
-                  setTimeout(() => setCopiedLink(false), 2000);
-                }} accessibilityLabel="Copy referral link">
-                  {copiedLink ? 'Copied!' : 'Copy'}
-                </Button>
+                <ClipboardItem value={referralLink}>
+                  <Button kind="secondary" onPress={() => {
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2000);
+                  }} accessibilityLabel="Copy referral link">
+                    {copiedLink ? 'Copied!' : 'Copy'}
+                  </Button>
+                </ClipboardItem>
               </InlineStack>
             </BlockStack>
           </Card>
