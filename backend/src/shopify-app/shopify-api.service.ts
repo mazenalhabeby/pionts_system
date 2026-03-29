@@ -350,15 +350,10 @@ export class ShopifyApiService {
     appUuid: string,
   ): Promise<boolean> {
     try {
-      // Extension metadata from shopify.extension.toml
-      const extensionHandle = process.env.SHOPIFY_EXTENSION_HANDLE || 'pionts-widget';
-      const extensionUid = process.env.SHOPIFY_EXTENSION_UID || 'b012d026-422f-524a-cc7c-7579799ce0b30d2fe761';
+      // The block file name in our theme extension
       const blockFileName = 'loyalty-popup';
 
-      // Shopify's block type format: shopify://apps/{extension_handle}/blocks/{block_file}/{extension_uid}
-      const blockType = `shopify://apps/${extensionHandle}/blocks/${blockFileName}/${extensionUid}`;
-
-      this.logger.log(`Enabling theme app embed for ${shop} with type: ${blockType}`);
+      this.logger.log(`Enabling theme app embed for ${shop}, looking for block containing "${blockFileName}"`);
 
       // 1. Get the main/active theme
       const themesRes = await this.fetchWithRetry(
@@ -389,11 +384,13 @@ export class ShopifyApiService {
       // 3. Find or create the blocks section and add the app embed
       if (!current.blocks) current.blocks = {};
 
-      // Check if already enabled (match on blockType OR any block containing the extension handle)
+      // Find existing block by matching on the block file name in the type string
+      // Shopify format: shopify://apps/{handle}/blocks/{blockFile}/{uid}
       const existingBlock = Object.entries(current.blocks).find(
         ([_, v]: [string, any]) =>
-          v.type === blockType ||
-          (typeof v.type === 'string' && v.type.includes(extensionHandle) && v.type.includes(blockFileName)),
+          typeof v.type === 'string' &&
+          v.type.includes('shopify://apps/') &&
+          v.type.includes(`/blocks/${blockFileName}/`),
       );
 
       if (existingBlock) {
@@ -402,14 +399,14 @@ export class ShopifyApiService {
         current.blocks[existingKey].disabled = false;
         this.logger.log(`Theme app embed already exists for ${shop}, ensuring enabled`);
       } else {
-        // Add new block entry
-        const newBlockId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        current.blocks[newBlockId] = {
-          type: blockType,
-          disabled: false,
-          settings: {},
-        };
-        this.logger.log(`Added theme app embed block for ${shop}: ${blockType}`);
+        // No existing block found — can't add one programmatically without knowing
+        // the Shopify-assigned extension handle and block UID. The merchant needs to
+        // enable it manually via the theme editor, or reinstall the app.
+        this.logger.warn(
+          `No existing loyalty-popup block found in theme for ${shop}. ` +
+          `Merchant may need to enable it via Theme Editor > App embeds.`,
+        );
+        return false;
       }
 
       settings.current = current;
