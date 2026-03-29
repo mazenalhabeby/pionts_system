@@ -31,7 +31,7 @@ function CheckItem({ done, children }: { done?: boolean; children: React.ReactNo
 
 export default function ShopifyGuide() {
   const navigate = useNavigate();
-  const { publicKey, secretKey, apiBase } = useProjectKeys();
+  const { publicKey, hmacSecret, apiBase, configured } = useProjectKeys();
 
   return (
     <div>
@@ -142,11 +142,17 @@ npx shopify app deploy --force`} />
     customer: {
       email: '{{ customer.email }}',
       name: '{{ customer.first_name }}',
-      hmac: '{{ customer.email | hmac_sha256: "${secretKey}" }}'
+      hmac: '{{ customer.email | hmac_sha256: "${hmacSecret}" }}'
     }
   });
 </script>
 {% endif %}`} />
+          {configured && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-success">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              This snippet is pre-filled with your project's real keys. Just copy and paste — no editing needed.
+            </div>
+          )}
           <InfoBox>
             The floating widget and customer account page can run side by side — they share the same customer data and points balance.
           </InfoBox>
@@ -180,22 +186,26 @@ npx shopify app deploy --force`} />
 
       {/* Your keys reference */}
       <div className="bg-bg-card border border-border-default rounded-xl p-5 mt-5">
-        <h2 className="text-sm font-semibold text-text-primary mb-3">Your Project Keys</h2>
+        <h2 className="text-sm font-semibold text-text-primary mb-3">Your Project Config</h2>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted w-20 shrink-0">Public Key</span>
+            <span className="text-xs text-text-muted w-24 shrink-0">Public Key</span>
             <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{publicKey}</code>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted w-20 shrink-0">Secret Key</span>
-            <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{secretKey}</code>
+            <span className="text-xs text-text-muted w-24 shrink-0">HMAC Secret</span>
+            <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{hmacSecret}</code>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted w-20 shrink-0">API Base</span>
+            <span className="text-xs text-text-muted w-24 shrink-0">API Base</span>
             <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{apiBase}</code>
           </div>
         </div>
-        <p className="text-xs text-text-faint mt-3">These are auto-populated from your current project. You can manage keys on the <button onClick={() => navigate('/api-keys')} className="text-primary hover:underline bg-transparent border-0 p-0 font-sans text-xs cursor-pointer">API Keys</button> page.</p>
+        {configured ? (
+          <p className="text-xs text-success mt-3">All values are auto-populated from your project — code snippets above are ready to copy.</p>
+        ) : (
+          <p className="text-xs text-text-faint mt-3">Values will be auto-populated once your project is configured. You can manage keys on the <button onClick={() => navigate('/api-keys')} className="text-primary hover:underline bg-transparent border-0 p-0 font-sans text-xs cursor-pointer">API Keys</button> page.</p>
+        )}
       </div>
     </div>
   );

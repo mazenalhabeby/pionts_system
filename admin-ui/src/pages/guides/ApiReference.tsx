@@ -79,7 +79,7 @@ function Section({ title, subtitle, children }: { title: string; subtitle: strin
 
 export default function ApiReference() {
   const navigate = useNavigate();
-  const { publicKey, secretKey, apiBase } = useProjectKeys();
+  const { publicKey, hmacSecret, apiBase } = useProjectKeys();
   const [activeTab, setActiveTab] = useState<AuthType>('sdk');
 
   const tabs: { key: AuthType; label: string; description: string }[] = [
@@ -129,7 +129,7 @@ export default function ApiReference() {
             <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-warning/10 text-warning h-fit mt-0.5 shrink-0">SERVER</span>
             <div>
               <p className="text-sm text-text-secondary">Secret API key (server-side only)</p>
-              <code className="text-xs text-text-faint font-mono mt-1 block">X-Secret-Key: {secretKey}</code>
+              <code className="text-xs text-text-faint font-mono mt-1 block">X-Secret-Key: {hmacSecret}</code>
             </div>
           </div>
           <div className="border-t border-border-default pt-3 flex gap-3">

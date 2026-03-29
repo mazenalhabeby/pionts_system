@@ -158,6 +158,16 @@ export const projectApi = {
       method: 'POST',
       body: JSON.stringify({ userId }),
     }),
+  getIntegrationConfig: (id: number | string): Promise<{
+    configured: boolean;
+    publicKey?: string;
+    hmacSecret?: string;
+    apiBase?: string;
+    webhookBase?: string;
+    domain?: string;
+    platform?: string;
+    projectName?: string;
+  }> => request(`/api/v1/projects/${id}/integration-config`),
 };
 
 // ─── Dashboard API (project-scoped) ───

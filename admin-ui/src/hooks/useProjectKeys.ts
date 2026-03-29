@@ -2,23 +2,34 @@ import { useState, useEffect } from 'react';
 import { projectApi } from '../api';
 import { useProject } from '../context/ProjectContext';
 
-interface ProjectKeys {
+interface IntegrationConfig {
   publicKey: string;
-  secretKey: string;
+  hmacSecret: string;
   apiBase: string;
+  webhookBase: string;
   domain: string;
+  platform: string;
+  projectName: string;
   loading: boolean;
+  configured: boolean;
 }
 
 /**
- * Fetches the current project's API keys and domain.
- * Returns actual values when available, placeholder strings otherwise.
+ * Fetches the current project's full integration config from the backend.
+ * Returns real keys, HMAC secret, API base URL, and webhook URLs
+ * so guide code snippets can be fully populated with zero manual editing.
  */
-export function useProjectKeys(): ProjectKeys {
+export function useProjectKeys(): IntegrationConfig {
   const { currentProject } = useProject();
-  const [keys, setKeys] = useState<{ publicKey: string; secretKey: string }>({
+  const [config, setConfig] = useState<Omit<IntegrationConfig, 'loading'>>({
     publicKey: '',
-    secretKey: '',
+    hmacSecret: '',
+    apiBase: '',
+    webhookBase: '',
+    domain: '',
+    platform: '',
+    projectName: '',
+    configured: false,
   });
   const [loading, setLoading] = useState(true);
 
@@ -31,16 +42,21 @@ export function useProjectKeys(): ProjectKeys {
     let cancelled = false;
     (async () => {
       try {
-        const apiKeys = await projectApi.getKeys(currentProject.id);
+        const data = await projectApi.getIntegrationConfig(currentProject.id);
         if (cancelled) return;
 
-        const pub = apiKeys.find((k) => k.type === 'public' && !k.revoked);
-        const sec = apiKeys.find((k) => k.type === 'secret' && !k.revoked);
-
-        setKeys({
-          publicKey: pub?.keyPrefix ? `${pub.keyPrefix}...` : '',
-          secretKey: sec?.keyPrefix ? `${sec.keyPrefix}...` : '',
-        });
+        if (data.configured) {
+          setConfig({
+            publicKey: data.publicKey || '',
+            hmacSecret: data.hmacSecret || '',
+            apiBase: data.apiBase || '',
+            webhookBase: data.webhookBase || '',
+            domain: data.domain || '',
+            platform: data.platform || '',
+            projectName: data.projectName || '',
+            configured: true,
+          });
+        }
       } catch {
         // silently fail — will show placeholders
       } finally {
@@ -51,15 +67,20 @@ export function useProjectKeys(): ProjectKeys {
     return () => { cancelled = true; };
   }, [currentProject?.id]);
 
-  const apiBase = typeof window !== 'undefined'
+  // Fallback values when config not available
+  const fallbackBase = typeof window !== 'undefined'
     ? window.location.origin
     : 'https://your-server.com';
 
   return {
-    publicKey: keys.publicKey || 'pk_live_YOUR_PUBLIC_KEY',
-    secretKey: keys.secretKey || 'sk_live_YOUR_SECRET_KEY',
-    apiBase,
-    domain: currentProject?.domain || 'yourstore.com',
+    publicKey: config.publicKey || 'pk_live_YOUR_PUBLIC_KEY',
+    hmacSecret: config.hmacSecret || 'YOUR_HMAC_SECRET',
+    apiBase: config.apiBase || fallbackBase,
+    webhookBase: config.webhookBase || `${fallbackBase}/api/v1`,
+    domain: config.domain || currentProject?.domain || 'yourstore.com',
+    platform: config.platform || currentProject?.platform || '',
+    projectName: config.projectName || currentProject?.name || 'Your Project',
     loading,
+    configured: config.configured,
   };
 }

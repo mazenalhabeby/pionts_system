@@ -8,6 +8,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ProjectsService } from './projects.service';
 import { ProjectMembersService } from './project-members.service';
 import { ApiKeyService } from '../auth/api-key.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
@@ -18,6 +19,7 @@ export class ProjectsController {
     private readonly projectsService: ProjectsService,
     private readonly projectMembersService: ProjectMembersService,
     private readonly apiKeyService: ApiKeyService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post()
@@ -127,6 +129,48 @@ export class ProjectsController {
   async getHmacSecret(@Param('id') id: string) {
     const project = await this.projectsService.findById(parseInt(id, 10));
     return { hmacSecret: project?.hmacSecret || null };
+  }
+
+  /**
+   * Returns full integration config for guide snippets.
+   * Includes the real public key (from ShopifyInstallation if available),
+   * HMAC secret, API base URL, and webhook URLs — so guides can show
+   * ready-to-copy code with zero manual editing.
+   */
+  @Get(':id/integration-config')
+  @UseGuards(ProjectMemberGuard)
+  @ProjectRoles('admin')
+  @Roles('owner')
+  async getIntegrationConfig(@Param('id') id: string) {
+    const projectId = parseInt(id, 10);
+    const project = await this.projectsService.findById(projectId);
+    if (!project) return { configured: false };
+
+    // Try to get full public key from ShopifyInstallation (stores unmasked key)
+    const installation = await this.prisma.shopifyInstallation.findUnique({
+      where: { projectId },
+    });
+
+    // If no installation, try to get prefix from API keys
+    let publicKey = installation?.publicKey || '';
+    if (!publicKey) {
+      const keys = await this.apiKeyService.listKeys(projectId);
+      const pub = keys.find((k: any) => k.type === 'public' && !k.revoked);
+      publicKey = pub?.keyPrefix ? `${pub.keyPrefix}...` : '';
+    }
+
+    const appUrl = process.env.SHOPIFY_APP_URL || process.env.APP_URL || 'https://app.pionts.com';
+
+    return {
+      configured: true,
+      publicKey,
+      hmacSecret: project.hmacSecret || '',
+      apiBase: appUrl,
+      webhookBase: `${appUrl}/api/v1`,
+      domain: project.domain || '',
+      platform: project.platform || '',
+      projectName: project.name || '',
+    };
   }
 
   // ── Project Member Management ──────────────────────────────────────

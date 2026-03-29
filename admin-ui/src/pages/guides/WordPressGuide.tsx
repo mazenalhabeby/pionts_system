@@ -27,7 +27,7 @@ function WarningBox({ children }: { children: React.ReactNode }) {
 
 export default function WordPressGuide() {
   const navigate = useNavigate();
-  const { publicKey, secretKey, apiBase, domain } = useProjectKeys();
+  const { publicKey, hmacSecret, apiBase, webhookBase, domain, configured } = useProjectKeys();
 
   return (
     <div>
@@ -48,19 +48,26 @@ export default function WordPressGuide() {
       </div>
 
       <div className="bg-bg-surface border border-border-default rounded-xl p-6 mt-5">
-        <GuideStep number={1} title="Get your API keys">
-          <p>Go to the <strong>API Keys</strong> page in this dashboard and copy your public key and secret key. You'll need both for the integration.</p>
+        <GuideStep number={1} title="Your project config">
+          <p>The code snippets below are <strong>pre-filled</strong> with your project's real values. Most steps require just copy-paste.</p>
           <div className="bg-bg-surface-raised rounded-lg p-3 mt-2 space-y-1 font-mono text-xs">
-            <div><span className="text-text-faint">Public:</span> <span className="text-text-secondary">{publicKey}</span></div>
-            <div><span className="text-text-faint">Secret:</span> <span className="text-text-secondary">{secretKey}</span></div>
+            <div><span className="text-text-faint">Public Key:</span> <span className="text-text-secondary">{publicKey}</span></div>
+            <div><span className="text-text-faint">HMAC Secret:</span> <span className="text-text-secondary">{hmacSecret}</span></div>
+            <div><span className="text-text-faint">API Base:</span> <span className="text-text-secondary">{apiBase}</span></div>
           </div>
+          {configured && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-success">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              All values auto-populated — snippets are ready to copy.
+            </div>
+          )}
         </GuideStep>
 
         <GuideStep number={2} title="Add the SDK snippet to your theme">
           <p>In your WordPress admin, go to <strong>Appearance &rarr; Theme File Editor</strong>. Open your theme's <code>footer.php</code> (or use a plugin like &quot;Insert Headers and Footers&quot;). Add this before <code>{'</body>'}</code>:</p>
           <CodeBlock language="php" code={`<?php if (is_user_logged_in()):
   $user = wp_get_current_user();
-  $secret_key = '${secretKey}';
+  $secret_key = '${hmacSecret}';
   $hmac = hash_hmac('sha256', $user->user_email, $secret_key);
 ?>
 <script src="${apiBase}/sdk/loyalty.js"></script>
@@ -99,7 +106,7 @@ export default function WordPressGuide() {
                 <div><span className="text-text-faint w-24 inline-block">Status:</span> <span className="text-text-secondary">Active</span></div>
                 <div><span className="text-text-faint w-24 inline-block">Topic:</span> <span className="text-text-secondary">Order completed</span></div>
                 <div><span className="text-text-faint w-24 inline-block">Delivery URL:</span> <code className="text-xs text-text-secondary">{apiBase}/api/v1/webhooks/order</code></div>
-                <div><span className="text-text-faint w-24 inline-block">Secret:</span> <code className="text-xs text-text-secondary">{secretKey}</code></div>
+                <div><span className="text-text-faint w-24 inline-block">Secret:</span> <code className="text-xs text-text-secondary">{hmacSecret}</code></div>
               </div>
             </div>
             <div className="border-t border-border-default pt-4">
@@ -109,7 +116,7 @@ export default function WordPressGuide() {
                 <div><span className="text-text-faint w-24 inline-block">Status:</span> <span className="text-text-secondary">Active</span></div>
                 <div><span className="text-text-faint w-24 inline-block">Topic:</span> <span className="text-text-secondary">Order refunded</span></div>
                 <div><span className="text-text-faint w-24 inline-block">Delivery URL:</span> <code className="text-xs text-text-secondary">{apiBase}/api/v1/webhooks/refund</code></div>
-                <div><span className="text-text-faint w-24 inline-block">Secret:</span> <code className="text-xs text-text-secondary">{secretKey}</code></div>
+                <div><span className="text-text-faint w-24 inline-block">Secret:</span> <code className="text-xs text-text-secondary">{hmacSecret}</code></div>
               </div>
             </div>
           </div>
@@ -124,7 +131,7 @@ add_action('woocommerce_applied_coupon', function($coupon_code) {
   $response = wp_remote_post('${apiBase}/api/v1/discount/validate', [
     'headers' => [
       'Content-Type' => 'application/json',
-      'X-Secret-Key' => '${secretKey}',
+      'X-Secret-Key' => '${hmacSecret}',
     ],
     'body' => json_encode(['code' => $coupon_code]),
   ]);
@@ -143,7 +150,7 @@ add_action('woocommerce_thankyou', function($order_id) {
     wp_remote_post('${apiBase}/api/v1/discount/mark-used', [
       'headers' => [
         'Content-Type' => 'application/json',
-        'X-Secret-Key' => '${secretKey}',
+        'X-Secret-Key' => '${hmacSecret}',
       ],
       'body' => json_encode(['code' => $code]),
     ]);
@@ -177,15 +184,19 @@ add_action('woocommerce_thankyou', function($order_id) {
 
       {/* Keys reference */}
       <div className="bg-bg-card border border-border-default rounded-xl p-5 mt-5">
-        <h2 className="text-sm font-semibold text-text-primary mb-3">Your Project Keys</h2>
+        <h2 className="text-sm font-semibold text-text-primary mb-3">Your Project Config</h2>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted w-20 shrink-0">Public Key</span>
+            <span className="text-xs text-text-muted w-24 shrink-0">Public Key</span>
             <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{publicKey}</code>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted w-20 shrink-0">Secret Key</span>
-            <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{secretKey}</code>
+            <span className="text-xs text-text-muted w-24 shrink-0">HMAC Secret</span>
+            <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{hmacSecret}</code>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-text-muted w-24 shrink-0">API Base</span>
+            <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{apiBase}</code>
           </div>
         </div>
       </div>

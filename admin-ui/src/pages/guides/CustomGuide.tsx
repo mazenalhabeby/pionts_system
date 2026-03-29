@@ -84,7 +84,7 @@ signature := generateHMAC(user.Email, "${sk}")`,
 
 export default function CustomGuide() {
   const navigate = useNavigate();
-  const { publicKey, secretKey, apiBase, domain } = useProjectKeys();
+  const { publicKey, hmacSecret, apiBase, webhookBase, domain, configured } = useProjectKeys();
   const [lang, setLang] = useState<Lang>('node');
 
   return (
@@ -125,7 +125,13 @@ export default function CustomGuide() {
               </button>
             ))}
           </div>
-          <CodeBlock language={HMAC_EXAMPLES[lang].lang} code={HMAC_EXAMPLES[lang].code(secretKey)} />
+          <CodeBlock language={HMAC_EXAMPLES[lang].lang} code={HMAC_EXAMPLES[lang].code(hmacSecret)} />
+          {configured && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-success">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Your HMAC secret is pre-filled — just copy this snippet.
+            </div>
+          )}
         </GuideStep>
 
         <GuideStep number={2} title="Add the SDK to your frontend">
@@ -162,7 +168,7 @@ export default function CustomGuide() {
           <CodeBlock language="bash" code={`# Award points for a purchase
 curl -X POST ${apiBase}/api/v1/webhooks/order \\
   -H "Content-Type: application/json" \\
-  -H "X-Secret-Key: ${secretKey}" \\
+  -H "X-Secret-Key: ${hmacSecret}" \\
   -d '{
     "order_id": "ORD-12345",
     "email": "customer@example.com",
@@ -171,7 +177,7 @@ curl -X POST ${apiBase}/api/v1/webhooks/order \\
           <p className="mt-3">For refunds (claws back all points from the order):</p>
           <CodeBlock language="bash" code={`curl -X POST ${apiBase}/api/v1/webhooks/refund \\
   -H "Content-Type: application/json" \\
-  -H "X-Secret-Key: ${secretKey}" \\
+  -H "X-Secret-Key: ${hmacSecret}" \\
   -d '{ "order_id": "ORD-12345" }'`} />
 
           <InfoBox>
@@ -184,7 +190,7 @@ curl -X POST ${apiBase}/api/v1/webhooks/order \\
           <CodeBlock language="bash" code={`# Validate a discount code
 curl -X POST ${apiBase}/api/v1/discount/validate \\
   -H "Content-Type: application/json" \\
-  -H "X-Secret-Key: ${secretKey}" \\
+  -H "X-Secret-Key: ${hmacSecret}" \\
   -d '{ "code": "DISC-ABC123" }'
 
 # Response: { "valid": true, "discount_amount": 5.00 }
@@ -192,7 +198,7 @@ curl -X POST ${apiBase}/api/v1/discount/validate \\
 # After checkout succeeds, mark the code as used
 curl -X POST ${apiBase}/api/v1/discount/mark-used \\
   -H "Content-Type: application/json" \\
-  -H "X-Secret-Key: ${secretKey}" \\
+  -H "X-Secret-Key: ${hmacSecret}" \\
   -d '{ "code": "DISC-ABC123" }'`} />
         </GuideStep>
 
@@ -230,8 +236,8 @@ curl -X POST ${apiBase}/api/v1/discount/mark-used \\
             <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{publicKey}</code>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted w-20 shrink-0">Secret Key</span>
-            <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{secretKey}</code>
+            <span className="text-xs text-text-muted w-20 shrink-0">HMAC Secret</span>
+            <code className="text-xs bg-bg-surface-raised px-2 py-1 rounded text-text-secondary font-mono break-all">{hmacSecret}</code>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-text-muted w-20 shrink-0">API Base</span>
