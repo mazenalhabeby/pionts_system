@@ -340,6 +340,82 @@ export class ShopifyApiService {
     }
   }
 
+  /**
+   * Enable a disabled app block in the theme's settings_data.json and optionally
+   * update its settings (e.g. project_key, hmac_secret).
+   */
+  async enableThemeBlock(
+    shop: string,
+    accessToken: string,
+    opts?: { publicKey?: string; hmacSecret?: string; apiUrl?: string },
+  ): Promise<{ success: boolean; error?: string; blockId?: string }> {
+    try {
+      // 1. Find the main theme
+      const themesRes = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/themes.json`,
+        { method: 'GET', headers: this.headers(accessToken) },
+      );
+      const themesData = await themesRes.json();
+      const mainTheme = themesData.themes?.find((t: any) => t.role === 'main');
+      if (!mainTheme) return { success: false, error: 'No main theme found' };
+
+      // 2. Read settings_data.json
+      const assetRes = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/themes/${mainTheme.id}/assets.json?asset[key]=config/settings_data.json`,
+        { method: 'GET', headers: this.headers(accessToken) },
+      );
+      const assetData = await assetRes.json();
+      if (!assetData.asset?.value) return { success: false, error: 'Could not read settings_data.json' };
+
+      const settings = JSON.parse(assetData.asset.value);
+      const blocks = settings.current?.blocks || {};
+
+      // 3. Find the loyalty-popup block
+      const blockEntry = Object.entries(blocks).find(
+        ([_, v]: [string, any]) =>
+          typeof v.type === 'string' && v.type.includes('/blocks/loyalty-popup/'),
+      );
+      if (!blockEntry) return { success: false, error: 'No loyalty-popup block found in theme' };
+
+      const [blockId, block] = blockEntry as [string, any];
+
+      // 4. Enable the block
+      block.disabled = false;
+
+      // 5. Update settings if provided
+      if (opts?.publicKey) block.settings = { ...block.settings, project_key: opts.publicKey };
+      if (opts?.hmacSecret) block.settings = { ...block.settings, hmac_secret: opts.hmacSecret };
+      if (opts?.apiUrl) block.settings = { ...block.settings, api_url: opts.apiUrl };
+
+      // 6. Write back
+      const putRes = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/themes/${mainTheme.id}/assets.json`,
+        {
+          method: 'PUT',
+          headers: { ...this.headers(accessToken), 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            asset: {
+              key: 'config/settings_data.json',
+              value: JSON.stringify(settings),
+            },
+          }),
+        },
+      );
+
+      if (!putRes.ok) {
+        const errBody = await putRes.text();
+        this.logger.error(`Failed to update theme: ${putRes.status} ${errBody}`);
+        return { success: false, error: `Shopify API ${putRes.status}: ${errBody.substring(0, 200)}` };
+      }
+
+      this.logger.log(`Enabled theme block ${blockId} for ${shop}`);
+      return { success: true, blockId };
+    } catch (err: any) {
+      this.logger.error(`enableThemeBlock error for ${shop}:`, err);
+      return { success: false, error: err.message };
+    }
+  }
+
   async getShopInfo(shop: string, accessToken: string): Promise<{ name: string; email: string } | null> {
     try {
       const res = await this.fetchWithRetry(

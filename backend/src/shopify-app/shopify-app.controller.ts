@@ -282,6 +282,7 @@ export class ShopifyAppController {
   @Get('debug-embed')
   async debugEmbed(
     @Query('shop') shop: string,
+    @Query('fix') fix?: string,
   ) {
     if (!shop) return { error: 'Missing shop param' };
 
@@ -291,6 +292,28 @@ export class ShopifyAppController {
     if (!installation) return { error: 'No installation found', shop };
 
     const accessToken = installation.accessToken;
+
+    // If fix=true, enable the block via API and sync settings
+    if (fix === 'true') {
+      const fixResult = await this.shopifyApiService.enableThemeBlock(shop, accessToken, {
+        publicKey: installation.publicKey || undefined,
+        hmacSecret: installation.hmacSecret || undefined,
+        apiUrl: process.env.API_BASE || 'https://hbc-solution.io/v2',
+      });
+
+      // Re-read to verify
+      const verify = await this.shopifyApiService.getThemeBlocks(shop, accessToken);
+      const verifyBlock = verify?.appBlocks?.find(
+        (b: any) => typeof b.type === 'string' && b.type.includes('/blocks/loyalty-popup/'),
+      );
+
+      return {
+        shop,
+        fixResult,
+        widgetStatus: verifyBlock ? (verifyBlock.disabled ? 'disabled' : 'enabled') : 'not_found',
+        themeBlocks: verify,
+      };
+    }
 
     // Read current theme settings
     const themesRes = await this.shopifyApiService.getThemeBlocks(shop, accessToken);
@@ -317,7 +340,7 @@ export class ShopifyAppController {
         : 'not_found',
       deepLink,
       instructions: loyaltyBlock?.disabled
-        ? 'Visit the deepLink URL to enable the Pionts widget in your theme editor.'
+        ? 'Visit the deepLink URL or add ?fix=true to enable the widget via API.'
         : undefined,
     };
   }
