@@ -1,0 +1,61 @@
+{% comment %}
+  Pionts Rewards Widget — Floating popup on all pages.
+  Loads the full loyalty widget with automatic customer identification.
+  When customer is logged in, HMAC is computed server-side for secure auth.
+{% endcomment %}
+
+{% assign pionts_api = block.settings.api_url | default: app.metafields.pionts.api_url %}
+{% assign pionts_key = block.settings.project_key | default: app.metafields.pionts.public_key %}
+{% assign pionts_secret = block.settings.hmac_secret | default: app.metafields.pionts.hmac_secret %}
+
+{% if pionts_key != blank and pionts_api != blank %}
+  <script src="{{ pionts_api }}/sdk/loyalty.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof Loyalty === 'undefined') return;
+
+      var config = {
+        projectKey: {{ pionts_key | json }},
+        mode: 'floating',
+        apiBase: {{ pionts_api | json }}
+      };
+
+      {% if customer %}
+        config.customer = {
+          email: {{ customer.email | json }},
+          name: {{ customer.first_name | default: customer.name | json }},
+          hmac: {{ customer.email | hmac_sha256: pionts_secret | json }}
+        };
+      {% endif %}
+
+      Loyalty.init(config);
+    });
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Pionts Rewards Widget",
+  "target": "head",
+  "settings": [
+    {
+      "type": "text",
+      "id": "api_url",
+      "label": "Pionts API URL",
+      "info": "Your Pionts server URL (e.g. https://app.pionts.com)"
+    },
+    {
+      "type": "text",
+      "id": "project_key",
+      "label": "Project Key",
+      "info": "Your public API key (pk_live_...)"
+    },
+    {
+      "type": "text",
+      "id": "hmac_secret",
+      "label": "HMAC Secret",
+      "info": "Your HMAC secret from the Pionts dashboard"
+    }
+  ]
+}
+{% endschema %}

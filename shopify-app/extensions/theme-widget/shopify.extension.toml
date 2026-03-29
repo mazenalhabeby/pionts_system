@@ -1,0 +1,27 @@
+api_version = "2025-04"
+
+[[extensions]]
+name = "Pionts Rewards Widget"
+handle = "pionts-widget"
+uid = "b012d026-422f-524a-cc7c-7579799ce0b30d2fe761"
+type = "theme"
+
+[extensions.settings]
+
+  [[extensions.settings.fields]]
+  key = "api_url"
+  type = "single_line_text_field"
+  name = "Pionts API URL"
+  description = "Your Pionts API base URL (e.g. https://app.pionts.com)"
+
+  [[extensions.settings.fields]]
+  key = "project_key"
+  type = "single_line_text_field"
+  name = "Project Key"
+  description = "Your Pionts public API key (pk_live_...)"
+
+  [[extensions.settings.fields]]
+  key = "hmac_secret"
+  type = "single_line_text_field"
+  name = "HMAC Secret"
+  description = "Your project HMAC secret (from Dashboard → Settings → API Keys)"

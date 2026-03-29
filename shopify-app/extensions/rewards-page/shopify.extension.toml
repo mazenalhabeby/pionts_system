@@ -15,7 +15,6 @@ module = "./src/RewardsPage.jsx"
 # Allow the extension to call the Pionts API (external network)
 [extensions.capabilities]
 network_access = true
-api_access = true
 
 # Settings that merchants can configure from the Shopify admin
 [extensions.settings]
@@ -35,5 +34,5 @@ api_access = true
   [[extensions.settings.fields]]
   key = "secret_key"
   type = "single_line_text_field"
-  name = "Pionts Secret Key"
-  description = "Your Pionts secret key for HMAC signing (sk_live_...)"
+  name = "Pionts HMAC Secret"
+  description = "Your project HMAC secret (found in Dashboard → Settings → API Keys)"
