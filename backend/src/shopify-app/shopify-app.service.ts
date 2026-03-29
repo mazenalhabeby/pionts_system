@@ -83,6 +83,12 @@ export class ShopifyAppService {
         }
       }
 
+      // Re-enable floating widget in active theme on reinstall
+      await this.enableThemeEmbed(shopDomain, accessToken);
+
+      // Re-apply project settings from Shopify data
+      await this.autoConfigureProjectSettings(existing.projectId, shopDomain, accessToken);
+
       this.logger.log(`Reinstalled Shopify app for ${shopDomain} (project ${existing.projectId})`);
       return { projectId: existing.projectId, orgId: existing.orgId, userId };
     }
@@ -182,6 +188,12 @@ export class ShopifyAppService {
     // Set shop metafields for Liquid templates
     await this.setShopMetafields(shopDomain, accessToken, keys.publicKey, project.hmacSecret);
 
+    // Auto-set project settings from Shopify data (referral URL, store domain)
+    await this.autoConfigureProjectSettings(project.id, shopDomain, accessToken);
+
+    // Auto-enable floating widget in active theme
+    await this.enableThemeEmbed(shopDomain, accessToken);
+
     this.logger.log(`Provisioned Shopify store ${shopDomain} → org ${org.id}, project ${project.id}`);
     return { projectId: project.id, orgId: org.id, userId };
   }
@@ -252,5 +264,63 @@ export class ShopifyAppService {
     return this.prisma.shopifyInstallation.findUnique({
       where: { shopDomain },
     });
+  }
+
+  /**
+   * Auto-enable the floating widget theme app embed in the store's active theme.
+   */
+  private async enableThemeEmbed(shopDomain: string, accessToken: string): Promise<void> {
+    const appUuid = process.env.SHOPIFY_APP_UUID || '';
+    if (!appUuid) {
+      this.logger.warn('SHOPIFY_APP_UUID not set — skipping theme app embed activation');
+      return;
+    }
+
+    try {
+      const success = await this.shopifyApi.enableThemeAppEmbed(shopDomain, accessToken, appUuid);
+      if (success) {
+        this.logger.log(`Floating widget auto-enabled for ${shopDomain}`);
+      }
+    } catch (err: any) {
+      this.logger.error(`Failed to auto-enable theme embed for ${shopDomain}:`, err.message);
+    }
+  }
+
+  /**
+   * Auto-configure key project settings from Shopify shop data.
+   * Sets referral_base_url, social links domain, etc.
+   */
+  private async autoConfigureProjectSettings(
+    projectId: number,
+    shopDomain: string,
+    accessToken: string,
+  ): Promise<void> {
+    try {
+      const domains = await this.shopifyApi.getShopDomains(shopDomain, accessToken);
+      const primaryDomain = domains?.primaryDomain || shopDomain.replace('.myshopify.com', '.com');
+      const storeUrl = `https://${primaryDomain}`;
+
+      // Settings to auto-configure (only set if not already customized)
+      const autoSettings: Array<{ key: string; value: string }> = [
+        { key: 'referral_base_url', value: storeUrl },
+      ];
+
+      for (const { key, value } of autoSettings) {
+        const existing = await this.prisma.setting.findUnique({
+          where: { projectId_key: { projectId, key } },
+        });
+
+        if (!existing || !existing.value) {
+          await this.prisma.setting.upsert({
+            where: { projectId_key: { projectId, key } },
+            update: { value },
+            create: { projectId, key, value },
+          });
+          this.logger.log(`Auto-set ${key} = ${value} for project ${projectId}`);
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(`Failed to auto-configure project settings for project ${projectId}:`, err.message);
+    }
   }
 }

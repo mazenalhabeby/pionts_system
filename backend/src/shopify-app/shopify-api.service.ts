@@ -270,6 +270,125 @@ export class ShopifyApiService {
     }
   }
 
+  /**
+   * Get the shop's primary domain (e.g. "coolstore.com" or "coolstore.myshopify.com").
+   */
+  async getShopDomains(
+    shop: string,
+    accessToken: string,
+  ): Promise<{ primaryDomain: string; myshopifyDomain: string } | null> {
+    try {
+      const res = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/shop.json`,
+        { method: 'GET', headers: this.headers(accessToken) },
+      );
+      const data = await res.json();
+      if (!data.shop) return null;
+      return {
+        primaryDomain: data.shop.domain || shop,
+        myshopifyDomain: data.shop.myshopify_domain || shop,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get shop domains for ${shop}:`, err);
+      return null;
+    }
+  }
+
+  /**
+   * Auto-enable the theme app extension embed block in the active theme.
+   * This makes the floating widget appear on the storefront immediately.
+   */
+  async enableThemeAppEmbed(
+    shop: string,
+    accessToken: string,
+    appUuid: string,
+  ): Promise<boolean> {
+    try {
+      // 1. Get the main/active theme
+      const themesRes = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/themes.json`,
+        { method: 'GET', headers: this.headers(accessToken) },
+      );
+      const themesData = await themesRes.json();
+      const mainTheme = themesData.themes?.find((t: any) => t.role === 'main');
+      if (!mainTheme) {
+        this.logger.warn(`No main theme found for ${shop}`);
+        return false;
+      }
+
+      // 2. Get the theme's settings_data.json
+      const assetRes = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/themes/${mainTheme.id}/assets.json?asset[key]=config/settings_data.json`,
+        { method: 'GET', headers: this.headers(accessToken) },
+      );
+      const assetData = await assetRes.json();
+      if (!assetData.asset?.value) {
+        this.logger.warn(`Could not read settings_data.json for ${shop}`);
+        return false;
+      }
+
+      const settings = JSON.parse(assetData.asset.value);
+      const current = settings.current || {};
+
+      // 3. Find or create the blocks section and add the app embed
+      if (!current.blocks) current.blocks = {};
+
+      // The block key is the app UUID + extension handle
+      const blockHandle = 'loyalty-popup';
+      const blockKey = `${appUuid}/${blockHandle}`;
+
+      // Check if already enabled
+      const existingBlock = Object.entries(current.blocks).find(
+        ([_, v]: [string, any]) => v.type === `shopify://apps/${appUuid}/${blockHandle}`,
+      );
+
+      if (existingBlock) {
+        // Already exists — make sure it's not disabled
+        const [existingKey] = existingBlock;
+        current.blocks[existingKey].disabled = false;
+        this.logger.log(`Theme app embed already exists for ${shop}, ensuring enabled`);
+      } else {
+        // Add new block entry
+        const newBlockId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        current.blocks[newBlockId] = {
+          type: `shopify://apps/${appUuid}/${blockHandle}`,
+          disabled: false,
+          settings: {},
+        };
+        this.logger.log(`Added theme app embed block for ${shop}`);
+      }
+
+      settings.current = current;
+
+      // 4. Write back the updated settings_data.json
+      const updateRes = await this.fetchWithRetry(
+        `https://${shop}/admin/api/${API_VERSION}/themes/${mainTheme.id}/assets.json`,
+        {
+          method: 'PUT',
+          headers: this.headers(accessToken),
+          body: JSON.stringify({
+            asset: {
+              key: 'config/settings_data.json',
+              value: JSON.stringify(settings),
+            },
+          }),
+        },
+      );
+
+      if (!updateRes.ok) {
+        const text = await updateRes.text();
+        this.logger.error(`Failed to update theme settings for ${shop}: ${updateRes.status} ${text}`);
+        return false;
+      }
+
+      this.logger.log(`Theme app embed enabled for ${shop} on theme ${mainTheme.name}`);
+      return true;
+    } catch (err) {
+      this.logger.error(`Failed to enable theme app embed for ${shop}:`, err);
+      return false;
+    }
+  }
+
   async getShopInfo(shop: string, accessToken: string): Promise<{ name: string; email: string } | null> {
     try {
       const res = await this.fetchWithRetry(

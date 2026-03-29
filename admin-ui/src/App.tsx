@@ -25,6 +25,7 @@ const ShopifyGuide = lazy(() => import('./pages/guides/ShopifyGuide'));
 const WordPressGuide = lazy(() => import('./pages/guides/WordPressGuide'));
 const CustomGuide = lazy(() => import('./pages/guides/CustomGuide'));
 const ApiReference = lazy(() => import('./pages/guides/ApiReference'));
+const ShopifyOnboarding = lazy(() => import('./pages/ShopifyOnboarding'));
 const PlatformDashboard = lazy(() => import('./pages/platform/Dashboard'));
 const PlatformOrgs = lazy(() => import('./pages/platform/Organizations'));
 const PlatformOrgDetail = lazy(() => import('./pages/platform/OrgDetail'));
@@ -78,6 +79,7 @@ export default function App() {
           <Route path="/guides/wordpress" element={<WordPressGuide />} />
           <Route path="/guides/custom" element={<CustomGuide />} />
           <Route path="/guides/api" element={<ApiReference />} />
+          <Route path="/setup/shopify" element={<ShopifyOnboarding />} />
           <Route path="/api-keys" element={<ApiKeys />} />
           <Route path="/org" element={<OrgSettings />} />
           <Route path="/platform" element={<PlatformDashboard />} />

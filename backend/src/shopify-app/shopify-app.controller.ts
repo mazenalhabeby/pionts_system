@@ -118,13 +118,14 @@ export class ShopifyAppController {
         });
 
         // Pass access token via URL fragment (not sent to server, read by SPA)
-        res.redirect(`${appUrl}/admin/overview?shopify=installed#access_token=${accessJwt}`);
+        // Redirect to onboarding page with shop domain for context
+        res.redirect(`${appUrl}/admin/setup/shopify?shopify=installed&shop=${encodeURIComponent(shop)}#access_token=${accessJwt}`);
         return;
       }
     }
 
-    // Fallback: no user created, redirect to login
-    res.redirect(`${appUrl}/admin/login?shopify=installed&shop=${encodeURIComponent(shop)}`);
+    // Fallback: no user created, redirect to login (after login they'll see the dashboard)
+    res.redirect(`${appUrl}/admin/login?shopify=installed&shop=${encodeURIComponent(shop)}&next=${encodeURIComponent(`/setup/shopify?shop=${shop}`)}`);
   }
 
   /**
