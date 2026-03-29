@@ -13,6 +13,7 @@ import {
   Divider,
   Grid,
   View,
+  TextField,
   SkeletonText,
 } from '@shopify/ui-extensions-react/customer-account';
 
@@ -93,15 +94,32 @@ function RewardsPage() {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [needsEmail, setNeedsEmail] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [shopifyId, setShopifyId] = useState(null);
   const [redeemingTier, setRedeemingTier] = useState(null);
   const [lastCode, setLastCode] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
   const [claimingAction, setClaimingAction] = useState(null);
 
-  /* ---- Fetch customer email (GraphQL → session token + token exchange fallback) ---- */
+  /* ---- Extract Shopify customer ID from session token ---- */
+  const getShopifyCustomerId = useCallback(async () => {
+    if (!sessionToken) return null;
+    try {
+      const token = await sessionToken.get();
+      if (!token) return null;
+      const parts = token.split('.');
+      if (parts.length < 2) return null;
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(b64));
+      return (payload.sub || '').split('/').pop() || null;
+    } catch { return null; }
+  }, [sessionToken]);
+
+  /* ---- Fetch customer email (GraphQL → identify endpoint fallback) ---- */
   const fetchCustomerEmail = useCallback(async () => {
-    // Strategy 1: GraphQL Customer Account API (works when app has Protected Customer Data access)
+    // Strategy 1: GraphQL Customer Account API
     try {
       const result = await query(
         `query { customer { id emailAddress { emailAddress } firstName lastName } }`,
@@ -111,45 +129,28 @@ function RewardsPage() {
       if (email) return { email, name: c?.firstName || '' };
     } catch { /* GraphQL may not work without Protected Customer Data approval */ }
 
-    // Strategy 2: Session token → decode JWT → send to backend for Token Exchange + Admin API lookup
-    if (sessionToken && apiBase && projectKey) {
-      try {
-        const token = await sessionToken.get();
-        if (token) {
-          const parts = token.split('.');
-          if (parts.length >= 2) {
-            const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-            const payload = JSON.parse(atob(b64));
-            const sub = payload.sub || '';
-            const shopifyId = sub.split('/').pop();
-            // Extract shop domain from dest (e.g. "https://store.myshopify.com" → "store.myshopify.com")
-            const shop = (payload.dest || '').replace(/^https?:\/\//, '');
-
-            if (shopifyId && shop) {
-              const res = await fetch(`${apiBase}/api/v1/sdk/shopify/identify`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Project-Key': projectKey,
-                },
-                body: JSON.stringify({
-                  shopify_customer_id: shopifyId,
-                  session_token: token,
-                  shop,
-                }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                if (data.email) return { email: data.email, name: data.name || '' };
-              }
-            }
+    // Strategy 2: Identify by Shopify customer ID via backend
+    if (apiBase && projectKey) {
+      const custId = await getShopifyCustomerId();
+      if (custId) {
+        setShopifyId(custId);
+        try {
+          const res = await fetch(`${apiBase}/api/v1/sdk/shopify/identify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Project-Key': projectKey },
+            body: JSON.stringify({ shopify_customer_id: custId }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.found && data.email) return { email: data.email, name: data.name || '' };
+            if (data.needs_email) return { email: '', name: '', needs_email: true };
           }
-        }
-      } catch { /* silent */ }
+        } catch { /* silent */ }
+      }
     }
 
     return { email: '', name: '' };
-  }, [query, sessionToken, apiBase, projectKey]);
+  }, [query, sessionToken, apiBase, projectKey, getShopifyCustomerId]);
 
   /* ---- Fetch Pionts data ---- */
   const fetchPiontsData = useCallback(
@@ -175,13 +176,18 @@ function RewardsPage() {
     (async () => {
       try {
         setLoading(true);
-        const { email } = await fetchCustomerEmail();
-        if (!email) {
+        const result = await fetchCustomerEmail();
+        if (result.needs_email) {
+          setNeedsEmail(true);
+          setLoading(false);
+          return;
+        }
+        if (!result.email) {
           setError('Could not retrieve your email. Please make sure you are logged in.');
           setLoading(false);
           return;
         }
-        const data = await fetchPiontsData(email);
+        const data = await fetchPiontsData(result.email);
         if (!cancelled) {
           setCustomer(data);
           setLoading(false);
@@ -206,6 +212,30 @@ function RewardsPage() {
       }
     } catch { /* silent */ }
   }, [fetchCustomerEmail, fetchPiontsData]);
+
+  /* ---- Submit email for new Shopify customers ---- */
+  const submitEmail = useCallback(async () => {
+    if (!emailInput || !shopifyId || !apiBase || !projectKey) return;
+    setLoading(true);
+    setNeedsEmail(false);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/sdk/shopify/identify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Project-Key': projectKey },
+        body: JSON.stringify({ shopify_customer_id: shopifyId, email: emailInput.trim() }),
+      });
+      if (!res.ok) throw new Error('Failed to register');
+      const data = await res.json();
+      if (data.email) {
+        const customerData = await fetchPiontsData(data.email);
+        setCustomer(customerData);
+      }
+    } catch (e) {
+      setError(e.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [emailInput, shopifyId, apiBase, projectKey, fetchPiontsData]);
 
   /* ---- Redeem handler ---- */
   const handleRedeem = useCallback(
@@ -287,6 +317,32 @@ function RewardsPage() {
         <BlockStack spacing="base">
           <Heading>Rewards</Heading>
           <Text>Rewards are not configured yet. Please contact the store owner.</Text>
+        </BlockStack>
+      </Card>
+    );
+  }
+
+  if (needsEmail) {
+    return (
+      <Card padding="base">
+        <BlockStack spacing="base">
+          <Heading>Join Our Rewards Program</Heading>
+          <Text appearance="subdued">
+            Enter your email to start earning points on every purchase.
+          </Text>
+          <TextField
+            label="Email address"
+            type="email"
+            value={emailInput}
+            onChange={setEmailInput}
+          />
+          <Button
+            kind="primary"
+            disabled={!emailInput || !emailInput.includes('@')}
+            onPress={submitEmail}
+          >
+            Get Started
+          </Button>
         </BlockStack>
       </Card>
     );
