@@ -67,6 +67,9 @@ model Project {
   pointsEnabled    Boolean  @default(true)  @map("points_enabled")
   referralsEnabled Boolean  @default(true)  @map("referrals_enabled")
   partnersEnabled  Boolean  @default(false) @map("partners_enabled")
+  platformApiUrl       String?  @map("platform_api_url")
+  platformApiKey       String?  @map("platform_api_key")
+  platformWebhookSecret String? @map("platform_webhook_secret")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -128,6 +131,7 @@ model Customer {
   id                   Int       @id @default(autoincrement())
   projectId            Int       @map("project_id")
   shopifyCustomerId    String?   @map("shopify_customer_id")
+  externalCustomerId   String?   @map("external_customer_id")
   email                String
   name                 String?
   referralCode         String    @map("referral_code")
@@ -165,6 +169,7 @@ model Customer {
   @@unique([projectId, email])
   @@unique([projectId, referralCode])
   @@unique([projectId, shopifyCustomerId])
+  @@index([projectId, externalCustomerId])
   @@index([projectId, lastActivity])
   @@index([projectId, createdAt])
   @@map("customers")

@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppConfigService } from '../config/app-config.service';
 import { CustomersService } from '../customers/customers.service';
-import { ShopifyService } from '../shopify/shopify.service';
+import { PlatformFactory } from '../platforms/platform.factory';
 import { toSnakeCaseRedemption } from '../utils/transformers';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class RedemptionsService {
     private readonly prisma: PrismaService,
     private readonly configService: AppConfigService,
     private readonly customersService: CustomersService,
-    private readonly shopifyService: ShopifyService,
+    private readonly platformFactory: PlatformFactory,
   ) {}
 
   async getCustomerRedemptions(projectId: number, customerId: number) {
@@ -79,44 +79,29 @@ export class RedemptionsService {
     const prefix = await this.getCodePrefix(projectId);
     const code = `${prefix}-${customer.referralCode}-${Date.now().toString(36)}`;
 
-    // Try per-store credentials first, fall back to env-configured single-tenant
-    const shopifyCreated = await this.createShopifyDiscount(projectId, code, tier.discount);
+    // Create discount on the project's platform via adapter
+    const config = await this.platformFactory.getConfig(projectId);
+    const adapter = this.platformFactory.getAdapter(config.platform);
+    const result = await adapter.createDiscount(config, code, tier.discount);
     const { newBalance } = await this.executeRedemption(projectId, customer.id, tier, code);
 
     return {
       discount_code: code,
       discount_amount: tier.discount,
       new_balance: newBalance,
-      shopify_created: shopifyCreated,
+      platform_created: result.success,
     };
   }
 
-  private async createShopifyDiscount(projectId: number, code: string, amount: number): Promise<boolean> {
-    const installation = await this.prisma.shopifyInstallation.findUnique({
-      where: { projectId },
-    });
-
-    if (installation && !installation.uninstalledAt) {
-      return this.shopifyService.createDiscountForShop(
-        installation.shopDomain, installation.accessToken, code, amount,
-      );
+  private async deletePlatformDiscount(projectId: number, code: string): Promise<boolean> {
+    try {
+      const config = await this.platformFactory.getConfig(projectId);
+      const adapter = this.platformFactory.getAdapter(config.platform);
+      return await adapter.deleteDiscount(config, code);
+    } catch (err) {
+      this.logger.error(`Failed to delete platform discount for project ${projectId}:`, err);
+      return false;
     }
-
-    return this.shopifyService.createDiscount(code, amount);
-  }
-
-  private async deleteShopifyDiscount(projectId: number, code: string): Promise<boolean> {
-    const installation = await this.prisma.shopifyInstallation.findUnique({
-      where: { projectId },
-    });
-
-    if (installation && !installation.uninstalledAt) {
-      return this.shopifyService.deleteDiscountForShop(
-        installation.shopDomain, installation.accessToken, code,
-      );
-    }
-
-    return this.shopifyService.deleteDiscount(code);
   }
 
   async cancelRedemption(projectId: number, customerId: number, redemptionId: number) {
@@ -130,8 +115,8 @@ export class RedemptionsService {
       projectId, customerId, redemption.pointsSpent, 'refund', `Cancelled €${redemption.discountAmount} discount code`,
     );
 
-    // Delete the discount code from Shopify
-    await this.deleteShopifyDiscount(projectId, redemption.discountCode);
+    // Delete the discount code from the platform
+    await this.deletePlatformDiscount(projectId, redemption.discountCode);
 
     await this.prisma.redemption.delete({ where: { id: redemptionId } });
 

@@ -26,6 +26,7 @@ import { PartnersModule } from './partners/partners.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 import { ShopifyAppModule } from './shopify-app/shopify-app.module';
+import { PlatformModule } from './platforms/platform.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { ShopifyAppModule } from './shopify-app/shopify-app.module';
     InvitationsModule,
     PlatformAdminModule,
     ShopifyAppModule,
+    PlatformModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
