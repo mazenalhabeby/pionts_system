@@ -24,5 +24,6 @@ import { ShopifyAppModule } from '../shopify-app/shopify-app.module';
   ],
   controllers: [SdkController],
   providers: [SdkService, SdkAuthGuard],
+  exports: [SdkService],
 })
 export class SdkModule {}

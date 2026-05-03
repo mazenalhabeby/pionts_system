@@ -1,0 +1,39 @@
+{
+  "name": "@pionts/sdk",
+  "version": "1.0.0",
+  "description": "Official SDK for Pionts loyalty platform — server-side integration for any e-commerce shop",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "loyalty",
+    "points",
+    "rewards",
+    "e-commerce",
+    "sdk"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
