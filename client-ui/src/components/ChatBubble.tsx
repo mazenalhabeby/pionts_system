@@ -162,7 +162,19 @@ function EarnSection({ customer, onClaim, claimingAction }: { customer: any; onC
         {actions.map((action: any) => {
           const isDone = completed.includes(action.slug);
           const isClaiming = claimingAction === action.slug;
-          const isClaimable = !isDone && ['follow_tiktok', 'follow_instagram', 'share_product', 'birthday'].includes(action.slug);
+
+          // Birthday: only claimable during birthday month
+          let isBirthdayClaimable = false;
+          if (action.slug === 'birthday' && customer.birthday) {
+            const parts = customer.birthday.split('-');
+            const birthdayMonth = parts.length === 3 ? parseInt(parts[1], 10) : parseInt(parts[0], 10);
+            isBirthdayClaimable = birthdayMonth === new Date().getMonth() + 1;
+          }
+
+          const isClaimable = !isDone && (
+            (action.slug === 'birthday' && isBirthdayClaimable) ||
+            (action.slug !== 'birthday' && ['follow_tiktok', 'follow_instagram', 'share_product'].includes(action.slug))
+          );
 
           return (
             <div key={action.slug} className={`cb-earn-item ${isDone ? 'cb-earn-item--done' : ''}`}>
