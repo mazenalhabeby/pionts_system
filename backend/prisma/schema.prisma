@@ -89,6 +89,7 @@ model Project {
   partnerEarnings      PartnerEarning[]
   partnerApplications  PartnerApplication[]
   shopifyInstallation  ShopifyInstallation?
+  webhookEndpoints     WebhookEndpoint[]
 
   @@index([orgId])
   @@map("projects")
@@ -441,4 +442,42 @@ model ShopifyInstallation {
 
   @@index([orgId])
   @@map("shopify_installations")
+}
+
+// ── Webhook System v2 ───────────────────────────────────────────────
+
+model WebhookEndpoint {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  url       String
+  events    String[] // array of subscribed event types
+  secret    String   // HMAC secret for signing deliveries
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([projectId])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id         Int      @id @default(autoincrement())
+  endpointId Int      @map("endpoint_id")
+  eventType  String   @map("event_type")
+  eventId    String   @unique @map("event_id") // idempotency key
+  payload    Json
+  status     String   @default("pending") // pending | delivered | failed
+  attempts   Int      @default(0)
+  lastError  String?  @map("last_error")
+  deliveredAt DateTime? @map("delivered_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId, status])
+  @@index([eventId])
+  @@map("webhook_deliveries")
 }

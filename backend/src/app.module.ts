@@ -26,8 +26,10 @@ import { PartnersModule } from './partners/partners.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 import { ShopifyAppModule } from './shopify-app/shopify-app.module';
+import { BullModule } from '@nestjs/bull';
 import { PlatformModule } from './platforms/platform.module';
 import { ApiV2Module } from './api-v2/api-v2.module';
+import { WebhooksV2Module } from './webhooks-v2/webhooks-v2.module';
 
 @Module({
   imports: [
@@ -37,6 +39,13 @@ import { ApiV2Module } from './api-v2/api-v2.module';
     }),
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60000, limit: 60 }],
+    }),
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        password: process.env.REDIS_PASSWORD || undefined,
+      },
     }),
     ServeStaticModule.forRoot(
       {
@@ -93,6 +102,7 @@ import { ApiV2Module } from './api-v2/api-v2.module';
     ShopifyAppModule,
     PlatformModule,
     ApiV2Module,
+    WebhooksV2Module,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

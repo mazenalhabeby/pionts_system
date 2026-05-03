@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppConfigService } from '../config/app-config.service';
 import { CustomersService } from '../customers/customers.service';
 import { PlatformFactory } from '../platforms/platform.factory';
+import { WebhooksV2Service } from '../webhooks-v2/webhooks-v2.service';
 import { toSnakeCaseRedemption } from '../utils/transformers';
 
 /** Fetch with timeout — prevents hanging on slow/dead upstream */
@@ -29,6 +30,7 @@ export class RedemptionsService {
     private readonly configService: AppConfigService,
     private readonly customersService: CustomersService,
     private readonly platformFactory: PlatformFactory,
+    @Optional() private readonly webhooksV2Service?: WebhooksV2Service,
   ) {}
 
   async getCustomerRedemptions(projectId: number, customerId: number) {
@@ -100,7 +102,12 @@ export class RedemptionsService {
     const result = await adapter.createDiscount(config, code, tier.discount);
     const { newBalance } = await this.executeRedemption(projectId, customer.id, tier, code);
 
-    // Notify platform via webhook (fire-and-forget — code already saved in Pionts DB)
+    // Emit webhook event via queue (replaces old fire-and-forget HTTP call)
+    this.webhooksV2Service?.emit(projectId, 'redemption.created', {
+      code, amount: tier.discount, points_spent: tier.points,
+    }).catch((err) => this.logger.warn(`Webhook emit failed: ${err.message}`));
+
+    // Legacy: also notify via old platform webhook for backward compatibility
     this.notifyPlatformWebhook(projectId, 'redemption.created', code, tier.discount).catch(() => {});
 
     return {
