@@ -27,6 +27,7 @@ import { InvitationsModule } from './invitations/invitations.module';
 import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 import { ShopifyAppModule } from './shopify-app/shopify-app.module';
 import { BullModule } from '@nestjs/bull';
+import { CacheConfigModule } from './cache/cache.module';
 import { PlatformModule } from './platforms/platform.module';
 import { ApiV2Module } from './api-v2/api-v2.module';
 import { WebhooksV2Module } from './webhooks-v2/webhooks-v2.module';
@@ -78,6 +79,7 @@ import { WebhooksV2Module } from './webhooks-v2/webhooks-v2.module';
         },
       },
     ),
+    CacheConfigModule,
     PrismaModule,
     AppConfigModule,
     UtilsModule,

@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { JwtService } from '@nestjs/jwt';
 import { EarnAction, ReferralLevel, Customer } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,6 +20,7 @@ export class SdkService {
     private readonly jwtService: JwtService,
     private readonly earnActionsService: EarnActionsService,
     private readonly partnersService: PartnersService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   async getProject(projectId: number) {
@@ -154,6 +157,11 @@ export class SdkService {
   }
 
   async getProjectConfig(projectId: number) {
+    // Cache project config for 5 minutes
+    const cacheKey = `config:${projectId}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached) return cached;
+
     const project = await this.getProject(projectId);
 
     const [settings, earnActions, redemptionTiers, referralLevels] = await Promise.all([
@@ -169,7 +177,7 @@ export class SdkService {
         : [],
     ]);
 
-    return {
+    const result = {
       settings,
       earn_actions: earnActions.map((a: EarnAction) => ({
         slug: a.slug,
@@ -190,6 +198,9 @@ export class SdkService {
         partners: project?.partnersEnabled ?? false,
       },
     };
+
+    await this.cache.set(cacheKey, result, 300_000); // 5 min TTL
+    return result;
   }
 
   async getLeaderboard(projectId: number, limit = 10) {
