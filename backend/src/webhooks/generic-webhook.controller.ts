@@ -98,10 +98,11 @@ export class GenericWebhookController {
   ) {
     const project = await this.resolveProject(apiKey);
 
+    // Search with both original case and lowercase (Pionts stores lowercase)
     const redemption = await this.prisma.redemption.findFirst({
       where: {
         projectId: project.id,
-        discountCode: { equals: code, mode: 'insensitive' },
+        discountCode: { in: [code, code.toLowerCase(), code.toUpperCase()] },
         used: false,
       },
     });
