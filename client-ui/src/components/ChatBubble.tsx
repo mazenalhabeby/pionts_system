@@ -442,10 +442,7 @@ function CompleteProfileSection({ api, customer, onComplete }: { api: any; custo
     setSaving(true);
     setError('');
     try {
-      await api.fetch('/sdk/customer/profile', {
-        method: 'PUT',
-        body: JSON.stringify({ name: name.trim(), birthday }),
-      });
+      await api.updateProfile({ name: name.trim(), birthday });
       onComplete();
     } catch (err: any) {
       setError(err.message || 'Failed to save. Please try again.');
