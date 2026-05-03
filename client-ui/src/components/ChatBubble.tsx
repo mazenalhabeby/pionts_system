@@ -213,30 +213,86 @@ function EarnSection({ customer, onClaim, claimingAction }: { customer: any; onC
 /* ================================================================ */
 /*  REDEEM SECTION                                                  */
 /* ================================================================ */
-function RedeemSection({ customer, onRedeem, redeemingTier, lastCode }: { customer: any; onRedeem: (pts: number) => void; redeemingTier: number | null; lastCode: string | null }) {
+function RedeemSection({ customer, api, onRedeem, redeemingTier, lastCode, onRefresh }: { customer: any; api: any; onRedeem: (pts: number) => void; redeemingTier: number | null; lastCode: string | null; onRefresh: () => void }) {
   const tiers = Array.isArray(customer.redemption_tiers) ? [...customer.redemption_tiers].sort((a: any, b: any) => a.points - b.points) : [];
   const balance = customer.points_balance ?? 0;
-  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedCode, setCopiedCode] = useState('');
+  const [redemptions, setRedemptions] = useState<any[]>([]);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [loadingRedemptions, setLoadingRedemptions] = useState(true);
 
-  const copyCode = () => {
-    if (lastCode) {
-      navigator.clipboard.writeText(lastCode).catch(() => {});
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
+  // Load unused redemptions
+  useEffect(() => {
+    api.getMyRedemptions()
+      .then((data: any) => {
+        const list = Array.isArray(data) ? data : data?.redemptions ?? [];
+        setRedemptions(list.filter((r: any) => !r.used));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingRedemptions(false));
+  }, [api, customer.points_balance]);
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code).catch(() => {});
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(''), 2000);
+  };
+
+  const handleCancel = async (id: string | number) => {
+    setCancellingId(String(id));
+    try {
+      await api.cancelRedemption(id);
+      setRedemptions((prev) => prev.filter((r) => String(r.id) !== String(id)));
+      onRefresh();
+    } catch (err: any) {
+      // silent
     }
+    setCancellingId(null);
   };
 
   return (
     <div className="cb-section">
       <h3 className="cb-section-title">Redeem Points</h3>
 
+      {/* Unused discount codes — can cancel to get points back */}
+      {redemptions.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#666', marginBottom: '8px' }}>
+            Your unused codes ({redemptions.length})
+          </p>
+          {redemptions.map((r: any) => (
+            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f9f9f9', borderRadius: '8px', marginBottom: '6px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <code style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a', letterSpacing: '0.5px' }}>{r.discount_code || r.discountCode}</code>
+                <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+                  €{r.discount_amount || r.discountAmount} off · {r.points_spent || r.pointsSpent} points
+                </div>
+              </div>
+              <button
+                onClick={() => copyCode(r.discount_code || r.discountCode)}
+                style={{ padding: '4px 8px', background: 'none', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+              >
+                {copiedCode === (r.discount_code || r.discountCode) ? '✓' : 'Copy'}
+              </button>
+              <button
+                onClick={() => handleCancel(r.id)}
+                disabled={cancellingId === String(r.id)}
+                style={{ padding: '4px 8px', background: 'none', border: '1px solid #e53e3e', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', color: '#e53e3e' }}
+              >
+                {cancellingId === String(r.id) ? '...' : 'Cancel'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {lastCode && (
         <div className="cb-code-banner">
-          <span className="cb-code-label">Your discount code</span>
+          <span className="cb-code-label">Your new discount code</span>
           <div className="cb-code-row">
             <code className="cb-code">{lastCode}</code>
-            <button className="cb-code-copy" onClick={copyCode}>
-              {copiedCode ? icons.check(14) : icons.copy(14)}
+            <button className="cb-code-copy" onClick={() => copyCode(lastCode)}>
+              {copiedCode === lastCode ? icons.check(14) : icons.copy(14)}
             </button>
           </div>
         </div>
@@ -249,8 +305,8 @@ function RedeemSection({ customer, onRedeem, redeemingTier, lastCode }: { custom
           return (
             <div key={tier.id || tier.points} className={`cb-tier-card ${canRedeem ? 'cb-tier-card--ready' : ''}`}>
               <div className="cb-tier-top">
-                <span className="cb-tier-discount">{tier.discount} off</span>
-                <span className="cb-tier-cost">{tier.points.toLocaleString()} pts</span>
+                <span className="cb-tier-discount">€{tier.discount} off</span>
+                <span className="cb-tier-cost">{tier.points.toLocaleString()} points</span>
               </div>
               <div className="cb-tier-bar">
                 <div className="cb-tier-fill" style={{ width: `${canRedeem ? 100 : pct}%` }} />
@@ -630,7 +686,7 @@ export default function ChatBubble() {
       case 'earn':
         return <EarnSection customer={customer} onClaim={handleClaim} claimingAction={claimingAction} />;
       case 'redeem':
-        return <RedeemSection customer={customer} onRedeem={handleRedeem} redeemingTier={redeemingTier} lastCode={lastCode} />;
+        return <RedeemSection customer={customer} api={api} onRedeem={handleRedeem} redeemingTier={redeemingTier} lastCode={lastCode} onRefresh={refreshCustomer} />;
       case 'refer':
         return <ReferSection customer={customer} settings={projSettings} />;
       case 'history':
