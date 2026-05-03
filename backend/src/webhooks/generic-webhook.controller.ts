@@ -101,7 +101,7 @@ export class GenericWebhookController {
     const redemption = await this.prisma.redemption.findFirst({
       where: {
         projectId: project.id,
-        discountCode: code.toUpperCase(),
+        discountCode: { equals: code, mode: 'insensitive' },
         used: false,
       },
     });
