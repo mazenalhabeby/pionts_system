@@ -289,18 +289,6 @@ function RedeemSection({ customer, api, onRedeem, redeemingTier, lastCode, onRef
         </div>
       )}
 
-      {lastCode && (
-        <div style={{ padding: '14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', marginBottom: '20px', textAlign: 'center' }}>
-          <p style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a', marginBottom: '6px' }}>✓ Code created!</p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            <code style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a1a', letterSpacing: '0.5px' }}>{lastCode}</code>
-            <button onClick={() => copyCode(lastCode)} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
-              {copiedCode === lastCode ? '✓' : 'Copy'}
-            </button>
-          </div>
-          <p style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>Use this code at checkout</p>
-        </div>
-      )}
 
       <p style={{ fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
         Rewards
