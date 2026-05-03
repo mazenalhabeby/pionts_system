@@ -85,6 +85,9 @@ export class RedemptionsService {
     const result = await adapter.createDiscount(config, code, tier.discount);
     const { newBalance } = await this.executeRedemption(projectId, customer.id, tier, code);
 
+    // Notify platform via webhook (fire-and-forget)
+    this.notifyPlatformWebhook(projectId, 'redemption.created', code, tier.discount).catch(() => {});
+
     return {
       discount_code: code,
       discount_amount: tier.discount,
@@ -120,7 +123,41 @@ export class RedemptionsService {
 
     await this.prisma.redemption.delete({ where: { id: redemptionId } });
 
+    // Notify platform via webhook (fire-and-forget)
+    this.notifyPlatformWebhook(projectId, 'redemption.cancelled', redemption.discountCode, Number(redemption.discountAmount)).catch(() => {});
+
     return { points_returned: redemption.pointsSpent, new_balance: newBalance };
   }
 
+  /**
+   * Notify the platform's webhook endpoint about redemption events.
+   * The platform creates/deletes discount codes on their side.
+   */
+  private async notifyPlatformWebhook(projectId: number, event: string, code: string, amount: number): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { platformApiUrl: true, hmacSecret: true },
+    });
+
+    if (!project?.platformApiUrl) return;
+
+    const webhookUrl = `${project.platformApiUrl}/loyalty/webhook/redemption`;
+
+    try {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Secret': project.hmacSecret || '',
+        },
+        body: JSON.stringify({ event, code, amount }),
+      });
+
+      if (!res.ok) {
+        this.logger.warn(`Platform webhook failed (${res.status}): ${event} ${code}`);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Platform webhook error: ${err.message}`);
+    }
+  }
 }
