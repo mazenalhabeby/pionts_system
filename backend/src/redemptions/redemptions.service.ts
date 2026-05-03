@@ -5,6 +5,21 @@ import { CustomersService } from '../customers/customers.service';
 import { PlatformFactory } from '../platforms/platform.factory';
 import { toSnakeCaseRedemption } from '../utils/transformers';
 
+/** Fetch with timeout — prevents hanging on slow/dead upstream */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs = 5000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 @Injectable()
 export class RedemptionsService {
   private readonly logger = new Logger(RedemptionsService.name);
@@ -85,7 +100,7 @@ export class RedemptionsService {
     const result = await adapter.createDiscount(config, code, tier.discount);
     const { newBalance } = await this.executeRedemption(projectId, customer.id, tier, code);
 
-    // Notify platform via webhook (fire-and-forget)
+    // Notify platform via webhook (fire-and-forget — code already saved in Pionts DB)
     this.notifyPlatformWebhook(projectId, 'redemption.created', code, tier.discount).catch(() => {});
 
     return {
@@ -115,7 +130,7 @@ export class RedemptionsService {
     if (redemption.used) throw new BadRequestException('Cannot cancel a used discount code');
 
     // Check with the platform BEFORE refunding points — platform may reject
-    // if the code is applied to a pending order
+    // if the code is applied to a pending order (5s timeout, fail-open if unreachable)
     const webhookResult = await this.notifyPlatformWebhook(
       projectId, 'redemption.cancelled', redemption.discountCode, Number(redemption.discountAmount),
     );
@@ -137,7 +152,8 @@ export class RedemptionsService {
 
   /**
    * Notify the platform's webhook endpoint about redemption events.
-   * The platform creates/deletes discount codes on their side.
+   * Returns the parsed response for cancel checks, null otherwise.
+   * Uses 5s timeout to avoid blocking the user on slow platforms.
    */
   private async notifyPlatformWebhook(
     projectId: number,
@@ -155,14 +171,14 @@ export class RedemptionsService {
     const webhookUrl = `${project.platformApiUrl}/loyalty/webhook/redemption`;
 
     try {
-      const res = await fetch(webhookUrl, {
+      const res = await fetchWithTimeout(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Webhook-Secret': project.hmacSecret || '',
         },
         body: JSON.stringify({ event, code, amount }),
-      });
+      }, 5000);
 
       if (!res.ok) {
         this.logger.warn(`Platform webhook failed (${res.status}): ${event} ${code}`);
@@ -176,6 +192,8 @@ export class RedemptionsService {
       return null;
     } catch (err: any) {
       this.logger.warn(`Platform webhook error: ${err.message}`);
+      // Fail-open: if platform is unreachable, allow the cancel
+      // (better UX than blocking refunds when platform is down)
       return null;
     }
   }
