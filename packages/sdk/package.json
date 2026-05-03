@@ -1,19 +1,20 @@
 {
   "name": "@pionts/sdk",
-  "version": "1.0.0",
-  "description": "Official SDK for Pionts loyalty platform — server-side integration for any e-commerce shop",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
+  "version": "1.0.1",
+  "description": "Official server-side SDK for the Pionts loyalty & rewards platform. Integrate points, referrals, and discount redemptions into any e-commerce shop with a single import.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -26,14 +27,37 @@
     "typescript": "^5.7.0"
   },
   "keywords": [
+    "pionts",
     "loyalty",
+    "loyalty-program",
     "points",
     "rewards",
+    "referrals",
+    "discount",
     "e-commerce",
-    "sdk"
+    "shopify",
+    "woocommerce",
+    "sdk",
+    "api-client",
+    "checkout",
+    "customer-rewards"
   ],
   "license": "MIT",
+  "author": {
+    "name": "Pionts",
+    "url": "https://hbc-solution.io"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mazenalhabeby/pionts_system",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/mazenalhabeby/pionts_system/issues"
+  },
+  "homepage": "https://hbc-solution.io",
   "engines": {
     "node": ">=18"
-  }
+  },
+  "sideEffects": false
 }
