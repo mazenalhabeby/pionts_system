@@ -1,0 +1,137 @@
+diff --git a/backend/src/shopify-app/shopify-api.service.ts b/backend/src/shopify-app/shopify-api.service.ts
+index 831f8cb..33ef7c5 100644
+--- a/backend/src/shopify-app/shopify-api.service.ts
++++ b/backend/src/shopify-app/shopify-api.service.ts
+@@ -340,6 +340,82 @@ export class ShopifyApiService {
+     }
+   }
+ 
++  /**
++   * Enable a disabled app block in the theme's settings_data.json and optionally
++   * update its settings (e.g. project_key, hmac_secret).
++   */
++  async enableThemeBlock(
++    shop: string,
++    accessToken: string,
++    opts?: { publicKey?: string; hmacSecret?: string; apiUrl?: string },
++  ): Promise<{ success: boolean; error?: string; blockId?: string }> {
++    try {
++      // 1. Find the main theme
++      const themesRes = await this.fetchWithRetry(
++        `https://${shop}/admin/api/${API_VERSION}/themes.json`,
++        { method: 'GET', headers: this.headers(accessToken) },
++      );
++      const themesData = await themesRes.json();
++      const mainTheme = themesData.themes?.find((t: any) => t.role === 'main');
++      if (!mainTheme) return { success: false, error: 'No main theme found' };
++
++      // 2. Read settings_data.json
++      const assetRes = await this.fetchWithRetry(
++        `https://${shop}/admin/api/${API_VERSION}/themes/${mainTheme.id}/assets.json?asset[key]=config/settings_data.json`,
++        { method: 'GET', headers: this.headers(accessToken) },
++      );
++      const assetData = await assetRes.json();
++      if (!assetData.asset?.value) return { success: false, error: 'Could not read settings_data.json' };
++
++      const settings = JSON.parse(assetData.asset.value);
++      const blocks = settings.current?.blocks || {};
++
++      // 3. Find the loyalty-popup block
++      const blockEntry = Object.entries(blocks).find(
++        ([_, v]: [string, any]) =>
++          typeof v.type === 'string' && v.type.includes('/blocks/loyalty-popup/'),
++      );
++      if (!blockEntry) return { success: false, error: 'No loyalty-popup block found in theme' };
++
++      const [blockId, block] = blockEntry as [string, any];
++
++      // 4. Enable the block
++      block.disabled = false;
++
++      // 5. Update settings if provided
++      if (opts?.publicKey) block.settings = { ...block.settings, project_key: opts.publicKey };
++      if (opts?.hmacSecret) block.settings = { ...block.settings, hmac_secret: opts.hmacSecret };
++      if (opts?.apiUrl) block.settings = { ...block.settings, api_url: opts.apiUrl };
++
++      // 6. Write back
++      const putRes = await this.fetchWithRetry(
++        `https://${shop}/admin/api/${API_VERSION}/themes/${mainTheme.id}/assets.json`,
++        {
++          method: 'PUT',
++          headers: { ...this.headers(accessToken), 'Content-Type': 'application/json' },
++          body: JSON.stringify({
++            asset: {
++              key: 'config/settings_data.json',
++              value: JSON.stringify(settings),
++            },
++          }),
++        },
++      );
++
++      if (!putRes.ok) {
++        const errBody = await putRes.text();
++        this.logger.error(`Failed to update theme: ${putRes.status} ${errBody}`);
++        return { success: false, error: `Shopify API ${putRes.status}: ${errBody.substring(0, 200)}` };
++      }
++
++      this.logger.log(`Enabled theme block ${blockId} for ${shop}`);
++      return { success: true, blockId };
++    } catch (err: any) {
++      this.logger.error(`enableThemeBlock error for ${shop}:`, err);
++      return { success: false, error: err.message };
++    }
++  }
++
+   async getShopInfo(shop: string, accessToken: string): Promise<{ name: string; email: string } | null> {
+     try {
+       const res = await this.fetchWithRetry(
+diff --git a/backend/src/shopify-app/shopify-app.controller.ts b/backend/src/shopify-app/shopify-app.controller.ts
+index f066b3c..40a611b 100644
+--- a/backend/src/shopify-app/shopify-app.controller.ts
++++ b/backend/src/shopify-app/shopify-app.controller.ts
+@@ -282,6 +282,7 @@ export class ShopifyAppController {
+   @Get('debug-embed')
+   async debugEmbed(
+     @Query('shop') shop: string,
++    @Query('fix') fix?: string,
+   ) {
+     if (!shop) return { error: 'Missing shop param' };
+ 
+@@ -292,6 +293,28 @@ export class ShopifyAppController {
+ 
+     const accessToken = installation.accessToken;
+ 
++    // If fix=true, enable the block via API and sync settings
++    if (fix === 'true') {
++      const fixResult = await this.shopifyApiService.enableThemeBlock(shop, accessToken, {
++        publicKey: installation.publicKey || undefined,
++        hmacSecret: installation.hmacSecret || undefined,
++        apiUrl: process.env.API_BASE || 'https://hbc-solution.io/v2',
++      });
++
++      // Re-read to verify
++      const verify = await this.shopifyApiService.getThemeBlocks(shop, accessToken);
++      const verifyBlock = verify?.appBlocks?.find(
++        (b: any) => typeof b.type === 'string' && b.type.includes('/blocks/loyalty-popup/'),
++      );
++
++      return {
++        shop,
++        fixResult,
++        widgetStatus: verifyBlock ? (verifyBlock.disabled ? 'disabled' : 'enabled') : 'not_found',
++        themeBlocks: verify,
++      };
++    }
++
+     // Read current theme settings
+     const themesRes = await this.shopifyApiService.getThemeBlocks(shop, accessToken);
+ 
+@@ -317,7 +340,7 @@ export class ShopifyAppController {
+         : 'not_found',
+       deepLink,
+       instructions: loyaltyBlock?.disabled
+-        ? 'Visit the deepLink URL to enable the Pionts widget in your theme editor.'
++        ? 'Visit the deepLink URL or add ?fix=true to enable the widget via API.'
+         : undefined,
+     };
+   }

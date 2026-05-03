@@ -7,22 +7,23 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ApiKeyService } from '../auth/api-key.service';
 import { WebhooksService } from './webhooks.service';
 
 class OrderPaidDto {
-  orderId: string;
-  email: string;
-  customerName?: string;
-  orderTotal: number;
-  currency?: string;
-  referralCode?: string;
+  @IsString() @IsNotEmpty() orderId: string;
+  @IsString() @IsNotEmpty() email: string;
+  @IsString() @IsOptional() customerName?: string;
+  @IsNumber() orderTotal: number;
+  @IsString() @IsOptional() currency?: string;
+  @IsString() @IsOptional() referralCode?: string;
 }
 
 class OrderRefundedDto {
-  orderId: string;
-  refundAmount?: number;
+  @IsString() @IsNotEmpty() orderId: string;
+  @IsNumber() @IsOptional() refundAmount?: number;
 }
 
 @Controller('api/v1/webhooks')
