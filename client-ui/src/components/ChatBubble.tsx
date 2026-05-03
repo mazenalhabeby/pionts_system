@@ -427,6 +427,87 @@ function LoginSection({ api, onLogin }: { api: any; onLogin: () => void }) {
 }
 
 /* ================================================================ */
+/*  COMPLETE PROFILE SECTION (name + birthday required)             */
+/* ================================================================ */
+function CompleteProfileSection({ api, customer, onComplete }: { api: any; customer: any; onComplete: () => void }) {
+  const [name, setName] = useState(customer?.name || '');
+  const [birthday, setBirthday] = useState(customer?.birthday || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const canSubmit = name.trim().length >= 2 && birthday && birthday.split('-').length === 3;
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    setSaving(true);
+    setError('');
+    try {
+      await api.fetch('/sdk/customer/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ name: name.trim(), birthday }),
+      });
+      onComplete();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="cb-section" style={{ padding: '24px 16px', textAlign: 'center' }}>
+      <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎉</div>
+      <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 4px', color: '#1a1a1a' }}>
+        Complete Your Profile
+      </h3>
+      <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px' }}>
+        Add your name and birthday to unlock rewards and earn bonus points!
+      </p>
+      <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#555', marginBottom: '4px' }}>
+            Full Name *
+          </label>
+          <input
+            type="text"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
+          />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#555', marginBottom: '4px' }}>
+            Birthday *
+          </label>
+          <input
+            type="date"
+            value={birthday}
+            onChange={(e) => setBirthday(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
+          />
+          <p style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+            Earn bonus points every year on your birthday!
+          </p>
+        </div>
+        {error && <p style={{ fontSize: '12px', color: '#e53e3e', margin: 0 }}>{error}</p>}
+        <button
+          onClick={handleSubmit}
+          disabled={!canSubmit || saving}
+          style={{
+            width: '100%', padding: '12px', border: 'none', borderRadius: '8px',
+            background: canSubmit ? '#1a1a1a' : '#ccc', color: '#fff',
+            fontSize: '14px', fontWeight: 600, cursor: canSubmit ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {saving ? 'Saving...' : 'Continue'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================ */
 /*  MAIN CHAT BUBBLE WIDGET                                         */
 /* ================================================================ */
 export default function ChatBubble() {
@@ -519,6 +600,12 @@ export default function ChatBubble() {
           <p className="cb-empty">Unable to load rewards. Please try again.</p>
         </div>
       );
+    }
+
+    // Block until name and full birthday (YYYY-MM-DD) are provided
+    const hasValidBirthday = customer.birthday && customer.birthday.split('-').length === 3;
+    if (!customer.name || !hasValidBirthday) {
+      return <CompleteProfileSection api={api} customer={customer} onComplete={refreshCustomer} />;
     }
 
     const projSettings = customer.settings || settings || {};
