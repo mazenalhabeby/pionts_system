@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
@@ -14,6 +15,8 @@ import * as crypto from 'crypto';
 import { Project } from '@prisma/client';
 import { ApiKeyV2Guard } from './guards/api-key-v2.guard';
 import { V2Project } from './decorators/v2-project.decorator';
+import { RequireScope } from './decorators/require-scope.decorator';
+import { AuditLogInterceptor } from './interceptors/audit-log.interceptor';
 import { CheckoutValidateDto } from './dto/checkout-validate.dto';
 import { CheckoutMarkUsedDto } from './dto/checkout-mark-used.dto';
 import { OrderPaidDto } from './dto/order-paid.dto';
@@ -29,6 +32,7 @@ import { SdkService } from '../sdk/sdk.service';
 
 @Controller('api/v2')
 @UseGuards(ApiKeyV2Guard)
+@UseInterceptors(AuditLogInterceptor)
 @SkipThrottle()
 export class ApiV2Controller {
   private readonly logger = new Logger(ApiV2Controller.name);
@@ -44,6 +48,7 @@ export class ApiV2Controller {
 
   // ==================== Checkout ====================
 
+  @RequireScope('checkout')
   @Post('checkout/validate')
   async checkoutValidate(
     @V2Project() project: Project,
@@ -57,6 +62,7 @@ export class ApiV2Controller {
     };
   }
 
+  @RequireScope('checkout')
   @Post('checkout/mark-used')
   async checkoutMarkUsed(
     @V2Project() project: Project,

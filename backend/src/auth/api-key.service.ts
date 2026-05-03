@@ -52,6 +52,20 @@ export class ApiKeyService {
     return apiKey.project;
   }
 
+  async validateKeyWithMeta(rawKey: string, type: 'public' | 'secret') {
+    const hash = this.hashKey(rawKey);
+    const apiKey = await this.prisma.apiKey.findFirst({
+      where: { keyHash: hash, type, revoked: false },
+      include: { project: true },
+    });
+    if (!apiKey) return null;
+    return {
+      project: apiKey.project,
+      keyId: apiKey.id,
+      scope: (apiKey as any).scope ?? 'full',
+    };
+  }
+
   async revokeKey(keyId: number) {
     await this.prisma.apiKey.update({
       where: { id: keyId },
