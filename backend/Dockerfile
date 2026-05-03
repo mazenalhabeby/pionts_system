@@ -20,7 +20,7 @@ COPY shared ./shared
 COPY client-ui/package.json client-ui/package-lock.json* ./client-ui/
 RUN cd client-ui && npm ci
 COPY client-ui ./client-ui
-RUN cd client-ui && npm run build:umd && npm run build:webcomponent
+RUN cd client-ui && npm run build:umd
 
 # ─── Stage 3: Build SDK ───
 FROM node:22-alpine AS sdk-builder
@@ -57,9 +57,8 @@ COPY backend/prisma ./backend/prisma
 # Admin UI (full dist — assets + index.html for SPA fallback)
 COPY --from=admin-builder /app/admin-ui/dist ./admin-ui/dist
 
-# Client UI widget (UMD bundle + Web Component — both served from /widget/)
+# Client UI widget (floating ChatBubble — UMD bundle)
 COPY --from=client-builder /app/client-ui/dist-umd ./client-ui/dist-umd
-COPY --from=client-builder /app/client-ui/dist-webcomponent/pionts-widget.js ./client-ui/dist-umd/pionts-widget.js
 
 # SDK loader
 COPY --from=sdk-builder /app/sdk/dist ./sdk/dist
