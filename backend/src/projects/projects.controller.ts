@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { ProjectMemberGuard } from '../common/guards/project-member.guard';
@@ -8,6 +8,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ProjectsService } from './projects.service';
 import { ProjectMembersService } from './project-members.service';
 import { ApiKeyService } from '../auth/api-key.service';
+import { WebhooksV2Service } from '../webhooks-v2/webhooks-v2.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -19,6 +20,7 @@ export class ProjectsController {
     private readonly projectsService: ProjectsService,
     private readonly projectMembersService: ProjectMembersService,
     private readonly apiKeyService: ApiKeyService,
+    private readonly webhooksV2Service: WebhooksV2Service,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -221,5 +223,46 @@ export class ProjectsController {
       user.role,
       body.userId,
     );
+  }
+
+  // ==================== Webhook Management ====================
+
+  @Get(':id/webhooks')
+  @UseGuards(ProjectMemberGuard)
+  @ProjectRoles('viewer')
+  async listWebhooks(@Param('id') id: string) {
+    return this.webhooksV2Service.listEndpoints(parseInt(id, 10));
+  }
+
+  @Post(':id/webhooks')
+  @UseGuards(ProjectMemberGuard)
+  @ProjectRoles('editor')
+  async addWebhook(
+    @Param('id') id: string,
+    @Body() body: { url: string; events: string[] },
+  ) {
+    return this.webhooksV2Service.registerEndpoint(parseInt(id, 10), body.url, body.events);
+  }
+
+  @Delete(':id/webhooks/:webhookId')
+  @UseGuards(ProjectMemberGuard)
+  @ProjectRoles('editor')
+  async removeWebhook(@Param('id') id: string, @Param('webhookId') webhookId: string) {
+    await this.webhooksV2Service.deleteEndpoint(parseInt(id, 10), parseInt(webhookId, 10));
+    return { success: true };
+  }
+
+  @Get(':id/webhooks/:webhookId/logs')
+  @UseGuards(ProjectMemberGuard)
+  @ProjectRoles('viewer')
+  async webhookLogs(@Param('webhookId') webhookId: string, @Query('limit') limit?: string) {
+    return this.webhooksV2Service.getDeliveryLogs(parseInt(webhookId, 10), limit ? parseInt(limit, 10) : 50);
+  }
+
+  @Post(':id/webhooks/:webhookId/test')
+  @UseGuards(ProjectMemberGuard)
+  @ProjectRoles('editor')
+  async testWebhook(@Param('id') id: string, @Param('webhookId') webhookId: string) {
+    return this.webhooksV2Service.sendTestEvent(parseInt(id, 10), parseInt(webhookId, 10));
   }
 }
