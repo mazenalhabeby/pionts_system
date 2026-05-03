@@ -114,6 +114,15 @@ export class RedemptionsService {
     if (!redemption) throw new BadRequestException('Redemption not found');
     if (redemption.used) throw new BadRequestException('Cannot cancel a used discount code');
 
+    // Check with the platform BEFORE refunding points — platform may reject
+    // if the code is applied to a pending order
+    const webhookResult = await this.notifyPlatformWebhook(
+      projectId, 'redemption.cancelled', redemption.discountCode, Number(redemption.discountAmount),
+    );
+    if (webhookResult?.rejected) {
+      throw new BadRequestException(webhookResult.reason || 'Cannot cancel — discount code is in use');
+    }
+
     const newBalance = await this.customersService.awardPoints(
       projectId, customerId, redemption.pointsSpent, 'refund', `Cancelled €${redemption.discountAmount} discount code`,
     );
@@ -123,9 +132,6 @@ export class RedemptionsService {
 
     await this.prisma.redemption.delete({ where: { id: redemptionId } });
 
-    // Notify platform via webhook (fire-and-forget)
-    this.notifyPlatformWebhook(projectId, 'redemption.cancelled', redemption.discountCode, Number(redemption.discountAmount)).catch(() => {});
-
     return { points_returned: redemption.pointsSpent, new_balance: newBalance };
   }
 
@@ -133,13 +139,18 @@ export class RedemptionsService {
    * Notify the platform's webhook endpoint about redemption events.
    * The platform creates/deletes discount codes on their side.
    */
-  private async notifyPlatformWebhook(projectId: number, event: string, code: string, amount: number): Promise<void> {
+  private async notifyPlatformWebhook(
+    projectId: number,
+    event: string,
+    code: string,
+    amount: number,
+  ): Promise<{ rejected?: boolean; reason?: string } | null> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       select: { platformApiUrl: true, hmacSecret: true },
     });
 
-    if (!project?.platformApiUrl) return;
+    if (!project?.platformApiUrl) return null;
 
     const webhookUrl = `${project.platformApiUrl}/loyalty/webhook/redemption`;
 
@@ -155,9 +166,17 @@ export class RedemptionsService {
 
       if (!res.ok) {
         this.logger.warn(`Platform webhook failed (${res.status}): ${event} ${code}`);
+        return null;
       }
+
+      const body = await res.json();
+      if (body?.rejected) {
+        return { rejected: true, reason: body.reason };
+      }
+      return null;
     } catch (err: any) {
       this.logger.warn(`Platform webhook error: ${err.message}`);
+      return null;
     }
   }
 }

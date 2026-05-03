@@ -238,14 +238,19 @@ function RedeemSection({ customer, api, onRedeem, redeemingTier, lastCode, onRef
     setTimeout(() => setCopiedCode(''), 2000);
   };
 
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
   const handleCancel = async (id: string | number) => {
     setCancellingId(String(id));
+    setCancelError(null);
     try {
       await api.cancelRedemption(id);
       setRedemptions((prev) => prev.filter((r) => String(r.id) !== String(id)));
       onRefresh();
     } catch (err: any) {
-      // silent
+      const msg = err?.response?.data?.message || err?.message || 'Cannot cancel this code';
+      setCancelError(msg);
+      setTimeout(() => setCancelError(null), 5000);
     }
     setCancellingId(null);
   };
@@ -260,6 +265,11 @@ function RedeemSection({ customer, api, onRedeem, redeemingTier, lastCode, onRef
           <p style={{ fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
             Active Codes
           </p>
+          {cancelError && (
+            <div style={{ padding: '8px 12px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: '8px', marginBottom: '8px', fontSize: '12px', color: '#e53e3e' }}>
+              {cancelError}
+            </div>
+          )}
           {redemptions.map((r: any) => {
             const code = r.discount_code || r.discountCode;
             const amount = r.discount_amount || r.discountAmount;
