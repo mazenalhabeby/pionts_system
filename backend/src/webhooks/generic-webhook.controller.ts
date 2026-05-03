@@ -1,7 +1,9 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
+  Param,
   Headers,
   HttpException,
   Logger,
@@ -11,6 +13,7 @@ import { Throttle } from '@nestjs/throttler';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ApiKeyService } from '../auth/api-key.service';
 import { WebhooksService } from './webhooks.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 class OrderPaidDto {
   @IsString() @IsNotEmpty() orderId: string;
@@ -34,6 +37,7 @@ export class GenericWebhookController {
   constructor(
     private readonly apiKeyService: ApiKeyService,
     private readonly webhooksService: WebhooksService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private async resolveProject(apiKey: string | undefined): Promise<{ id: number }> {
@@ -85,5 +89,32 @@ export class GenericWebhookController {
       if (!(err instanceof HttpException)) this.logger.error('Order-refunded webhook error:', err);
       throw err;
     }
+  }
+
+  @Get('verify-code/:code')
+  async verifyCode(
+    @Headers('x-api-key') apiKey: string | undefined,
+    @Param('code') code: string,
+  ) {
+    const project = await this.resolveProject(apiKey);
+
+    const redemption = await this.prisma.redemption.findFirst({
+      where: {
+        projectId: project.id,
+        discountCode: code.toUpperCase(),
+        used: false,
+      },
+    });
+
+    if (!redemption) {
+      return { valid: false };
+    }
+
+    return {
+      valid: true,
+      discountAmount: Number(redemption.discountAmount),
+      pointsSpent: redemption.pointsSpent,
+      code: redemption.discountCode,
+    };
   }
 }
