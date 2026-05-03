@@ -254,53 +254,61 @@ function RedeemSection({ customer, api, onRedeem, redeemingTier, lastCode, onRef
     <div className="cb-section">
       <h3 className="cb-section-title">Redeem Points</h3>
 
-      {/* Unused discount codes — can cancel to get points back */}
+      {/* Unused discount codes */}
       {redemptions.length > 0 && (
-        <div style={{ marginBottom: '16px' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#666', marginBottom: '8px' }}>
-            Your unused codes ({redemptions.length})
+        <div style={{ marginBottom: '20px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+            Active Codes
           </p>
-          {redemptions.map((r: any) => (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f9f9f9', borderRadius: '8px', marginBottom: '6px' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <code style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a', letterSpacing: '0.5px' }}>{r.discount_code || r.discountCode}</code>
-                <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
-                  €{r.discount_amount || r.discountAmount} off · {r.points_spent || r.pointsSpent} points
+          {redemptions.map((r: any) => {
+            const code = r.discount_code || r.discountCode;
+            const amount = r.discount_amount || r.discountAmount;
+            const pts = r.points_spent || r.pointsSpent;
+            return (
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: '#fff', border: '1px solid #eee', borderRadius: '10px', marginBottom: '8px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a1a' }}>€{amount} off</div>
+                  <code style={{ fontSize: '11px', color: '#888', letterSpacing: '0.3px' }}>{code}</code>
                 </div>
+                <button
+                  onClick={() => copyCode(code)}
+                  style={{ padding: '6px 10px', background: '#f5f5f5', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#555' }}
+                >
+                  {copiedCode === code ? '✓ Copied' : 'Copy'}
+                </button>
+                <button
+                  onClick={() => handleCancel(r.id)}
+                  disabled={cancellingId === String(r.id)}
+                  style={{ padding: '6px 10px', background: '#fff5f5', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: '#e53e3e' }}
+                >
+                  {cancellingId === String(r.id) ? '...' : 'Refund'}
+                </button>
               </div>
-              <button
-                onClick={() => copyCode(r.discount_code || r.discountCode)}
-                style={{ padding: '4px 8px', background: 'none', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
-              >
-                {copiedCode === (r.discount_code || r.discountCode) ? '✓' : 'Copy'}
-              </button>
-              <button
-                onClick={() => handleCancel(r.id)}
-                disabled={cancellingId === String(r.id)}
-                style={{ padding: '4px 8px', background: 'none', border: '1px solid #e53e3e', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', color: '#e53e3e' }}
-              >
-                {cancellingId === String(r.id) ? '...' : 'Cancel'}
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {lastCode && (
-        <div className="cb-code-banner">
-          <span className="cb-code-label">Your new discount code</span>
-          <div className="cb-code-row">
-            <code className="cb-code">{lastCode}</code>
-            <button className="cb-code-copy" onClick={() => copyCode(lastCode)}>
-              {copiedCode === lastCode ? icons.check(14) : icons.copy(14)}
+        <div style={{ padding: '14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', marginBottom: '20px', textAlign: 'center' }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a', marginBottom: '6px' }}>✓ Code created!</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <code style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a1a', letterSpacing: '0.5px' }}>{lastCode}</code>
+            <button onClick={() => copyCode(lastCode)} style={{ padding: '4px 10px', background: '#fff', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
+              {copiedCode === lastCode ? '✓' : 'Copy'}
             </button>
           </div>
+          <p style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>Use this code at checkout</p>
         </div>
       )}
 
+      <p style={{ fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+        Rewards
+      </p>
       <div className="cb-tier-grid">
         {tiers.map((tier: any) => {
           const canRedeem = balance >= tier.points;
+          const needed = tier.points - balance;
           const pct = Math.min(100, Math.round((balance / tier.points) * 100));
           return (
             <div key={tier.id || tier.points} className={`cb-tier-card ${canRedeem ? 'cb-tier-card--ready' : ''}`}>
@@ -316,7 +324,7 @@ function RedeemSection({ customer, api, onRedeem, redeemingTier, lastCode, onRef
                 disabled={!canRedeem || redeemingTier === tier.points}
                 onClick={() => onRedeem(tier.points)}
               >
-                {redeemingTier === tier.points ? 'Redeeming...' : canRedeem ? 'Redeem' : `${(tier.points - balance).toLocaleString()} more`}
+                {redeemingTier === tier.points ? 'Redeeming...' : canRedeem ? 'Redeem' : `Need ${needed.toLocaleString()} more`}
               </button>
             </div>
           );
