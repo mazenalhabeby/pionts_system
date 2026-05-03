@@ -183,7 +183,12 @@ function EarnSection({ customer, onClaim, claimingAction }: { customer: any; onC
               </div>
               <div className="cb-earn-info">
                 <span className="cb-earn-name">{action.label}</span>
-                <span className="cb-earn-pts">+{action.points} pts{action.one_time ? ' · one-time' : ''}</span>
+                <span className="cb-earn-pts">
+                  {action.points_mode === 'per_amount'
+                    ? `${action.points} point${action.points !== 1 ? 's' : ''} per €1 spent`
+                    : `+${action.points} point${action.points !== 1 ? 's' : ''}`}
+                  {action.frequency === 'one_time' ? ' · one-time' : action.frequency === 'yearly' ? ' · yearly' : ''}
+                </span>
               </div>
               {isClaimable && (
                 <button
