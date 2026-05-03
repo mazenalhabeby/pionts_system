@@ -57,9 +57,9 @@ COPY backend/prisma ./backend/prisma
 # Admin UI (full dist — assets + index.html for SPA fallback)
 COPY --from=admin-builder /app/admin-ui/dist ./admin-ui/dist
 
-# Client UI widget (UMD bundle + Web Component)
+# Client UI widget (UMD bundle + Web Component — both served from /widget/)
 COPY --from=client-builder /app/client-ui/dist-umd ./client-ui/dist-umd
-COPY --from=client-builder /app/client-ui/dist-webcomponent ./client-ui/dist-webcomponent
+COPY --from=client-builder /app/client-ui/dist-webcomponent/pionts-widget.js ./client-ui/dist-umd/pionts-widget.js
 
 # SDK loader
 COPY --from=sdk-builder /app/sdk/dist ./sdk/dist

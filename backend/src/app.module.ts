@@ -71,13 +71,6 @@ import { WebhooksV2Module } from './webhooks-v2/webhooks-v2.module';
           maxAge: '1d',
         },
       },
-      {
-        rootPath: join(__dirname, '..', '..', '..', 'client-ui', 'dist-webcomponent'),
-        serveRoot: '/widget',
-        serveStaticOptions: {
-          maxAge: '1d',
-        },
-      },
     ),
     CacheConfigModule,
     PrismaModule,
