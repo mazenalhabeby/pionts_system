@@ -61,6 +61,13 @@ import { ApiV2Module } from './api-v2/api-v2.module';
           maxAge: '1d',
         },
       },
+      {
+        rootPath: join(__dirname, '..', '..', '..', 'client-ui', 'dist-webcomponent'),
+        serveRoot: '/widget',
+        serveStaticOptions: {
+          maxAge: '1d',
+        },
+      },
     ),
     PrismaModule,
     AppConfigModule,
