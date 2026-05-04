@@ -53,6 +53,7 @@ RUN cd backend && npm ci --omit=dev
 COPY --from=backend-builder /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
 COPY --from=backend-builder /app/backend/dist ./backend/dist
 COPY backend/prisma ./backend/prisma
+COPY backend/public ./backend/public
 
 # Admin UI (full dist — assets + index.html for SPA fallback)
 COPY --from=admin-builder /app/admin-ui/dist ./admin-ui/dist

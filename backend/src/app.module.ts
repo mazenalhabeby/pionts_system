@@ -58,6 +58,13 @@ import { WebhooksV2Module } from './webhooks-v2/webhooks-v2.module';
         },
       },
       {
+        rootPath: join(__dirname, '..', 'public', 'docs'),
+        serveRoot: '/docs',
+        serveStaticOptions: {
+          maxAge: '1h',
+        },
+      },
+      {
         rootPath: join(__dirname, '..', '..', '..', 'sdk', 'dist'),
         serveRoot: '/sdk',
         serveStaticOptions: {
