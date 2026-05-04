@@ -94,7 +94,7 @@ export class RedemptionsService {
   async redeemGeneric(projectId: number, customer: { id: number; pointsBalance: number; referralCode: string }, tierPoints: number) {
     const tier = await this.validateTier(projectId, customer.pointsBalance, tierPoints);
     const prefix = await this.getCodePrefix(projectId);
-    const code = `${prefix}-${customer.referralCode}-${Date.now().toString(36)}`;
+    const code = `${prefix}-${customer.referralCode}-${Date.now().toString(36)}`.toUpperCase();
 
     // Create discount on the project's platform via adapter
     const config = await this.platformFactory.getConfig(projectId);

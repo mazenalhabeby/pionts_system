@@ -6,14 +6,11 @@ export class DiscountService {
   constructor(private readonly prisma: PrismaService) {}
 
   async validate(projectId: number, code: string) {
-    const redemption = await this.prisma.redemption.findFirst({
-      where: {
-        projectId,
-        discountCode: { equals: code, mode: 'insensitive' },
-      },
+    const redemption = await this.prisma.redemption.findUnique({
+      where: { discountCode: code.toUpperCase() },
     });
 
-    if (!redemption) {
+    if (!redemption || redemption.projectId !== projectId) {
       return { valid: false };
     }
 
@@ -25,11 +22,8 @@ export class DiscountService {
   }
 
   async markUsed(projectId: number, code: string) {
-    const redemption = await this.prisma.redemption.findFirst({
-      where: {
-        projectId,
-        discountCode: { equals: code, mode: 'insensitive' },
-      },
+    const redemption = await this.prisma.redemption.findUnique({
+      where: { discountCode: code.toUpperCase() },
     });
 
     if (!redemption || redemption.projectId !== projectId) {

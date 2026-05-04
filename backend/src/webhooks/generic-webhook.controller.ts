@@ -98,16 +98,11 @@ export class GenericWebhookController {
   ) {
     const project = await this.resolveProject(apiKey);
 
-    // Case-insensitive search since codes may be mixed-case
-    const redemption = await this.prisma.redemption.findFirst({
-      where: {
-        projectId: project.id,
-        discountCode: { equals: code, mode: 'insensitive' },
-        used: false,
-      },
+    const redemption = await this.prisma.redemption.findUnique({
+      where: { discountCode: code.toUpperCase() },
     });
 
-    if (!redemption) {
+    if (!redemption || redemption.projectId !== project.id || redemption.used) {
       return { valid: false };
     }
 
