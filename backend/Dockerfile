@@ -30,7 +30,15 @@ RUN cd sdk && npm ci
 COPY sdk ./sdk
 RUN cd sdk && npm run build
 
-# ─── Stage 4: Build backend ───
+# ─── Stage 4: Build docs-ui ───
+FROM node:22-alpine AS docs-builder
+WORKDIR /app
+COPY docs-ui/package.json docs-ui/package-lock.json* ./docs-ui/
+RUN cd docs-ui && npm ci
+COPY docs-ui ./docs-ui
+RUN cd docs-ui && npm run build
+
+# ─── Stage 5: Build backend ───
 FROM node:22-alpine AS backend-builder
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json* ./
@@ -63,6 +71,9 @@ COPY --from=client-builder /app/client-ui/dist-umd ./client-ui/dist-umd
 
 # SDK loader
 COPY --from=sdk-builder /app/sdk/dist ./sdk/dist
+
+# Docs UI
+COPY --from=docs-builder /app/docs-ui/dist ./docs-ui/dist
 
 EXPOSE 3000
 

@@ -28,11 +28,18 @@ async function bootstrap() {
   app.use(compression());
   app.use(cookieParser());
 
-  // Serve docs as raw static files (express.static serves .md files correctly)
+  // Serve docs-ui SPA (React app at /docs)
   const express = require('express');
   const path = require('path');
-  const docsPath = path.join(__dirname, '..', '..', 'public', 'docs');
-  app.use('/docs', express.static(docsPath, { index: 'index.html', maxAge: '1h' }));
+  const docsDistPath = path.join(__dirname, '..', '..', '..', 'docs-ui', 'dist');
+  app.use('/docs', express.static(docsDistPath, { maxAge: '1d', index: false }));
+  // SPA fallback: serve index.html for all /docs/* routes
+  app.use('/docs', (req: any, res: any, next: any) => {
+    if (req.method === 'GET' && !req.path.includes('.')) {
+      return res.sendFile(path.join(docsDistPath, 'index.html'));
+    }
+    next();
+  });
 
   app.enableCors({
     origin: (origin, callback) => {
