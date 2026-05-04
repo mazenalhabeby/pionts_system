@@ -1,4 +1,4 @@
-import{j as e}from"./index-Bb-IRV5E.js";import{T as i,S as n,H as t,C as s,a as r,P as a,A as c,d as o}from"./Docs-DWfqreAW.js";function p(){return e.jsxs(e.Fragment,{children:[e.jsx(i,{children:"Widget Setup"}),e.jsx(n,{children:"Add the floating loyalty widget to your storefront."}),e.jsx(o,{num:1,title:"Generate HMAC (Server-Side)",children:e.jsx(s,{lang:"typescript",children:`// Using SDK:
+import{j as e}from"./index-CKncecyL.js";import{T as i,S as n,H as t,C as s,a as r,P as a,A as c,d as o}from"./Docs-CxEZFsxT.js";function p(){return e.jsxs(e.Fragment,{children:[e.jsx(i,{children:"Widget Setup"}),e.jsx(n,{children:"Add the floating loyalty widget to your storefront."}),e.jsx(o,{num:1,title:"Generate HMAC (Server-Side)",children:e.jsx(s,{lang:"typescript",children:`// Using SDK:
 const init = await pionts.widget.init(user.email, user.name);
 // Returns: { projectKey, hmac, apiBase, email, name }
 

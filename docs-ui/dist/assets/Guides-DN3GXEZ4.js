@@ -1,4 +1,4 @@
-import{j as e}from"./index-Bb-IRV5E.js";import{T as n,S as i,H as r,C as t,P as o,A as d,d as s,a}from"./Docs-DWfqreAW.js";function u(){return e.jsxs(e.Fragment,{children:[e.jsx(n,{children:"Custom API Integration"}),e.jsx(i,{children:"Full guide for Node.js, NestJS, Express, or any backend using the SDK."}),e.jsx(r,{children:"Environment Variables"}),e.jsx(t,{lang:"bash",children:`PIONTS_API_URL=https://your-pionts-server.com
+import{j as e}from"./index-CKncecyL.js";import{T as n,S as i,H as r,C as t,P as o,A as d,d as s,a}from"./Docs-CxEZFsxT.js";function u(){return e.jsxs(e.Fragment,{children:[e.jsx(n,{children:"Custom API Integration"}),e.jsx(i,{children:"Full guide for Node.js, NestJS, Express, or any backend using the SDK."}),e.jsx(r,{children:"Environment Variables"}),e.jsx(t,{lang:"bash",children:`PIONTS_API_URL=https://your-pionts-server.com
 PIONTS_SECRET_KEY=sk_live_...
 PIONTS_PROJECT_KEY=pk_live_...    # Only needed for widget
 PIONTS_HMAC_SECRET=...            # Only needed for widget`}),e.jsx(r,{children:"1. Install & Initialize"}),e.jsx(t,{lang:"typescript",children:`import { PiontsClient } from '@pionts/sdk';

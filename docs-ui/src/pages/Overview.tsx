@@ -31,10 +31,10 @@ export default function DocsOverview() {
 
       <H2>Choose Your Platform</H2>
       <CardGrid>
-        <Card icon="🚀" title="Quick Start" desc="Get running in 5 minutes with the Node.js SDK." onClick={() => nav('/docs/quickstart')} />
-        <Card icon="🔧" title="Custom API" desc="Full guide for any Node.js backend." onClick={() => nav('/docs/guide/custom')} />
-        <Card icon="🛍️" title="Shopify" desc="Zero-code install via App Store." onClick={() => nav('/docs/guide/shopify')} />
-        <Card icon="🔌" title="WooCommerce" desc="WordPress plugin + webhooks." onClick={() => nav('/docs/guide/woocommerce')} />
+        <Card icon="🚀" title="Quick Start" desc="Get running in 5 minutes with the Node.js SDK." badge="5 min" onClick={() => nav('/quickstart')} />
+        <Card icon="🔧" title="Custom API" desc="Full guide for any Node.js / NestJS backend." badge="SDK" onClick={() => nav('/guide/custom')} />
+        <Card icon="🛍️" title="Shopify" desc="Zero-code install via Shopify App Store." badge="No code" onClick={() => nav('/guide/shopify')} />
+        <Card icon="🔌" title="WooCommerce" desc="WordPress plugin + webhook setup." badge="PHP" onClick={() => nav('/guide/woocommerce')} />
       </CardGrid>
 
       <H2>Features</H2>
@@ -42,9 +42,9 @@ export default function DocsOverview() {
         <Card icon="⭐" title="Points" desc="Per purchase, signup, birthday, social follow, custom actions." />
         <Card icon="🎁" title="Redemption" desc="Configurable tiers — 50 pts = €5, 100 pts = €10." />
         <Card icon="🔗" title="Referrals" desc="Multi-level referral tree with per-level rewards." />
-        <Card icon="💬" title="Widget" desc="Floating chat bubble, drop-in, CSS isolated." />
-        <Card icon="🔒" title="Secure" desc="HMAC auth, scoped API keys, webhook signatures." />
-        <Card icon="📊" title="Analytics" desc="Points economy, referral funnels, segments, export." />
+        <Card icon="💬" title="Widget" desc="Floating chat bubble, drop-in, full CSS isolation." />
+        <Card icon="🔒" title="Secure" desc="HMAC auth, scoped API keys, webhook signatures, audit log." />
+        <Card icon="📊" title="Analytics" desc="Points economy, referral funnels, customer segments, CSV export." />
       </CardGrid>
 
       <H2>Environment Variables</H2>
