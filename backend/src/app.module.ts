@@ -57,13 +57,8 @@ import { WebhooksV2Module } from './webhooks-v2/webhooks-v2.module';
           immutable: true,
         },
       },
-      {
-        rootPath: join(__dirname, '..', '..', 'public', 'docs'),
-        serveRoot: '/docs',
-        serveStaticOptions: {
-          maxAge: '1h',
-        },
-      },
+      // Docs served via express.static in main.ts (not ServeStaticModule)
+      // because ServeStaticModule falls back to index.html for .md files
       {
         rootPath: join(__dirname, '..', '..', '..', 'sdk', 'dist'),
         serveRoot: '/sdk',

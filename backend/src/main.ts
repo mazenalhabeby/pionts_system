@@ -28,6 +28,12 @@ async function bootstrap() {
   app.use(compression());
   app.use(cookieParser());
 
+  // Serve docs as raw static files (express.static serves .md files correctly)
+  const express = require('express');
+  const path = require('path');
+  const docsPath = path.join(__dirname, '..', 'public', 'docs');
+  app.use('/docs', express.static(docsPath, { index: 'index.html', maxAge: '1h' }));
+
   app.enableCors({
     origin: (origin, callback) => {
       // Allow all origins — SDK routes use API key + HMAC for auth, not cookies
