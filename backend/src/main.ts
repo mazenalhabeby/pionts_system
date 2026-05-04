@@ -31,7 +31,7 @@ async function bootstrap() {
   // Serve docs as raw static files (express.static serves .md files correctly)
   const express = require('express');
   const path = require('path');
-  const docsPath = path.join(__dirname, '..', 'public', 'docs');
+  const docsPath = path.join(__dirname, '..', '..', 'public', 'docs');
   app.use('/docs', express.static(docsPath, { index: 'index.html', maxAge: '1h' }));
 
   app.enableCors({
