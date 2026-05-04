@@ -16,7 +16,7 @@ async function bootstrap() {
 
   // Helmet with relaxed settings for SDK/widget static files (loaded cross-origin)
   app.use((req: any, res: any, next: any) => {
-    if (req.path.startsWith('/sdk/') || req.path.startsWith('/widget/')) {
+    if (req.path.startsWith('/sdk/') || req.path.startsWith('/widget/') || req.path.startsWith('/docs')) {
       return helmet({
         contentSecurityPolicy: false,
         crossOriginResourcePolicy: { policy: 'cross-origin' },
