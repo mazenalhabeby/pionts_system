@@ -5,5 +5,8 @@
 **/build
 **/.next
 **/coverage
-**/*.md
+# Keep docs .md files, exclude other markdown
+**/README.md
+**/CHANGELOG.md
+!backend/public/docs/*.md
 **/.vscode
