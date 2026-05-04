@@ -84,17 +84,17 @@ export class RedemptionsService {
 
   private async getCodePrefix(projectId: number): Promise<string> {
     const configured = this.configService.get(projectId, 'discount_code_prefix');
-    if (configured) return configured.toUpperCase();
+    if (configured) return configured.toLowerCase();
 
     const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true } });
-    const name = project?.name || 'REWARD';
-    return name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10).toUpperCase();
+    const name = project?.name || 'reward';
+    return name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10).toLowerCase();
   }
 
   async redeemGeneric(projectId: number, customer: { id: number; pointsBalance: number; referralCode: string }, tierPoints: number) {
     const tier = await this.validateTier(projectId, customer.pointsBalance, tierPoints);
     const prefix = await this.getCodePrefix(projectId);
-    const code = `${prefix}-${customer.referralCode}-${Date.now().toString(36)}`.toUpperCase();
+    const code = `${prefix}-${customer.referralCode}-${Date.now().toString(36)}`.toLowerCase();
 
     // Create discount on the project's platform via adapter
     const config = await this.platformFactory.getConfig(projectId);

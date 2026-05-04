@@ -7,7 +7,7 @@ export class DiscountService {
 
   async validate(projectId: number, code: string) {
     const redemption = await this.prisma.redemption.findUnique({
-      where: { discountCode: code.toUpperCase() },
+      where: { discountCode: code.toLowerCase() },
     });
 
     if (!redemption || redemption.projectId !== projectId) {
@@ -23,7 +23,7 @@ export class DiscountService {
 
   async markUsed(projectId: number, code: string) {
     const redemption = await this.prisma.redemption.findUnique({
-      where: { discountCode: code.toUpperCase() },
+      where: { discountCode: code.toLowerCase() },
     });
 
     if (!redemption || redemption.projectId !== projectId) {

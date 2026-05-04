@@ -99,7 +99,7 @@ export class GenericWebhookController {
     const project = await this.resolveProject(apiKey);
 
     const redemption = await this.prisma.redemption.findUnique({
-      where: { discountCode: code.toUpperCase() },
+      where: { discountCode: code.toLowerCase() },
     });
 
     if (!redemption || redemption.projectId !== project.id || redemption.used) {
