@@ -71,6 +71,15 @@ export class ApiV2Controller {
     return this.discountService.markUsed(project.id, dto.code);
   }
 
+  @RequireScope('checkout')
+  @Post('checkout/mark-used-partial')
+  async checkoutMarkUsedPartial(
+    @V2Project() project: Project,
+    @Body() dto: { code: string; actualAmountUsed: number },
+  ) {
+    return this.discountService.markUsedPartial(project.id, dto.code, dto.actualAmountUsed);
+  }
+
   // ==================== Orders ====================
 
   @Post('orders/paid')
