@@ -12,7 +12,7 @@ export class EmailService {
   ) {}
 
   async sendVerificationCode(to: string, code: string, brandName?: string, primaryColor?: string): Promise<boolean> {
-    this.logger.log(`Verification code for ${to}: ${code}`);
+    this.logger.log(`Sending verification code to ${to}`);
 
     const template = this.emailTemplate.verificationCode(
       brandName || '8BC Crew',
