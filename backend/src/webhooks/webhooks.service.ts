@@ -51,6 +51,14 @@ export class WebhooksService {
       );
     }
 
+    // Self-heal: customer.referredBy may have been set out-of-band (manual admin
+    // edit, backfill, SDK link on a prior session) without an accompanying
+    // referral_tree row. Without that row, the upline walk below silently
+    // skips referral / partner-commission payouts. linkReferral is idempotent.
+    if (project.referralsEnabled && customer.referredBy) {
+      await this.referralsService.linkReferral(projectId, customer.id, customer.referredBy);
+    }
+
     await this.customersService.incrementOrderCount(customer.id);
 
     // Parse order total early (needed for dynamic purchase points + referral threshold)
