@@ -90,6 +90,8 @@ const TABS: { key: TabKey; label: string; icon: (s?: number) => React.ReactNode 
 /*  HOME SECTION                                                    */
 /* ================================================================ */
 function HomeSection({ customer, settings }: { customer: any; settings: any }) {
+  const isPartner = isCustomerPartner(customer);
+  const partnerInfo = customer.partner_info;
   const balance = customer.points_balance ?? 0;
   const earned = customer.points_earned_total ?? 0;
   const orders = customer.order_count ?? 0;
@@ -107,13 +109,20 @@ function HomeSection({ customer, settings }: { customer: any; settings: any }) {
       {/* Balance hero */}
       <div className="cb-balance-card">
         <div className="cb-balance-top">
-          <div className="cb-balance-pts">
-            <span className="cb-balance-num">{balance.toLocaleString()}</span>
-            <span className="cb-balance-label">Points</span>
-          </div>
-          {currentTier && (
-            <span className="cb-tier-badge">{currentTier.name || 'Member'}</span>
+          {isPartner && partnerInfo ? (
+            <div className="cb-balance-pts">
+              <span className="cb-balance-num">{formatCredit(partnerInfo.credit_balance)}</span>
+              <span className="cb-balance-label">Credit balance · {partnerInfo.commission_pct ?? 0}% per sale</span>
+            </div>
+          ) : (
+            <div className="cb-balance-pts">
+              <span className="cb-balance-num">{balance.toLocaleString()}</span>
+              <span className="cb-balance-label">Points</span>
+            </div>
           )}
+          {isPartner
+            ? <span className="cb-partner-badge">Partner</span>
+            : currentTier && <span className="cb-tier-badge">{currentTier.name || 'Member'}</span>}
         </div>
 
         {nextTier && (
@@ -345,6 +354,10 @@ function ReferSection({ customer, settings }: { customer: any; settings: any }) 
   const link = code ? `${baseUrl}?ref=${code}` : '';
   const stats = customer.referral_stats || {};
   const earnings = customer.referral_earnings ?? 0;
+  const isPartner = isCustomerPartner(customer);
+  const partnerInfo = customer.partner_info;
+  const directRefs: Array<{ name: string | null; email_masked: string; order_count: number; joined_at: string }> =
+    Array.isArray(customer.direct_referrals) ? customer.direct_referrals : [];
 
   const copyLink = () => {
     if (link) {
@@ -356,8 +369,15 @@ function ReferSection({ customer, settings }: { customer: any; settings: any }) 
 
   return (
     <div className="cb-section">
-      <h3 className="cb-section-title">Refer Friends</h3>
-      <p className="cb-section-desc">Share your link and earn points when friends make a purchase.</p>
+      <h3 className="cb-section-title">
+        {isPartner ? 'Partner Link' : 'Refer Friends'}
+        {isPartner && <span className="cb-partner-badge cb-partner-badge--inline">Partner</span>}
+      </h3>
+      <p className="cb-section-desc">
+        {isPartner
+          ? `You earn ${partnerInfo?.commission_pct ?? 0}% commission on every purchase made through your link.`
+          : 'Share your link and earn points when friends make a purchase.'}
+      </p>
 
       {link && (
         <div className="cb-ref-link-box">
@@ -378,12 +398,54 @@ function ReferSection({ customer, settings }: { customer: any; settings: any }) 
           <span className="cb-stat-label">Network</span>
         </div>
         <div className="cb-stat">
-          <span className="cb-stat-num">{earnings}</span>
-          <span className="cb-stat-label">Pts earned</span>
+          <span className="cb-stat-num">
+            {isPartner && partnerInfo ? formatCredit(partnerInfo.credit_balance) : earnings}
+          </span>
+          <span className="cb-stat-label">{isPartner ? 'Pending' : 'Pts earned'}</span>
         </div>
       </div>
+
+      {/* Partner referrals list */}
+      {isPartner && (
+        <div className="cb-referrals">
+          <div className="cb-referrals__top">
+            <h4 className="cb-referrals__title">Your referrals</h4>
+            <span className="cb-referrals__count">{directRefs.length}</span>
+          </div>
+          {directRefs.length === 0 ? (
+            <p className="cb-empty">No referrals yet — share your link to get your first one.</p>
+          ) : (
+            <ul className="cb-referrals__list">
+              {directRefs.map((r, i) => (
+                <li key={i} className="cb-referrals__item">
+                  <div className="cb-referrals__who">
+                    <span className="cb-referrals__name">{r.name || r.email_masked}</span>
+                    <span className="cb-referrals__email">{r.email_masked}</span>
+                  </div>
+                  <div className="cb-referrals__meta">
+                    {r.order_count > 0 && (
+                      <span className="cb-referrals__orders">{r.order_count} order{r.order_count === 1 ? '' : 's'}</span>
+                    )}
+                    <span className="cb-referrals__date">{new Date(r.joined_at).toLocaleDateString()}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+// ─── Helpers (kept module-local for the UMD widget) ───
+function isCustomerPartner(c: any): boolean {
+  return !!(c?.enabled_modules?.partners && c?.is_partner);
+}
+function formatCredit(value: any): string {
+  const n = typeof value === 'number' ? value : parseFloat(value || '0');
+  if (!isFinite(n)) return '0';
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 /* ================================================================ */

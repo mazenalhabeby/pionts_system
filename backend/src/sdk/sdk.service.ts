@@ -33,7 +33,7 @@ export class SdkService {
     const [
       history, referralStats, referralEarnings, pointsBreakdown,
       redemptionStats, earnActions, completedSlugs, redemptionTiers,
-      referralLevels, partnerInfo, pendingSocialClaims,
+      referralLevels, partnerInfo, pendingSocialClaims, directReferrals,
     ] = await Promise.all([
       this.customersService.getHistory(projectId, customer.id),
       project?.referralsEnabled
@@ -58,6 +58,9 @@ export class SdkService {
         ? this.partnersService.getPartnerInfo(projectId, customer.id)
         : null,
       this.earnActionsService.getPendingSocialClaims(projectId, customer.id),
+      project?.referralsEnabled && customer.isPartner
+        ? this.referralsService.getDirectReferralsDetailed(projectId, customer.id)
+        : [],
     ]);
 
     // Pass already-fetched project and tiers to avoid redundant DB queries
@@ -94,6 +97,14 @@ export class SdkService {
       birthday: customer.birthday,
       created_at: customer.createdAt,
       is_partner: customer.isPartner,
+      direct_referrals: customer.isPartner
+        ? (directReferrals as Array<{ name: string | null; email: string; order_count: number; created_at: Date }>).slice(0, 25).map((r) => ({
+            name: r.name,
+            email_masked: maskEmail(r.email),
+            order_count: r.order_count,
+            joined_at: r.created_at,
+          }))
+        : [],
       history,
       referral_stats: referralStats,
       referral_earnings: referralEarnings,
@@ -267,4 +278,10 @@ export class SdkService {
       return null;
     }
   }
+}
+
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at <= 0) return '***';
+  return email[0] + '***' + email.slice(at);
 }

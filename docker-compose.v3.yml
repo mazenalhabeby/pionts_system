@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: pionts-v3-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    env_file: .env.v3
+    volumes:
+      - pionts-v2-pgdata:/var/lib/postgresql/data
+    networks:
+      - pionts-v3-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: pionts-v3-redis
+    restart: unless-stopped
+    volumes:
+      - pionts-redis-data:/data
+    networks:
+      - pionts-v3-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        VITE_BASE_PATH: /admin/
+        VITE_ROUTER_BASE: /admin
+        VITE_API_BASE: 
+    image: pionts-v3-backend:latest
+    container_name: pionts-v3-backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3052:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env.v3
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - pionts-v3-net
+
+volumes:
+  pionts-v2-pgdata:
+    external: true
+    name: repo_pionts-v2-pgdata
+  pionts-redis-data:
+
+networks:
+  pionts-v3-net:
+    driver: bridge

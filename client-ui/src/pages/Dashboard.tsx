@@ -32,6 +32,7 @@ export default function Dashboard() {
   const storeUrl = settings?.referral_base_url || '';
   const refUrl = storeUrl ? `${storeUrl}${storeUrl.includes('?') ? '&' : '?'}ref=${data.referral_code}` : '';
   const partnerInfo = data.partner_info;
+  const directReferrals = data.direct_referrals || [];
   const brandName = String(settings?.widget_brand_name || 'Rewards');
   const discountPercent = String(settings?.referral_discount_percent || '5');
 
@@ -45,7 +46,10 @@ export default function Dashboard() {
             <div className="pw-hero__header">
               <div>
                 <p className="pw-hero__greeting">{t('dashboard.welcome')}</p>
-                <div className="pw-hero__name">{data.name?.split(' ')[0] || t('dashboard.there')}</div>
+                <div className="pw-hero__name">
+                  {data.name?.split(' ')[0] || t('dashboard.there')}
+                  {isPartner && <span className="pw-partner-badge">{t('dashboard.partner_badge')}</span>}
+                </div>
               </div>
               {isPartner && partnerInfo ? (
                 <div className="pw-hero__balance">
@@ -203,6 +207,34 @@ export default function Dashboard() {
             </div>
           </div>
         ) : null}
+
+        {/* Your referrals (partner only) */}
+        {isPartner && directReferrals.length > 0 && (
+          <div className="pw-referrals">
+            <div className="pw-referrals__top">
+              <h2 className="pw-referrals__title">{t('dashboard.your_referrals')}</h2>
+              <span className="pw-referrals__count">{refStats.direct ?? directReferrals.length}</span>
+            </div>
+            <ul className="pw-referrals__list activity-list-scroll">
+              {directReferrals.map((r, i) => (
+                <li key={i} className="pw-referrals__item">
+                  <div className="pw-referrals__who">
+                    <span className="pw-referrals__name">{r.name || r.email_masked}</span>
+                    <span className="pw-referrals__email">{r.email_masked}</span>
+                  </div>
+                  <div className="pw-referrals__meta">
+                    {r.order_count > 0 && (
+                      <span className="pw-referrals__orders">{r.order_count} {t('dashboard.orders')}</span>
+                    )}
+                    <span className="pw-referrals__date">
+                      {new Date(r.joined_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Recent Activity */}
         <div className="pw-activity" style={!referralsEnabled && !isPartner ? { gridColumn: '1 / -1' } : undefined}>

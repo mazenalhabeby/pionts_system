@@ -156,6 +156,15 @@ export interface CustomerData extends Customer {
   referral_levels?: ReferralLevelConfig[];
   partner_info?: PartnerInfo | null;
   pending_social_claims?: { slug: string; initiated_at: string }[];
+  direct_referrals?: DirectReferral[];
+}
+
+// ─── Direct referral (PII-safe) ───
+export interface DirectReferral {
+  name: string | null;
+  email_masked: string;
+  order_count: number;
+  joined_at: string;
 }
 
 // ─── Project Settings ───

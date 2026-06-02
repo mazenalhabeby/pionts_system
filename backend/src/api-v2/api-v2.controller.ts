@@ -29,6 +29,7 @@ import { WebhooksService } from '../webhooks/webhooks.service';
 import { CustomersService } from '../customers/customers.service';
 import { RedemptionsService } from '../redemptions/redemptions.service';
 import { SdkService } from '../sdk/sdk.service';
+import { ReferralsService } from '../referrals/referrals.service';
 
 @Controller('api/v2')
 @UseGuards(ApiKeyV2Guard)
@@ -44,6 +45,7 @@ export class ApiV2Controller {
     private readonly customersService: CustomersService,
     private readonly redemptionsService: RedemptionsService,
     private readonly sdkService: SdkService,
+    private readonly referralsService: ReferralsService,
   ) {}
 
   // ==================== Checkout ====================
@@ -180,6 +182,33 @@ export class ApiV2Controller {
       .createHmac('sha256', project.hmacSecret || '')
       .update(dto.email)
       .digest('hex');
+
+    // Hybrid referral attribution: if a ref code was forwarded, ensure the
+    // customer exists and attach the referrer on first hit. Uses the same
+    // primitive as orders/paid (webhooks.service) so all the anti-fraud
+    // rules — self-ref, cycle, max direct, already-linked — live in one
+    // place inside ReferralsService.
+    if (dto.referralCode && project.referralsEnabled) {
+      try {
+        const customer = await this.customersService.getOrCreate(
+          project.id,
+          dto.email,
+          dto.name,
+        );
+        await this.referralsService.linkReferralIfNeeded(
+          project.id,
+          customer.id,
+          dto.referralCode,
+          customer.referralCode,
+          customer.referredBy,
+        );
+      } catch (err) {
+        // Never let referral attribution block widget init.
+        this.logger.warn(
+          `widget/init: referral link failed for ${dto.email}: ${(err as Error).message}`,
+        );
+      }
+    }
 
     return {
       projectKey: await this.getPublicKey(project.id),

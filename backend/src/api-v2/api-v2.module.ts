@@ -7,6 +7,7 @@ import { WebhooksModule } from '../webhooks/webhooks.module';
 import { CustomersModule } from '../customers/customers.module';
 import { RedemptionsModule } from '../redemptions/redemptions.module';
 import { SdkModule } from '../sdk/sdk.module';
+import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SdkModule } from '../sdk/sdk.module';
     CustomersModule,
     RedemptionsModule,
     SdkModule,
+    ReferralsModule,
   ],
   controllers: [ApiV2Controller],
   providers: [ApiKeyV2Guard],

@@ -4439,3 +4439,201 @@ a:hover {
     height: 44px;
   }
 }
+
+/* ── Partner badge + referrals panel ── */
+.pw-partner-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 999px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
+
+.pw-referrals {
+  background: var(--pw-card-bg, #fff);
+  border: 1px solid var(--pw-border, #e5e7eb);
+  border-radius: 12px;
+  padding: 16px;
+}
+.pw-referrals__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.pw-referrals__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pw-text, #111);
+}
+.pw-referrals__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pw-text-muted, #666);
+  background: var(--pw-soft-bg, #f3f4f6);
+  border-radius: 999px;
+}
+.pw-referrals__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.pw-referrals__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--pw-soft-bg, #f9fafb);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.pw-referrals__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pw-referrals__name {
+  font-weight: 500;
+  color: var(--pw-text, #111);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-referrals__email {
+  color: var(--pw-text-muted, #777);
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+}
+.pw-referrals__meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--pw-text-muted, #666);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.pw-referrals__orders {
+  background: rgba(99,102,241,0.1);
+  color: #4f46e5;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* ── ChatBubble: Partner badge + referrals list ── */
+.cb-partner-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.cb-partner-badge--inline {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.cb-referrals {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+.cb-referrals__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.cb-referrals__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+}
+.cb-referrals__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 999px;
+}
+.cb-referrals__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.cb-referrals__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.cb-referrals__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cb-referrals__name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cb-referrals__email {
+  font-size: 10.5px;
+  opacity: 0.65;
+  font-family: ui-monospace, monospace;
+}
+.cb-referrals__meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+.cb-referrals__orders {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 500;
+}
