@@ -68,7 +68,7 @@ export class DashboardController {
     const [history, referralStats, directReferrals, tree] = await Promise.all([
       this.customersService.getHistory(projectId, customer.id, 50),
       this.referralsService.getReferralStats(projectId, customer.id),
-      this.referralsService.getDirectReferrals(projectId, customer.id),
+      this.referralsService.getDirectReferralsDetailed(projectId, customer.id),
       this.referralsService.getTreeEntryWithRelations(projectId, customer.id),
     ]);
 
