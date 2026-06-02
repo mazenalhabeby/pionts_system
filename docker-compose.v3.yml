@@ -3,10 +3,6 @@ services:
     image: postgres:17-alpine
     container_name: pionts-v3-db
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
     env_file: .env.v3
     volumes:
       - pionts-v2-pgdata:/var/lib/postgresql/data
