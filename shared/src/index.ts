@@ -51,7 +51,7 @@ export type {
 } from './types/api-responses';
 
 // Utils
-export { timeAgo, formatPoints, formatDate, countDescendants, getInitial } from './utils';
+export { timeAgo, formatPoints, formatMoney, formatDate, countDescendants, getInitial } from './utils';
 
 // Hooks
 export { default as useFetch } from './hooks/useFetch';
