@@ -14,6 +14,7 @@ interface Project {
   pointsEnabled?: boolean;
   referralsEnabled?: boolean;
   partnersEnabled?: boolean;
+  baseCurrency?: string;
 }
 
 interface ProjectContextValue {

@@ -112,6 +112,7 @@ export interface EnabledModules {
 // ─── Partner Info ───
 export interface PartnerInfo {
   commission_pct: number;
+  currency: string;
   credit_balance: number;
   total_earned: number;
   total_orders: number;
@@ -122,6 +123,7 @@ export interface PartnerListItem {
   name?: string;
   email: string;
   commission_pct: number;
+  currency: string;
   credit_balance: number;
   total_earned: number;
   total_orders: number;
@@ -132,9 +134,13 @@ export interface PartnerEarning {
   id: number;
   order_id: string;
   order_total: number;
+  order_currency: string;
+  partner_currency: string;
   commission_pct: number;
   amount_earned: number;
   reward_type: 'points' | 'credit';
+  status: 'awarded' | 'skipped_currency';
+  skipped_reason?: string | null;
   created_at: string;
   customer?: { id: number; name?: string; email: string };
 }

@@ -20,25 +20,37 @@ export class PartnersController {
 
   @Post()
   @ProjectRoles('editor')
-  async promote(@Param('id') id: string, @Body() body: { customerId: number; commissionPct: number }) {
+  async promote(
+    @Param('id') id: string,
+    @Body() body: { customerId: number; commissionPct: number; currency?: string },
+  ) {
     if (!body.customerId || body.commissionPct == null) {
       throw new BadRequestException('customerId and commissionPct are required');
     }
     const customer = await this.partnersService.promoteToPartner(
-      parseInt(id, 10), body.customerId, body.commissionPct,
+      parseInt(id, 10), body.customerId, body.commissionPct, body.currency,
     );
     return { success: true, customer: toSnakeCaseCustomer(customer) };
   }
 
   @Put(':partnerId')
   @ProjectRoles('editor')
-  async updateCommission(
+  async updatePartner(
     @Param('id') id: string,
     @Param('partnerId') partnerId: string,
-    @Body() body: { commissionPct: number },
+    @Body() body: { commissionPct?: number; currency?: string },
   ) {
-    if (body.commissionPct == null) throw new BadRequestException('commissionPct is required');
-    await this.partnersService.updateCommission(parseInt(id, 10), parseInt(partnerId, 10), body.commissionPct);
+    const pid = parseInt(id, 10);
+    const cid = parseInt(partnerId, 10);
+    if (body.commissionPct == null && !body.currency) {
+      throw new BadRequestException('Provide commissionPct and/or currency');
+    }
+    if (body.commissionPct != null) {
+      await this.partnersService.updateCommission(pid, cid, body.commissionPct);
+    }
+    if (body.currency) {
+      await this.partnersService.updateCurrency(pid, cid, body.currency);
+    }
     return { success: true };
   }
 

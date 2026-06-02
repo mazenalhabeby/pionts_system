@@ -24,7 +24,7 @@ export class ProjectsService {
     platform?: string,
     userId?: number,
     userRole?: string,
-    modules?: { pointsEnabled?: boolean; referralsEnabled?: boolean; partnersEnabled?: boolean },
+    modules?: { pointsEnabled?: boolean; referralsEnabled?: boolean; partnersEnabled?: boolean; baseCurrency?: string },
   ) {
     if (this.billingService) {
       await this.billingService.canCreateProject(orgId);
@@ -40,6 +40,7 @@ export class ProjectsService {
         pointsEnabled: modules?.pointsEnabled ?? true,
         referralsEnabled: modules?.referralsEnabled ?? true,
         partnersEnabled: modules?.partnersEnabled ?? false,
+        baseCurrency: (modules?.baseCurrency || 'EUR').toUpperCase(),
       },
     });
 
@@ -102,8 +103,11 @@ export class ProjectsService {
     pointsEnabled?: boolean;
     referralsEnabled?: boolean;
     partnersEnabled?: boolean;
+    baseCurrency?: string;
   }) {
-    return this.prisma.project.update({ where: { id }, data });
+    const normalized = { ...data };
+    if (normalized.baseCurrency) normalized.baseCurrency = normalized.baseCurrency.toUpperCase();
+    return this.prisma.project.update({ where: { id }, data: normalized });
   }
 
   async archive(id: number) {

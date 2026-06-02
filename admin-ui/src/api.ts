@@ -238,15 +238,15 @@ export const referralLevelsApi = {
 // ─── Partners API (project-scoped) ───
 export const partnersApi = {
   list: (pid: number | string): Promise<PartnerListItem[]> => request(`/api/v1/projects/${pid}/partners`),
-  promote: (pid: number | string, customerId: number, commissionPct: number): Promise<{ success: boolean }> =>
+  promote: (pid: number | string, customerId: number, commissionPct: number, currency?: string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/partners`, {
       method: 'POST',
-      body: JSON.stringify({ customerId, commissionPct }),
+      body: JSON.stringify({ customerId, commissionPct, currency }),
     }),
-  updateCommission: (pid: number | string, partnerId: number | string, commissionPct: number): Promise<{ success: boolean }> =>
+  update: (pid: number | string, partnerId: number | string, data: { commissionPct?: number; currency?: string }): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/partners/${partnerId}`, {
       method: 'PUT',
-      body: JSON.stringify({ commissionPct }),
+      body: JSON.stringify(data),
     }),
   demote: (pid: number | string, partnerId: number | string): Promise<{ success: boolean }> =>
     request(`/api/v1/projects/${pid}/partners/${partnerId}`, { method: 'DELETE' }),

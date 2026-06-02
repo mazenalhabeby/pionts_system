@@ -28,7 +28,12 @@ export class ProjectsController {
   async create(@CurrentUser() user: any, @Body() dto: CreateProjectDto) {
     const { project, keys } = await this.projectsService.create(
       user.org.id, dto.name, dto.domain, dto.platform, user.id, user.role,
-      { pointsEnabled: dto.pointsEnabled, referralsEnabled: dto.referralsEnabled, partnersEnabled: dto.partnersEnabled },
+      {
+        pointsEnabled: dto.pointsEnabled,
+        referralsEnabled: dto.referralsEnabled,
+        partnersEnabled: dto.partnersEnabled,
+        baseCurrency: dto.baseCurrency,
+      },
     );
     return {
       project: {
@@ -37,6 +42,7 @@ export class ProjectsController {
         pointsEnabled: project.pointsEnabled,
         referralsEnabled: project.referralsEnabled,
         partnersEnabled: project.partnersEnabled,
+        baseCurrency: project.baseCurrency,
       },
       apiKeys: keys,
     };
@@ -58,6 +64,7 @@ export class ProjectsController {
       pointsEnabled: p.pointsEnabled,
       referralsEnabled: p.referralsEnabled,
       partnersEnabled: p.partnersEnabled,
+      baseCurrency: p.baseCurrency,
     }));
   }
 
@@ -76,6 +83,7 @@ export class ProjectsController {
       pointsEnabled: project.pointsEnabled,
       referralsEnabled: project.referralsEnabled,
       partnersEnabled: project.partnersEnabled,
+      baseCurrency: project.baseCurrency,
     };
   }
 
@@ -88,6 +96,7 @@ export class ProjectsController {
       id: project.id, name: project.name, domain: project.domain, status: project.status,
       pointsEnabled: project.pointsEnabled, referralsEnabled: project.referralsEnabled,
       partnersEnabled: project.partnersEnabled,
+      baseCurrency: project.baseCurrency,
     };
   }
 

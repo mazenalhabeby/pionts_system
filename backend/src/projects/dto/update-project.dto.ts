@@ -28,4 +28,9 @@ export class UpdateProjectDto {
   @IsBoolean()
   @IsOptional()
   partnersEnabled?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(3)
+  baseCurrency?: string;
 }

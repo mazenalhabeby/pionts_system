@@ -67,6 +67,7 @@ model Project {
   pointsEnabled    Boolean  @default(true)  @map("points_enabled")
   referralsEnabled Boolean  @default(true)  @map("referrals_enabled")
   partnersEnabled  Boolean  @default(false) @map("partners_enabled")
+  baseCurrency     String   @default("EUR") @map("base_currency")
   platformApiUrl       String?  @map("platform_api_url")
   platformApiKey       String?  @map("platform_api_key")
   platformWebhookSecret String? @map("platform_webhook_secret")
@@ -154,6 +155,7 @@ model Customer {
   isPartner            Boolean   @default(false) @map("is_partner")
   partnerAppliedAt     DateTime? @map("partner_applied_at")
   partnerCommissionPct Decimal?  @map("partner_commission_pct") @db.Decimal(5, 2)
+  partnerCurrency      String?   @map("partner_currency")
   partnerCreditBalance Decimal   @default(0) @map("partner_credit_balance") @db.Decimal(10, 2)
   createdAt            DateTime  @default(now()) @map("created_at")
   lastActivity         DateTime  @default(now()) @map("last_activity")
@@ -364,16 +366,20 @@ model ReferralLevel {
 }
 
 model PartnerEarning {
-  id            Int      @id @default(autoincrement())
-  projectId     Int      @map("project_id")
-  partnerId     Int      @map("partner_id")
-  customerId    Int      @map("customer_id")
-  orderId       String   @map("order_id")
-  orderTotal    Decimal  @map("order_total") @db.Decimal(10, 2)
-  commissionPct Decimal  @map("commission_pct") @db.Decimal(5, 2)
-  amountEarned  Decimal  @map("amount_earned") @db.Decimal(10, 2)
-  rewardType    String   @map("reward_type") // "points" | "credit"
-  createdAt     DateTime @default(now()) @map("created_at")
+  id              Int      @id @default(autoincrement())
+  projectId       Int      @map("project_id")
+  partnerId       Int      @map("partner_id")
+  customerId      Int      @map("customer_id")
+  orderId         String   @map("order_id")
+  orderTotal      Decimal  @map("order_total") @db.Decimal(10, 2)
+  orderCurrency   String   @default("EUR") @map("order_currency")
+  partnerCurrency String   @default("EUR") @map("partner_currency")
+  commissionPct   Decimal  @map("commission_pct") @db.Decimal(5, 2)
+  amountEarned    Decimal  @map("amount_earned") @db.Decimal(10, 2)
+  rewardType      String   @map("reward_type") // "points" | "credit"
+  status          String   @default("awarded") @map("status") // "awarded" | "skipped_currency"
+  skippedReason   String?  @map("skipped_reason")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   project  Project  @relation(fields: [projectId], references: [id])
   partner  Customer @relation("PartnerEarnings", fields: [partnerId], references: [id])

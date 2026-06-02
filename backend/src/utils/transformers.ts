@@ -22,6 +22,8 @@ export function toSnakeCaseCustomer(c: any) {
     birthday_rewarded_year: c.birthdayRewardedYear,
     is_partner: c.isPartner ?? false,
     partner_commission_pct: c.partnerCommissionPct ? Number(c.partnerCommissionPct) : null,
+    partner_currency: c.partnerCurrency ?? null,
+    partner_credit_balance: c.partnerCreditBalance != null ? Number(c.partnerCreditBalance) : 0,
     created_at: c.createdAt,
     last_activity: c.lastActivity,
   };

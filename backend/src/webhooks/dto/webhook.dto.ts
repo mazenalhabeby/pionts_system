@@ -5,6 +5,7 @@ export class OrderWebhookDto {
   @Allow() customer_name?: string;
   @Allow() order_id?: string;
   @Allow() order_total?: number;
+  @Allow() currency?: string;
   @Allow() referral_code?: string;
   @Allow() external_customer_id?: string;
   @Allow() email?: string;
@@ -19,6 +20,7 @@ export class OrderWebhookDto {
   @Allow() total_price?: string;
   @Allow() subtotal_price?: string;
   @Allow() order_number?: string | number;
+  @Allow() presentment_currency?: string; // Shopify
 }
 
 export class RefundWebhookDto {

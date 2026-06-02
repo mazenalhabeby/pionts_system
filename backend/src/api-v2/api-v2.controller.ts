@@ -94,6 +94,7 @@ export class ApiV2Controller {
       customer_name: dto.customerName,
       order_id: dto.orderId,
       order_total: dto.orderTotal,
+      currency: dto.currency,
       referral_code: dto.referralCode,
     });
   }

@@ -28,6 +28,16 @@ export function formatPoints(pts: number | null | undefined): string {
   return String(num);
 }
 
+export function formatMoney(amount: number | null | undefined, currency?: string | null): string {
+  const value = Number(amount ?? 0);
+  const code = (currency || 'EUR').toUpperCase();
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: code }).format(value);
+  } catch {
+    return `${value.toFixed(2)} ${code}`;
+  }
+}
+
 export function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '--';
   const d = new Date(dateString);

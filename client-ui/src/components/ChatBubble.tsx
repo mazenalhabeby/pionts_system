@@ -111,7 +111,7 @@ function HomeSection({ customer, settings }: { customer: any; settings: any }) {
         <div className="cb-balance-top">
           {isPartner && partnerInfo ? (
             <div className="cb-balance-pts">
-              <span className="cb-balance-num">{formatCredit(partnerInfo.credit_balance)}</span>
+              <span className="cb-balance-num">{formatCredit(partnerInfo.credit_balance, partnerInfo.currency)}</span>
               <span className="cb-balance-label">Credit balance · {partnerInfo.commission_pct ?? 0}% per sale</span>
             </div>
           ) : (
@@ -399,7 +399,7 @@ function ReferSection({ customer, settings }: { customer: any; settings: any }) 
         </div>
         <div className="cb-stat">
           <span className="cb-stat-num">
-            {isPartner && partnerInfo ? formatCredit(partnerInfo.credit_balance) : earnings}
+            {isPartner && partnerInfo ? formatCredit(partnerInfo.credit_balance, partnerInfo.currency) : earnings}
           </span>
           <span className="cb-stat-label">{isPartner ? 'Pending' : 'Pts earned'}</span>
         </div>
@@ -442,10 +442,15 @@ function ReferSection({ customer, settings }: { customer: any; settings: any }) 
 function isCustomerPartner(c: any): boolean {
   return !!(c?.enabled_modules?.partners && c?.is_partner);
 }
-function formatCredit(value: any): string {
+function formatCredit(value: any, currency?: string | null): string {
   const n = typeof value === 'number' ? value : parseFloat(value || '0');
   if (!isFinite(n)) return '0';
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const code = (currency || 'EUR').toUpperCase();
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: code }).format(n);
+  } catch {
+    return `${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${code}`;
+  }
 }
 
 /* ================================================================ */

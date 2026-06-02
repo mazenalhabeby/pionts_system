@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { partnersApi, getErrorMessage } from '../api';
-import type { PartnerListItem } from '@pionts/shared';
+import { formatMoney, type PartnerListItem } from '@pionts/shared';
 import { NoProject } from '../components/ui/empty-state';
 import { Alert } from '../components/ui/alert';
 
@@ -31,7 +31,15 @@ export default function Partners() {
 
   if (!currentProject) return <NoProject />;
 
-  const totalEarned = partners.reduce((sum, p) => sum + Number(p.total_earned || 0), 0);
+  const projectCurrency = (currentProject.baseCurrency || 'EUR').toUpperCase();
+  // Aggregate earned only across partners whose currency matches the project base.
+  // Partners earning in other currencies are summed separately and shown per-currency below.
+  const earnedByCurrency = partners.reduce<Record<string, number>>((acc, p) => {
+    const cur = (p.currency || projectCurrency).toUpperCase();
+    acc[cur] = (acc[cur] ?? 0) + Number(p.total_earned || 0);
+    return acc;
+  }, {});
+  const totalEarnedBase = earnedByCurrency[projectCurrency] ?? 0;
   const avgCommission = partners.length > 0
     ? (partners.reduce((sum, p) => sum + (p.commission_pct || 0), 0) / partners.length).toFixed(1)
     : '0';
@@ -54,7 +62,7 @@ export default function Partners() {
         <div className="grid grid-cols-4 border-t border-border-default max-md:grid-cols-2">
           {[
             { label: 'Total Partners', value: String(partners.length) },
-            { label: 'Total Earned', value: `\u20AC${totalEarned.toFixed(2)}`, accent: true },
+            { label: `Total Earned (${projectCurrency})`, value: formatMoney(totalEarnedBase, projectCurrency), accent: true },
             { label: 'Avg Commission', value: `${avgCommission}%` },
             { label: 'Active Partners', value: String(activePartners) },
           ].map((s, i) => (
@@ -124,12 +132,12 @@ export default function Partners() {
 
                 {/* Commission badge */}
                 <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg shrink-0" style={{ color: '#0ea5e9', background: 'rgba(14, 165, 233, 0.1)' }}>
-                  {p.commission_pct}%
+                  {p.commission_pct}% {(p.currency || projectCurrency).toUpperCase()}
                 </span>
 
                 {/* Earnings */}
                 <div className="text-right shrink-0 min-w-[80px]">
-                  <div className="text-[14px] font-bold text-success">{Number(p.total_earned || 0).toFixed(2)}</div>
+                  <div className="text-[14px] font-bold text-success">{formatMoney(Number(p.total_earned || 0), p.currency || projectCurrency)}</div>
                   <div className="text-[10px] text-text-faint">earned</div>
                 </div>
 

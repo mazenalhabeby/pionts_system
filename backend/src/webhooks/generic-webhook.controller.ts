@@ -66,6 +66,7 @@ export class GenericWebhookController {
         customer_name: body.customerName,
         order_id: body.orderId,
         order_total: body.orderTotal,
+        currency: body.currency,
         referral_code: body.referralCode,
       });
     } catch (err) {

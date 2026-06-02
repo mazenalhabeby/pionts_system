@@ -28,6 +28,7 @@ export class WebhooksService {
     const name = body.customer_name || extractName(body.customer?.first_name, body.customer?.last_name);
     const orderId = body.order_id || String(body.id || body.order_number);
     const orderTotal = body.order_total ?? parseFloat(body.total_price || body.subtotal_price || '0');
+    const orderCurrency = body.currency || body.presentment_currency;
     const externalCustomerId = body.external_customer_id || (body.customer?.id ? String(body.customer.id) : undefined);
     const referralCode = body.referral_code;
 
@@ -105,7 +106,7 @@ export class WebhooksService {
             if (referrer?.isPartner) {
               // Partner gets commission INSTEAD OF regular referral points
               await this.partnersService.awardCommission(
-                projectId, ancestor.customerId, customer.id, orderId, parsedTotal,
+                projectId, ancestor.customerId, customer.id, orderId, parsedTotal, orderCurrency,
               );
               continue;
             }

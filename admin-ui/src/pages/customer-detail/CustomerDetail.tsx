@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { dashboardApi, partnersApi, getErrorMessage } from '../../api';
 import { useProject } from '../../context/ProjectContext';
-import { useFetch, timeAgo } from '@pionts/shared';
+import { useFetch, timeAgo, formatMoney } from '@pionts/shared';
 import { Alert } from '../../components/ui/alert';
 import { useConfirm } from '../../components/ui/confirm-dialog';
 import { NoProject } from '../../components/ui/empty-state';
@@ -19,9 +19,13 @@ interface PartnerEarning {
   id: number;
   orderId: string;
   orderTotal: string;
+  orderCurrency: string;
+  partnerCurrency: string;
   commissionPct: string;
   amountEarned: string;
   rewardType: string;
+  status: 'awarded' | 'skipped_currency';
+  skippedReason?: string | null;
   createdAt: string;
   customer: { id: number; name?: string; email?: string };
 }
@@ -44,29 +48,36 @@ function PartnerEarningsTable({ earnings }: { earnings: PartnerEarning[] }) {
           </tr>
         </thead>
         <tbody>
-          {earnings.map((e) => (
-            <tr key={e.id} className="border-b border-border-default/30 last:border-0 hover:bg-bg-surface-hover/30 transition-colors duration-150">
-              <td className="px-3 py-2.5">
-                <Link to={`/customers/${e.customer.id}`} className="text-[13px] text-primary font-medium hover:underline no-underline transition-colors">
-                  {e.customer.name || e.customer.email}
-                </Link>
-              </td>
-              <td className="px-3 py-2.5 text-[12px] text-text-secondary font-mono">#{e.orderId}</td>
-              <td className="px-3 py-2.5 text-[13px] text-text-primary text-right font-medium tabular-nums">${Number(e.orderTotal).toFixed(2)}</td>
-              <td className="px-3 py-2.5 text-[13px] text-text-secondary text-right tabular-nums">{Number(e.commissionPct)}%</td>
-              <td className="px-3 py-2.5 text-right">
-                <span className="text-[13px] font-bold text-success tabular-nums">${Number(e.amountEarned).toFixed(2)}</span>
-              </td>
-              <td className="px-3 py-2.5">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                  e.rewardType === 'credit' ? 'text-[#f59e0b] bg-[#f59e0b]/10' : 'text-success bg-success-dim'
-                }`}>
-                  {e.rewardType === 'credit' ? 'Credit' : 'Points'}
-                </span>
-              </td>
-              <td className="px-3 py-2.5 text-[11px] text-text-faint text-right whitespace-nowrap">{timeAgo(e.createdAt)}</td>
-            </tr>
-          ))}
+          {earnings.map((e) => {
+            const skipped = e.status === 'skipped_currency';
+            return (
+              <tr key={e.id} className={`border-b border-border-default/30 last:border-0 transition-colors duration-150 ${skipped ? 'bg-error-dim/20 hover:bg-error-dim/30' : 'hover:bg-bg-surface-hover/30'}`}>
+                <td className="px-3 py-2.5">
+                  <Link to={`/customers/${e.customer.id}`} className="text-[13px] text-primary font-medium hover:underline no-underline transition-colors">
+                    {e.customer.name || e.customer.email}
+                  </Link>
+                </td>
+                <td className="px-3 py-2.5 text-[12px] text-text-secondary font-mono">#{e.orderId}</td>
+                <td className="px-3 py-2.5 text-[13px] text-text-primary text-right font-medium tabular-nums">{formatMoney(Number(e.orderTotal), e.orderCurrency)}</td>
+                <td className="px-3 py-2.5 text-[13px] text-text-secondary text-right tabular-nums">{Number(e.commissionPct)}%</td>
+                <td className="px-3 py-2.5 text-right">
+                  {skipped ? (
+                    <span className="text-[11px] font-semibold text-error/80 italic" title={e.skippedReason ?? 'Skipped'}>skipped</span>
+                  ) : (
+                    <span className="text-[13px] font-bold text-success tabular-nums">{formatMoney(Number(e.amountEarned), e.partnerCurrency)}</span>
+                  )}
+                </td>
+                <td className="px-3 py-2.5">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    skipped ? 'text-error/80 bg-error-dim' : e.rewardType === 'credit' ? 'text-[#f59e0b] bg-[#f59e0b]/10' : 'text-success bg-success-dim'
+                  }`}>
+                    {skipped ? 'Currency mismatch' : e.rewardType === 'credit' ? 'Credit' : 'Points'}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 text-[11px] text-text-faint text-right whitespace-nowrap">{timeAgo(e.createdAt)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -146,24 +157,30 @@ function ReferralTabs({ customer, referredByCustomer, grandparent, directReferra
 
 /* ── Partner Actions Card ── */
 
-function PartnerActions({ customer, projectId, onUpdate }: {
-  customer: { id: number; is_partner?: boolean; partner_commission_pct?: number };
+function PartnerActions({ customer, projectId, projectCurrency, onUpdate }: {
+  customer: { id: number; is_partner?: boolean; partner_commission_pct?: number; partner_currency?: string | null };
   projectId: number | string;
+  projectCurrency: string;
   onUpdate: () => void;
 }) {
   const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
   const [commission, setCommission] = useState('10');
+  const [promoteCurrency, setPromoteCurrency] = useState(projectCurrency);
   const [editCommission, setEditCommission] = useState('');
+  const [editCurrency, setEditCurrency] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState('');
   const [stats, setStats] = useState<{ totalEarned: number; totalOrders: number } | null>(null);
 
+  const partnerCurrency = (customer.partner_currency || projectCurrency).toUpperCase();
+
   useEffect(() => {
     if (customer.is_partner) {
       partnersApi.getEarnings(projectId, customer.id).then((data: PartnerEarning[]) => {
-        const totalEarned = data.reduce((sum: number, e: PartnerEarning) => sum + Number(e.amountEarned), 0);
-        setStats({ totalEarned, totalOrders: data.length });
+        const awarded = data.filter((e) => e.status === 'awarded');
+        const totalEarned = awarded.reduce((sum: number, e: PartnerEarning) => sum + Number(e.amountEarned), 0);
+        setStats({ totalEarned, totalOrders: awarded.length });
       }).catch(() => setStats(null));
     }
   }, [customer.is_partner, customer.id, projectId]);
@@ -187,7 +204,7 @@ function PartnerActions({ customer, projectId, onUpdate }: {
           <div className="grid grid-cols-3 gap-2.5 mb-5">
             {[
               { label: 'Commission', value: `${customer.partner_commission_pct}%`, color: 'text-[#f59e0b]', glow: '0 0 16px rgba(245, 158, 11, 0.2)' },
-              { label: 'Earned', value: stats ? `$${stats.totalEarned.toFixed(2)}` : '—', color: 'text-success', glow: '0 0 16px rgba(80, 227, 194, 0.2)' },
+              { label: 'Earned', value: stats ? formatMoney(stats.totalEarned, partnerCurrency) : '—', color: 'text-success', glow: '0 0 16px rgba(80, 227, 194, 0.2)' },
               { label: 'Orders', value: stats ? String(stats.totalOrders) : '—', color: 'text-text-primary', glow: '0 0 16px rgba(237, 237, 237, 0.12)' },
             ].map((s) => (
               <div key={s.label} className="text-center py-3 bg-bg-surface-raised/80 border border-border-default rounded-lg backdrop-blur-sm transition-all duration-200 hover:border-border-focus/20">
@@ -197,8 +214,8 @@ function PartnerActions({ customer, projectId, onUpdate }: {
             ))}
           </div>
 
-          {/* Edit commission */}
-          <div className="flex items-center gap-3 mb-4">
+          {/* Edit commission + currency */}
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
             <label className="text-[12px] text-text-muted font-medium">Commission %</label>
             {isEditing ? (
               <>
@@ -211,15 +228,27 @@ function PartnerActions({ customer, projectId, onUpdate }: {
                   onChange={(e) => setEditCommission(e.target.value)}
                   className={inputClass}
                 />
+                <label className="text-[12px] text-text-muted font-medium">Currency</label>
+                <input
+                  type="text"
+                  maxLength={3}
+                  value={editCurrency}
+                  onChange={(e) => setEditCurrency(e.target.value.toUpperCase())}
+                  className={`${inputClass} uppercase`}
+                  placeholder="EUR"
+                />
                 <button
                   type="button"
                   className={`${btnSmall} bg-text-primary text-bg-page border-none hover:bg-text-secondary disabled:opacity-50`}
-                  disabled={loading || !editCommission}
+                  disabled={loading || !editCommission || !editCurrency}
                   onClick={async () => {
                     setLoading(true);
                     setError('');
                     try {
-                      await partnersApi.updateCommission(projectId, customer.id, parseFloat(editCommission));
+                      await partnersApi.update(projectId, customer.id, {
+                        commissionPct: parseFloat(editCommission),
+                        currency: editCurrency.trim(),
+                      });
                       setIsEditing(false);
                       onUpdate();
                     } catch (err) {
@@ -242,11 +271,14 @@ function PartnerActions({ customer, projectId, onUpdate }: {
             ) : (
               <>
                 <span className="text-[15px] font-bold text-text-primary tabular-nums">{customer.partner_commission_pct}%</span>
+                <span className="text-[12px] text-text-muted">in</span>
+                <span className="text-[13px] font-bold text-text-primary tracking-wide">{partnerCurrency}</span>
                 <button
                   type="button"
                   className={`${btnSmall} bg-transparent text-text-faint border border-border-default hover:text-text-secondary hover:border-border-focus`}
                   onClick={() => {
                     setEditCommission(String(customer.partner_commission_pct ?? 10));
+                    setEditCurrency(partnerCurrency);
                     setIsEditing(true);
                   }}
                 >
@@ -295,7 +327,7 @@ function PartnerActions({ customer, projectId, onUpdate }: {
       <div className="p-5 flex flex-col flex-1">
         <p className="text-[13px] text-text-muted mb-4 leading-relaxed">Promote this customer to partner to earn commission on referral orders.</p>
         {error && <Alert className="mb-3">{error}</Alert>}
-        <div className="flex items-center gap-3 mt-auto">
+        <div className="flex items-center gap-3 mt-auto flex-wrap">
           <label className="text-[12px] text-text-muted font-medium">Commission %</label>
           <input
             type="number"
@@ -306,15 +338,24 @@ function PartnerActions({ customer, projectId, onUpdate }: {
             onChange={(e) => setCommission(e.target.value)}
             className={inputClass}
           />
+          <label className="text-[12px] text-text-muted font-medium">Currency</label>
+          <input
+            type="text"
+            maxLength={3}
+            value={promoteCurrency}
+            onChange={(e) => setPromoteCurrency(e.target.value.toUpperCase())}
+            className={`${inputClass} uppercase`}
+            placeholder={projectCurrency}
+          />
           <button
             type="button"
             className="bg-[#f59e0b] text-white border-none px-5 py-2 rounded-lg cursor-pointer text-[12px] font-bold font-sans transition-all duration-200 shadow-[0_0_16px_rgba(245,158,11,0.25)] hover:shadow-[0_0_24px_rgba(245,158,11,0.4)] hover:brightness-110 active:scale-[0.97] disabled:opacity-50 disabled:shadow-none"
-            disabled={loading || !commission}
+            disabled={loading || !commission || !promoteCurrency}
             onClick={async () => {
               setLoading(true);
               setError('');
               try {
-                await partnersApi.promote(projectId, customer.id, parseFloat(commission));
+                await partnersApi.promote(projectId, customer.id, parseFloat(commission), promoteCurrency.trim());
                 onUpdate();
               } catch (err) {
                 setError(getErrorMessage(err));
@@ -416,7 +457,12 @@ export default function CustomerDetail() {
         <div className={`grid ${currentProject?.partnersEnabled ? 'grid-cols-2 max-[900px]:grid-cols-1' : 'grid-cols-1'} gap-5 items-stretch`}>
           <ManualActions onAward={handleAward} onDeduct={handleDeduct} />
           {currentProject?.partnersEnabled && (
-            <PartnerActions customer={customer} projectId={pid!} onUpdate={refresh} />
+            <PartnerActions
+              customer={customer}
+              projectId={pid!}
+              projectCurrency={currentProject?.baseCurrency || 'EUR'}
+              onUpdate={refresh}
+            />
           )}
         </div>
       )}
