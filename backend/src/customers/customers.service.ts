@@ -47,6 +47,28 @@ export class CustomersService {
     });
   }
 
+  /**
+   * Bulk points-balance lookup, scoped to a single project (store).
+   * Returns only customers that belong to `projectId` AND whose email is in the
+   * requested list — never another store's customers, never the whole table.
+   * Unknown emails are simply absent from the result (caller treats as 0).
+   */
+  async findBalancesByEmails(projectId: number, emails: string[]) {
+    const normalized = Array.from(
+      new Set(emails.map((e) => e.toLowerCase().trim()).filter(Boolean)),
+    );
+    if (normalized.length === 0) return [];
+    const rows = await this.prisma.customer.findMany({
+      where: { projectId, email: { in: normalized } },
+      select: { email: true, name: true, pointsBalance: true },
+    });
+    return rows.map((r) => ({
+      email: r.email,
+      name: r.name ?? null,
+      points_balance: r.pointsBalance,
+    }));
+  }
+
   async findById(projectId: number, id: number) {
     const customer = await this.prisma.customer.findUnique({ where: { id } });
     if (customer && customer.projectId !== projectId) return null;

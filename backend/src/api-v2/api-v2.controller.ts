@@ -23,6 +23,7 @@ import { OrderPaidDto } from './dto/order-paid.dto';
 import { OrderRefundedDto } from './dto/order-refunded.dto';
 import { RedeemDto } from './dto/redeem.dto';
 import { WidgetInitDto } from './dto/widget-init.dto';
+import { CustomerBalancesDto } from './dto/customer-balances.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DiscountService } from '../discount/discount.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
@@ -110,6 +111,23 @@ export class ApiV2Controller {
   }
 
   // ==================== Customers ====================
+
+  /**
+   * Bulk balances for a list of emails — scoped to the calling store (project).
+   * One call replaces N per-customer lookups (used for leaderboards / winner
+   * ranking). Returns only this project's customers, only the requested emails.
+   */
+  @Post('customers/balances')
+  async customerBalances(
+    @V2Project() project: Project,
+    @Body() dto: CustomerBalancesDto,
+  ) {
+    const balances = await this.customersService.findBalancesByEmails(
+      project.id,
+      dto.emails,
+    );
+    return { balances };
+  }
 
   @Get('customers/:email')
   async getCustomer(
