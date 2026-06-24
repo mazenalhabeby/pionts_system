@@ -4,6 +4,7 @@ import { ReferralCodeService } from '../utils/referral-code.service';
 import { NotificationService } from '../notifications/notification.service';
 import { BillingService } from '../billing/billing.service';
 import { AppConfigService } from '../config/app-config.service';
+import { WebhooksV2Service } from '../webhooks-v2/webhooks-v2.service';
 import { Prisma } from '@prisma/client';
 import { toSnakeCaseLog } from '../utils/transformers';
 
@@ -25,6 +26,7 @@ export class CustomersService {
     private readonly appConfigService: AppConfigService,
     @Optional() private readonly notificationService?: NotificationService,
     @Optional() private readonly billingService?: BillingService,
+    @Optional() private readonly webhooksV2Service?: WebhooksV2Service,
   ) {}
 
   /** Returns the tier multiplier for a customer based on their total earned points. */
@@ -152,6 +154,20 @@ export class CustomersService {
       this.notificationService
         .onPointsEarned(projectId, updated, points, type, updated.pointsBalance)
         .catch((err) => this.logger.error('Notification failed', err?.message));
+    }
+
+    // Emit a `points.credited` webhook so each connected site can send its own
+    // branded notification (manual award, earn, …). Fire-and-forget; only on a
+    // real credit. eventId/eventType travel in headers; the body is this payload.
+    if (this.webhooksV2Service && points > 0 && updated.email) {
+      this.webhooksV2Service
+        .emit(projectId, 'points.credited', {
+          email: updated.email,
+          delta: points,
+          newBalance: updated.pointsBalance,
+          reason: type,
+        })
+        .catch((err) => this.logger.error('Webhook emit failed', err?.message));
     }
 
     return updated.pointsBalance;
